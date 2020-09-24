@@ -9,21 +9,16 @@
 
 #include <stdio.h>
 
-#define PORT "58801"
+#define PORT "58011"
 #define MSSG_SIZE 128
-
-int fd, errcode;
-ssize_t n;
-struct addrinfo hints, *res;
-char buffer[MSSG_SIZE];
 
 
 int main() {
 	
-/*	int fd, errcode;
+	int fd, errcode;
 	ssize_t n;
 	struct addrinfo hints, *res;
-	char buffer[MSSG_SIZE];*/
+	char buffer[MSSG_SIZE];
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);
 	
@@ -37,7 +32,7 @@ int main() {
 	hints.ai_socktype = SOCK_STREAM;
 
 	errcode = getaddrinfo("sigma03.tecnico.ulisboa.pt", PORT, &hints, &res);
-	if (errcode == -1) {
+	if (errcode != 0) {
 		fprintf(stderr, "\n");
 		exit(EXIT_FAILURE);
 	}
@@ -55,7 +50,6 @@ int main() {
 		fprintf(stderr, "\n");
 		exit(EXIT_FAILURE);
 	}
-
 	n = read(fd, buffer, MSSG_SIZE);
 	
 	if (n == -1) {

@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #define MSSG_SIZE 128
-#define PORT "58001"
+#define PORT "58011"
 #define TRUE 1
 
 int main() {
@@ -53,6 +53,7 @@ int main() {
 
 	while(TRUE) {
 		addrlen = sizeof(addr);
+		printf("Server waiting...\n");
 		if ((newfd = accept(fd, (struct sockaddr*)&addr, &addrlen)) == -1){
 		fprintf(stderr, "\n");
 		exit(EXIT_FAILURE);
