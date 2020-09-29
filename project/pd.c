@@ -38,7 +38,7 @@ typedef struct user_info_t {
 /* A function to parse console input */
 void parse(int nArgs, char *argV[], serverInfo_t *serverInfo) {
     int i;
-    if (nArgs < 2 && nArgs > 8){
+    if (nArgs < 2 && nArgs > 8 && nArgs%2 != 0){
         printf("Usage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]", argV[0]);
         fatal("Failed to parse arguments");
     }
@@ -47,13 +47,13 @@ void parse(int nArgs, char *argV[], serverInfo_t *serverInfo) {
     strcpy(serverInfo->pdip, argV[1]);
     
     /* Override defaults */
-    for (i = 2; i < nArgs; i = i+2){
+    for (i = 2; i < nArgs; ++i){
         if ( !strcmp(PORTARG, argV[i]) )
-            strcpy(serverInfo->pdport, argV[i+1]);
+            strcpy(serverInfo->pdport, argV[++i]);
         else if ( !strcmp(ASIPARG, argV[i]) )
-            strcpy(serverInfo->asip, argV[i+1]);            
+            strcpy(serverInfo->asip, argV[++i]);            
         else if ( !strcmp(ASPORTARG, argV[i]) )
-            strcpy(serverInfo->asport, argV[i+1]);            
+            strcpy(serverInfo->asport, argV[++i]);            
     }
 }
 
