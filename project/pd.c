@@ -1,32 +1,22 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/select.h>
 #include "common.h"
-
-
-#define IP_SIZE 15          /* maximum size of the ip address (in chars) */
-#define PORT_SIZE 5         /* maximum size of the port (in chars) */
-#define UID_SIZE 5          /* size of the UID */
-#define PASS_SIZE 8         /* size of the password */
 
 #define PORTARG "-d"        /* console argument to specify PDport */
 #define ASIPARG "-n"        /* console argument to specify ASIP */
 #define ASPORTARG "-p"      /* console argument to specify ASport */
 
 
-
-typedef struct server_info_t {
+/* the information to allow communication with the autentication server */
+typedef struct connectionInfo_t {
 
     char pdip[IP_SIZE + 1];         /* ip address of the program */
-    char pdport[PORT_SIZE + 1];     /* port of the program */
-    
+    char pdport[PORT_SIZE + 1];     /* port of the program */    
     char asip[IP_SIZE + 1];         /* ip address of the autentication server */
     char asport[PORT_SIZE + 1];     /* port of the autentication server */
 
-} serverInfo_t;
+} connectionInfo_t;
 
 
+/* the user's information */
 typedef struct user_info_t {
 
     char uid[UID_SIZE + 1];
@@ -36,26 +26,39 @@ typedef struct user_info_t {
 
 
 
-/* A function to parse console input */
-void parse(int nArgs, char *argV[], serverInfo_t *serverInfo) {
-    int i;
-    if (nArgs < 2 && nArgs > 8 && nArgs%2 != 0){
-        printf("Usage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]", argV[0]);
-        fatal("Failed to parse arguments");
+/** \brief Parses the execution arguments
+ * 
+ * 	Validates the execution arguments and sets the connection settings
+ * 
+ * 	\param 	argc
+ *          the number of execution arguments
+* 	\param 	argv
+ *          an array with the execution arguments
+ *  \param 	info
+ *          the instance that stores the connection settings
+ *  \return NULL
+ */
+void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
+    /* check the number of arguments */
+    if (argc < 2 || argc > 8 || argc % 2 != 0)
+        FATAL("Invalid execution arguments!\nUsage: %s PDIP [-d PDport] [-n ASIP] s[-p ASport]\n", argv[0]);
+
+    /* override default connection settings */
+    strncpy(info->pdip, argv[1], IP_SIZE);                                                                              /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
+    for (int i = 2; i < argc; i++){
+        if (!strcmp(PORTARG, argv[i])) 
+            strncpy(info->pdport, argv[++i], PORT_SIZE);                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
+        else if (!strcmp(ASIPARG, argv[i]) )
+            strncpy(info->asip, argv[++i], IP_SIZE);                                                                    /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
+        else if (!strcmp(ASPORTARG, argv[i]) )
+            strncpy(info->asport, argv[++i], PORT_SIZE);                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
+        else
+            FATAL("Invalid execution arguments!\nUsage: %s PDIP [-d PDport] [-n ASIP] s[-p ASport]\n", argv[0]);
     }
 
-    /* Set personal device ip addr*/
-    strcpy(serverInfo->pdip, argV[1]);
-    
-    /* Override defaults */
-    for (i = 2; i < nArgs; ++i){
-        if ( !strcmp(PORTARG, argV[i]) )
-            strcpy(serverInfo->pdport, argV[++i]);
-        else if ( !strcmp(ASIPARG, argV[i]) )
-            strcpy(serverInfo->asip, argV[++i]);            
-        else if ( !strcmp(ASPORTARG, argV[i]) )
-            strcpy(serverInfo->asport, argV[++i]);            
-    }
+    /* logs the server information (on debug mod only) */
+    _LOG("serverInfo settings:\nPDIP\t: %s\nPDport\t: %s\nASIP\t: %s\nASport\t: %s\n", 
+        info->pdip, info->pdport, info->asip, info->asport);
 }
 
 
@@ -66,7 +69,7 @@ void parse(int nArgs, char *argV[], serverInfo_t *serverInfo) {
  * 
  * 	\param 	userInfo
  *          a pointer to store the user's info.
- *  \return nothing.
+ *  \return NULL
  */
 void regCmd(const char *buffer, userInfo_t *userInfo) {
     char errCheck = '\0';
@@ -83,22 +86,23 @@ void unregister() {
 
 
 int main(int argc, char *argv[]) {
-    serverInfo_t serverInfo = {"", "57053\0", "localhost\0", "58053\0"};
-    userInfo_t userInfo = {0};
+    connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
+    /*userInfo_t userInfo = {0};
     char token[BUFSIZ];
     fd_set rfds;
     int selectRet;
-    int sockfd;
-    parse(argc, argv, &serverInfo);
+    int sockfd;*/
+    
+    parseArgs(argc, argv, &connectionInfo);
 
     /* SELECT */
-    FD_ZERO(&rfds);
-    FD_SET(0, &rfds);
+    /*FD_ZERO(&rfds);
+    FD_SET(0, &rfds);*/
     /* FD_SET(sockfd, &rfds); */
-    selectRet = select(2, &rfds, NULL, NULL, NULL);
+    /*selectRet = select(2, &rfds, NULL, NULL, NULL);*/
 
 
-    if (fgets(buffer, BUFSIZ, stdin) == NULL)
+    /*if (fgets(buffer, BUFSIZ, stdin) == NULL)
         fatal("Failed to read user input");
 
     if ( !strncmp(token, REGCMD, REGCMDLEN) )
@@ -106,7 +110,7 @@ int main(int argc, char *argv[]) {
     else if ( !strcmp(token, EXITCMD, EXITCMDLEN) )
         exitCmd();
     else
-        
+        */
        /* udp send to(ASfd, "ERR");*/
 
 
