@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include "common.h"
 
 
@@ -85,9 +86,17 @@ int main(int argc, char *argv[]) {
     serverInfo_t serverInfo = {"", "57053\0", "localhost\0", "58053\0"};
     userInfo_t userInfo = {0};
     char token[BUFSIZ];
+    fd_set rfds;
+    int selectRet;
+    int sockfd;
     parse(argc, argv, &serverInfo);
 
     /* SELECT */
+    FD_ZERO(&rfds);
+    FD_SET(0, &rfds);
+    /* FD_SET(sockfd, &rfds); */
+    selectRet = select(2, &rfds, NULL, NULL, NULL);
+
 
     if (fgets(buffer, BUFSIZ, stdin) == NULL)
         fatal("Failed to read user input");
