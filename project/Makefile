@@ -31,7 +31,7 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd user
+EXE_NAMES := pd #user as fd
 # ==============================================================================
 
 
@@ -39,7 +39,6 @@ EXE_NAMES := pd user
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
 $(DIR_EXE)/pd.deps = pd.c
-$(DIR_EXE)/user.deps = $(SRC_FILES)
 # ==============================================================================
 
 
