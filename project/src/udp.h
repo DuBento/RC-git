@@ -12,6 +12,7 @@
 #include "common.h"
 
 int udpCreateSocket(const char *addressIP, const char *port);
+int udpCreateClient(const char *addressIP, const char *port);
 int udpCreateServer(const char *addressIP, const char *port);
 int udpReceiveMessage(int fd, char *buffer, int mssgSize);
 int udpSendMessage(int fd, const char *message, int mssgSize);

@@ -30,6 +30,15 @@ int udpCreateSocket(const char *addressIP, const char *port) {
     return fd;
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 int udpCreateServer(const char *addressIP, const char *port) {
     int fd, errcode;
@@ -42,14 +51,34 @@ int udpCreateServer(const char *addressIP, const char *port) {
     return fd;
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 int udpCreateClient(const char *addressIP, const char *port) {
     return udpCreateSocket(addressIP, port);
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 int udpSendMessage(int fd, const char *message, int mssgSize) {
     int n;
+
+printf("udp.c res->cannoname %s\n", res->ai_canonname);
     
     n = sendto(fd, message, mssgSize, 0, res->ai_addr, res->ai_addrlen);
     if (n == -1)
@@ -57,6 +86,15 @@ int udpSendMessage(int fd, const char *message, int mssgSize) {
     return n;
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
     
@@ -74,6 +112,15 @@ int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
     return n;
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 void udpShutdownSocket(int fd) {
     freeaddrinfo(res);

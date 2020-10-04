@@ -1,0 +1,2 @@
+gcc -Wall pd.c udp.c common.c -o pd
+gcc -Wall src/pd.c src/udp.c src/common.c -o src/pd

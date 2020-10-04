@@ -5,10 +5,6 @@
 #include <unistd.h>
 
 
-#define PORTARG "-d"                /* console argument to specify PDport */
-#define ASIPARG "-n"                /* console argument to specify ASIP */
-#define ASPORTARG "-p"          /* console argument to specify ASport */
-
 
 /* the information to allow communication with the autentication server */
 typedef struct connectionInfo_t {
@@ -48,20 +44,22 @@ typedef struct user_info_t {
 void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         /* check the number of arguments */        
 	if (argc < 2 || argc > 8 || argc % 2 != 0){
-		printf("Usage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]", argv[0]);
+		printf("Usage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]\n", argv[0]);
 		fatal("Failed to parse arguments");
 	}
 
         /* override default connection settings */
+	checkValidIp(argv[1]);
         strncpy(info->pdip, argv[1], IP_SIZE);                                                                                                                                                          /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
         for (int i = 2; i < argc; i++){
-                if (!strcmp(PORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE)) 
+                if (!strcmp(PDPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE)) 
                         strncpy(info->pdport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
                 else if (!strcmp(ASIPARG, argv[i]) && checkValidIp((argv[i+1])))
                         strncpy(info->asip, argv[++i], IP_SIZE);                                                                                                                                        /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
                 else if (!strcmp(ASPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE))
-                        strncpy(info->asport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
+                       strncpy(info->asport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
         }
+
 
         /* logs the server information (on debug mod only) */
         _LOG("serverInfo settings:\nPDIP\t: %s\nPDport\t: %s\nASIP\t: %s\nASport\t: %s\n", 
@@ -86,26 +84,78 @@ void regCmd(const char *buffer, userInfo_t *userInfo) {
 }
 
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 void unregister() {
         /* sends UNR UID pass to AS
                 receives RUN status*/
 }
 
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 void handleUser(int sockfd, char* buf, short *flag) {
 	fgets(buf, BUFSIZ, stdin);
+	printf("handleUser: message %s\n", buf);
 	udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 	*flag = TRUE;
 }
+
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 void handleServer(int sockfd, char* buf, short *flag){
 	int size;
 	udpReceiveMessage(sockfd, buf, size);
 	*flag = FALSE;
 	fwrite(buf, 1, size, stdin);
 }
+
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 void handleNoResponse(int sockfd, char* buf) {
 	udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 }
 
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 void waitEvent(int fd) {
 	fd_set fds, ready_fds;
         struct timeval tv;
@@ -121,7 +171,7 @@ void waitEvent(int fd) {
 	tv.tv_sec = 15;
 	tv.tv_usec = 0;
 
-	while (1) {
+	while (TRUE) {
 		// because select is destructive
 		ready_fds = fds;
 
@@ -149,7 +199,11 @@ int main(int argc, char *argv[]) {
         int sockfd;
 
         parseArgs(argc, argv, &connectionInfo);
-	sockfd = udpCreateSocket(connectionInfo.asip, connectionInfo.asport);
+	
+	/* Socket to contact with AS. */
+	sockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+
+
 	waitEvent(sockfd);
 	udpShutdownSocket(sockfd);
         

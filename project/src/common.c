@@ -1,5 +1,17 @@
 #include "common.h"
 
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
+
 void fatal(const char *message) {
     fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
     exit(EXIT_FAILURE);
@@ -10,14 +22,43 @@ int checkString(char *str, void *predicate, int forceLen) {
 
 } */
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 int isNumber(char c) {
     return c >= '0' && c <= '9';
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
 int isChar(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); 
 }
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 /**
 *   Function that checks all chars of a string for alfanumeric chars
@@ -40,6 +81,16 @@ int checkAlfaNum(char *str, int forceLen) {
     return i;
 }
 
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
 /**
 *   Function that checks all chars of a string for only numbers
 *   and the string length is the same as the argument `forceLen`
@@ -60,6 +111,16 @@ int checkOnlyNum(char *str, int forceLen) {
         return FALSE;
     return i;
 }
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
 
 /**
 *   Function that checks all chars of a string for only char
@@ -83,7 +144,16 @@ int checkOnlyChar(char *str, int forceLen) {
 }
 
 
- 
+ /** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
 /**
 *   Function that checks the string for the IPv4 notation
 *   "xxx.xxx.xxx.xxx" and xxx <= 255
@@ -117,3 +187,60 @@ int checkValidIp(char *ip_str) {
     
     return TRUE;
 }
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
+int isValidUID(char *input) {
+	return checkOnlyNum(input, UID_SIZE);
+}
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+
+int isValidPassword(char *input) {
+	return checkAlfaNum(input, PASS_SIZE);
+}
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+/*int checkFlag(const char *flag, const char *input) {
+	if (!strcmp(PDPORTARG, flag)) {
+		
+	} else if (!strcmp(ASIPARG, flag)) {
+		
+	} else if (!strcmp(ASPORTARG, flag)) {
+		
+	} else if (!strcmp(FSIPARG)) {
+		
+	} else if (!strcmp(FSPORTARG)) {
+		
+	} else if (!strcmp(PDPORTARG)) {
+		
+	} else if (!strcmp(VERBOSE)) {
+		
+	} else {
+		
+	}
+}*/

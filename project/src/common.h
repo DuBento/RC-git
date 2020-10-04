@@ -18,6 +18,17 @@
 #define FALSE 0
 #define IP_DELIM "."
 
+
+
+#define	PDPORTARG	"-d"                /* console argument to specify PDport */
+#define	ASIPARG		"-n"                /* console argument to specify ASIP */
+#define	ASPORTARG	"-p"          /* console argument to specify ASport */
+#define	FSIPARG		"-m"
+#define	FSPORTARG	"-q"
+#define VERBOSE		"-v"
+
+
+
 /* Macro for debug only */
 #ifdef DEBUG
     #define LOG(MSG)        printf("\033[1;36m[LOG]: \33[0m" MSG "\n")

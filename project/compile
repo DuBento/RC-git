@@ -1,1 +1,0 @@
-gcc -Wall pd.c udp.c common.c -o pd
