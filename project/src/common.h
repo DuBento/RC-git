@@ -46,7 +46,7 @@ int checkOnlyChar(char *str, int forceLen);
 int checkOnlyNum(char *str, int forceLen);
 int isNumber(char c);
 int isChar(char c);
-int checkValidIp(char *ip_str);
+int checkValidIp(const char *ip_str);
 /* A function to show an error and exit */
 /* #define FATAL(MSG, ...) {                                       \
     fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);     \

@@ -160,9 +160,13 @@ int checkOnlyChar(char *str, int forceLen) {
 *   \return True if valid IPv4 notation
 *           else False
   */
-int checkValidIp(char *ip_str) {
+int checkValidIp(const char *str) {
     int delim_counter=0, size, num;
     char *ptr;
+    char ip_str[strlen(str)+1];
+
+    // backup orignal string
+    strcpy(ip_str, str);
     
     if (ip_str == NULL) return FALSE;
     

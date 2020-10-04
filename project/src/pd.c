@@ -56,16 +56,20 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 	}
 
         /* override default connection settings */
-	checkValidIp(argv[1]);
-        strncpy(info->pdip, argv[1], IP_SIZE);                                                                                                                                                          /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
+	if (!checkValidIp((const char*) argv[1])) 
+                fatal("Invalid IP address formart.\nPlease use dot notation.");
+        // else
+        strncpy(info->pdip, argv[1], IP_SIZE);
 	printf("%s\n", info->pdip);
         for (int i = 2; i < argc; i++){
                 if (!strcmp(PDPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE)) 
-                        strncpy(info->pdport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
+                        strncpy(info->pdport, argv[++i], PORT_SIZE);
                 else if (!strcmp(ASIPARG, argv[i]) && checkValidIp((argv[i+1])))
-                        strncpy(info->asip, argv[++i], IP_SIZE);                                                                                                                                        /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
+                        strncpy(info->asip, argv[++i], IP_SIZE);
                 else if (!strcmp(ASPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE))
-                       strncpy(info->asport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
+                       strncpy(info->asport, argv[++i], PORT_SIZE); 
+                else 
+                        fatal("Invalid IP address formart.\nPlease use dot notation.\nOr invalid PORT format. \nPlease only use digits.");
         }
 
 
@@ -135,7 +139,7 @@ int handleUser(int sockfd, char* buf, short *flag) {
  *
  *  \return <what it returns>.
  */
-void handleServer(int sockfd, char* buf, short *flag){
+int handleServer(int sockfd, char* buf, short *flag){
 	int size, n;
 	udpReceiveMessage(sockfd, buf, size);
 	*flag = FALSE;
@@ -199,14 +203,14 @@ void waitEvent(int fd) {
 		if (selectRet == 0 && msgSent == TRUE) // timeout expired
 			// act as previous message didnt reach the target
 			retVal = handleNoResponse(fd, buffer);
-		printf("RetVal: %d\n", retVal);
+		// printf("RetVal: %d\n", retVal);
 	}
 }
 
 
 int main(int argc, char *argv[]) {
-        // connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
-        connectionInfo_t connectionInfo = {"localhost\0", "57053\0", "193.136.138.142\0", "58011\0"};
+        connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
+        // connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
         // userInfo_t userInfo = {0};
         int sockfd;
 
