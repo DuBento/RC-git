@@ -38,7 +38,7 @@ EXE_NAMES := pd #user as fd
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = pd.c
+$(DIR_EXE)/pd.deps = pd.c 
 # ==============================================================================
 
 
@@ -46,7 +46,7 @@ $(DIR_EXE)/pd.deps = pd.c
 # Source code dependencies
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder of the files #included in the code)
-$(DIR_OBJ)/pd.deps =
+$(DIR_OBJ)/pd.deps = common.h udp.h
 # ==============================================================================
 
 

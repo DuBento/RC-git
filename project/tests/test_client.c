@@ -1,9 +1,15 @@
-#include "../udp.h"
+#include "../src/udp.h"
+#include <stdio.h>
 
 int main() {
     int fd;
-    fd = udpCreateSocket("127.0.0.1", "5000");
+    char buffer[BUFSIZ];
+    int size;
+    fd = udpCreateSocket("193.136.138.142", "58011");
     udpSendMessage(fd, "test\n", 5);
+    puts("sent");
+    udpReceiveMessage(fd, buffer, size);
+    fwrite(buffer, 1, size, stdin);
     udpShutdownSocket(fd);
 
     return 0;

@@ -14,7 +14,9 @@
 #define PASS_SIZE 8         /* size of the password */
 
 #define ERRORBUF_SIZE 100   /* size of buffer dedicated to errors*/
-
+#define TRUE 1
+#define FALSE 0
+#define IP_DELIM "."
 
 /* Macro for debug only */
 #ifdef DEBUG
@@ -28,7 +30,12 @@
 
 /* Proto */
 void fatal(const char *message);
-
+int checkAlfaNum(char *str, int forceLen);
+int checkOnlyChar(char *str, int forceLen);
+int checkOnlyNum(char *str, int forceLen);
+int isNumber(char c);
+int isChar(char c);
+int checkValidIp(char *ip_str);
 /* A function to show an error and exit */
 /* #define FATAL(MSG, ...) {                                       \
     fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);     \
