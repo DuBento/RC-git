@@ -78,8 +78,6 @@ int udpCreateClient(const char *addressIP, const char *port) {
 int udpSendMessage(int fd, const char *message, int mssgSize) {
     int n;
 
-printf("udp.c res->cannoname %s\n", res->ai_canonname);
-    
     n = sendto(fd, message, mssgSize, 0, res->ai_addr, res->ai_addrlen);
     if (n == -1)
 	        fatal("Fail to send UDP message.\n");
@@ -122,7 +120,7 @@ int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
  *  \return <what it returns>.
  */
 
-void udpShutdownSocket(int fd) {
-    freeaddrinfo(res);
-    close(fd);
+int udpShutdownSocket(int fd) {
+	freeaddrinfo(res);
+	return close(fd);
 }

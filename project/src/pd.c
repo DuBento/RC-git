@@ -17,6 +17,13 @@ typedef struct connectionInfo_t {
 } connectionInfo_t;
 
 
+void displayConnectionInfo(connectionInfo_t *info) {
+	printf("serverInfo settings:\nPDIP\t: %s\nPDport\t: %s\nASIP\t: %s\nASport\t: %s\n", 
+                info->pdip, info->pdport, info->asip, info->asport);
+}
+
+
+
 /* the user's information */
 typedef struct user_info_t {
 
@@ -51,6 +58,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         /* override default connection settings */
 	checkValidIp(argv[1]);
         strncpy(info->pdip, argv[1], IP_SIZE);                                                                                                                                                          /*[IF THE IP HAS MORE THAN 15 CHARS IGNORE OR ERROR???]*/
+	printf("%s\n", info->pdip);
         for (int i = 2; i < argc; i++){
                 if (!strcmp(PDPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE)) 
                         strncpy(info->pdport, argv[++i], PORT_SIZE);                                                                                                                                /*[IF THE IP HAS MORE THAN 6 CHARS IGNORE OR ERROR???]*/
@@ -108,11 +116,13 @@ void unregister() {
  *
  *  \return <what it returns>.
  */
-void handleUser(int sockfd, char* buf, short *flag) {
-	fgets(buf, BUFSIZ, stdin);
+int handleUser(int sockfd, char* buf, short *flag) {
+	int n;
+	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
 	printf("handleUser: message %s\n", buf);
-	udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
+	n = udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 	*flag = TRUE;
+	return n;
 }
 
 
@@ -126,10 +136,11 @@ void handleUser(int sockfd, char* buf, short *flag) {
  *  \return <what it returns>.
  */
 void handleServer(int sockfd, char* buf, short *flag){
-	int size;
+	int size, n;
 	udpReceiveMessage(sockfd, buf, size);
 	*flag = FALSE;
-	fwrite(buf, 1, size, stdin);
+	n = fwrite(buf, 1, size, stdin); /* test for ERROR here */
+	return n;
 }
 
 
@@ -142,8 +153,8 @@ void handleServer(int sockfd, char* buf, short *flag){
  *
  *  \return <what it returns>.
  */
-void handleNoResponse(int sockfd, char* buf) {
-	udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
+int handleNoResponse(int sockfd, char* buf) {
+	return udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 }
 
 
@@ -159,7 +170,7 @@ void handleNoResponse(int sockfd, char* buf) {
 void waitEvent(int fd) {
 	fd_set fds, ready_fds;
         struct timeval tv;
-        int selectRet, fds_size;
+        int selectRet, fds_size, retVal;
 	short msgSent=0;	//trace back response from server
 	char buffer[BUFSIZ];
 
@@ -184,10 +195,11 @@ void waitEvent(int fd) {
 			handleServer(fd, buffer, &msgSent);
 		if (FD_ISSET(STDIN_FILENO, &ready_fds))
 			// handle stdin
-			handleUser(fd, buffer, &msgSent);
+			retVal = handleUser(fd, buffer, &msgSent);
 		if (selectRet == 0 && msgSent == TRUE) // timeout expired
 			// act as previous message didnt reach the target
-			handleNoResponse(fd, buffer);
+			retVal = handleNoResponse(fd, buffer);
+		printf("RetVal: %d\n", retVal);
 	}
 }
 
@@ -200,6 +212,9 @@ int main(int argc, char *argv[]) {
 
         parseArgs(argc, argv, &connectionInfo);
 	
+	displayConnectionInfo(&connectionInfo);
+
+
 	/* Socket to contact with AS. */
 	sockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 

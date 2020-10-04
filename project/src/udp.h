@@ -16,6 +16,6 @@ int udpCreateClient(const char *addressIP, const char *port);
 int udpCreateServer(const char *addressIP, const char *port);
 int udpReceiveMessage(int fd, char *buffer, int mssgSize);
 int udpSendMessage(int fd, const char *message, int mssgSize);
-void udpShutdownSocket(int fd);
+int udpShutdownSocket(int fd);
 
 #endif /* UDP_H */
