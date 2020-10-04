@@ -142,8 +142,11 @@ int handleUser(int sockfd, char* buf, short *flag) {
 int handleServer(int sockfd, char* buf, short *flag){
 	int size, n;
 	udpReceiveMessage(sockfd, buf, size);
+        strcpy(buf, "lixo");
 	*flag = FALSE;
-	n = fwrite(buf, 1, size, stdin); /* test for ERROR here */
+        puts("inside");
+        printf("%s", buf);
+	// n = fwrite(buf, 1, size, stdout); /* test for ERROR here */
 	return n;
 }
 
@@ -173,7 +176,7 @@ int handleNoResponse(int sockfd, char* buf) {
  */
 void waitEvent(int fd) {
 	fd_set fds, ready_fds;
-        struct timeval tv;
+        struct timeval tv, tmp_tv;
         int selectRet, fds_size, retVal;
 	short msgSent=0;	//trace back response from server
 	char buffer[BUFSIZ];
@@ -189,14 +192,15 @@ void waitEvent(int fd) {
 	while (TRUE) {
 		// because select is destructive
 		ready_fds = fds;
+                tmp_tv = tv;
 
-		selectRet = select(fds_size, &ready_fds, NULL, NULL, &tv);
+		selectRet = select(fds_size, &ready_fds, NULL, NULL, &tmp_tv);
 
 		if (selectRet == -1)
 			fatal("Failed System Call Select");
 		if (FD_ISSET(fd, &ready_fds))	// give prority to server responses
 			// handle fd interaction
-			handleServer(fd, buffer, &msgSent);
+			retVal = handleServer(fd, buffer, &msgSent);
 		if (FD_ISSET(STDIN_FILENO, &ready_fds))
 			// handle stdin
 			retVal = handleUser(fd, buffer, &msgSent);
@@ -209,8 +213,8 @@ void waitEvent(int fd) {
 
 
 int main(int argc, char *argv[]) {
-        connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
-        // connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
+        // connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
+        connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
         // userInfo_t userInfo = {0};
         int sockfd;
 
