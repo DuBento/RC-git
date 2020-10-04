@@ -105,7 +105,24 @@ void regCmd(const char *buffer, userInfo_t *userInfo) {
  *
  *  \return <what it returns>.
  */
-void unregister() {
+void registerUser(){
+	/* verify correc id and pass
+	 * send REG ... to as
+	 * receive response
+	 */
+}
+
+
+/** \brief <short description>.
+ * 
+ * 	<long description> blah blah blah please detail me :)
+ * 
+ * 	\param 	<param name>
+ *          <param description>.
+ *
+ *  \return <what it returns>.
+ */
+void unregisterUser() {
         /* sends UNR UID pass to AS
                 receives RUN status*/
 }
@@ -121,11 +138,15 @@ void unregister() {
  *  \return <what it returns>.
  */
 int handleUser(int sockfd, char* buf, short *flag) {
+	
 	int n;
 	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
-	printf("handleUser: message %s\n", buf);
+	/* Send typed user message. */
 	n = udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 	*flag = TRUE;
+
+	/* Receive response. */
+/*	n = udpReceiveMessage(sockfd, response, BUFSIZ);*/
 	return n;
 }
 
@@ -141,11 +162,12 @@ int handleUser(int sockfd, char* buf, short *flag) {
  */
 int handleServer(int sockfd, char* buf, short *flag){
 	int size, n;
-	udpReceiveMessage(sockfd, buf, size);
-        strcpy(buf, "lixo");
+
+	n = udpReceiveMessage(sockfd, buf, size);
+//        strcpy(buf, "lixo");
 	*flag = FALSE;
         puts("inside");
-        printf("%s", buf);
+        printf("handle server : %s", buf);
 	// n = fwrite(buf, 1, size, stdout); /* test for ERROR here */
 	return n;
 }
@@ -205,7 +227,7 @@ void waitEvent(int fd) {
 			// handle stdin
 			retVal = handleUser(fd, buffer, &msgSent);
 		if (selectRet == 0 && msgSent == TRUE) // timeout expired
-			// act as previous message didnt reach the target
+			// act as previous message didn't reach the target
 			retVal = handleNoResponse(fd, buffer);
 		// printf("RetVal: %d\n", retVal);
 	}
@@ -216,7 +238,7 @@ int main(int argc, char *argv[]) {
         // connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
         connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
         // userInfo_t userInfo = {0};
-        int sockfd;
+        int asSockfd;
 
         parseArgs(argc, argv, &connectionInfo);
 	
@@ -224,11 +246,11 @@ int main(int argc, char *argv[]) {
 
 
 	/* Socket to contact with AS. */
-	sockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 
 
-	waitEvent(sockfd);
-	udpShutdownSocket(sockfd);
+	waitEvent(asSockfd);
+	udpShutdownSocket(asSockfd);
         
 	
 

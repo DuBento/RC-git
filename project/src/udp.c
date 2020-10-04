@@ -121,6 +121,10 @@ int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
  */
 
 int udpShutdownSocket(int fd) {
+	int ret;
 	freeaddrinfo(res);
-	return close(fd);
+	ret = close(fd);
+	if (ret == -1)
+		fatal("Failed to close UDP socket\n");
+	return ret;
 }
