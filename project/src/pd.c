@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 
-
 /* the information to allow communication with the autentication server */
 typedef struct connectionInfo_t {
 
@@ -35,18 +34,14 @@ typedef struct user_info_t {
 /* GLOBAL VARS */
 
 
-
-/** \brief Parses the execution arguments
- * 
- * 	Validates the execution arguments and sets the connection settings
- * 
- * 	\param 	argc
- *                  the number of execution arguments
-* 	\param 	argv
- *                  an array with the execution arguments
- *  \param 	info
- *                  the instance that stores the connection settings
- *  \return NULL
+/*! \brief Parses the execution arguments.
+ *
+ *  Validates the execution arguments and sets the connection settings.
+ *
+ * \param argc The number of execution arguments.
+ * \param argv An array with the execution arguments.
+ * \param info The instance that stores the connection settings.
+ * \return NULL.
  */
 void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         /* check the number of arguments */        
@@ -79,14 +74,12 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 }
 
 
-
-/** \brief Registers a user.
- * 
- * 	Waits for user input so that they can register themselves.
- * 
- * 	\param 	userInfo
- *                  a pointer to store the user's info.
- *  \return NULL
+ /*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  userInfo a pointer to store the user's info.
+ * \return NULL.
  */
 void regCmd(const char *buffer, userInfo_t *userInfo) {
         char errCheck = '\0';
@@ -96,69 +89,83 @@ void regCmd(const char *buffer, userInfo_t *userInfo) {
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
  */
 void registerUser(){
-	/* verify correc id and pass
-	 * send REG ... to as
-	 * receive response
+	/* verify correct id and pass
+	 * send to AS: REG UID pass PDIP PDport
+	 * receive response RRG status from AS
+	 * wait to establish AS client connection socket here?
 	 */
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
  */
 void unregisterUser() {
-        /* sends UNR UID pass to AS
-                receives RUN status*/
+	/* verify what comes after - nothing
+	 * send to AS: UNR UID pass
+	 * receive RUN status
+	 */
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
  */
 int handleUser(int sockfd, char* buf, short *flag) {
 	
 	int n, size;
-	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
-	/* Send typed user message. */
+	
+	/* Read user input - Check for error */
+//	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
+getUserInput(buf);
+	/* Check if command is valid: reg, exit */
+
+	/* if command reg
+	 * 	registerUser()
+	 * else if command exit
+	 * 	unregisterUser()
+	 * else
+	 * 	not allowed, you dumbass
+	 */
+
+	_LOG("Message to be sent: %s", buf);
         size = strlen(buf);
+
 	n = udpSendMessage(sockfd, (const char*) buf, size);
 	*flag = TRUE;
 	return n;
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
  */
 int handleServer(int sockfd, char* buf, short *flag){
+	/* PD will be server to receive VC codes from client AS */
 	int n;
 
 	n = udpReceiveMessage(sockfd, buf, BUFSIZ);
@@ -168,28 +175,25 @@ int handleServer(int sockfd, char* buf, short *flag){
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
  */
 int handleNoResponse(int sockfd, char* buf) {
 	return udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
 }
 
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
+/*! \brief Brief function description here
  *
- *  \return <what it returns>.
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \return Return parameter description
  */
 void waitEvent(int fd) {
 	fd_set fds, ready_fds;

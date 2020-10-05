@@ -40,6 +40,7 @@
 
 
 /* Proto */
+char *getUserInput(char *buf);
 void fatal(const char *message);
 int checkAlfaNum(char *str, int forceLen);
 int checkOnlyChar(char *str, int forceLen);
@@ -51,6 +52,36 @@ int checkValidIp(const char *ip_str);
 /* #define FATAL(MSG, ...) {                                       \
     fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);     \
     exit(EXIT_FAILURE); }
+ */
+
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
+
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
+
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
  */
 
 

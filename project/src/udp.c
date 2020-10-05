@@ -6,13 +6,14 @@
 
 struct addrinfo hints={0}, *res={0};
 
-/** \brief Creates an UDP socket.
- * 
- * 	blah blah blah please detail me :)
- * 
- * 	\param 	userInfo
- *          a pointer to store the user's info.
- *  \return the new socket fd.
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
  */
 int udpCreateSocket(const char *addressIP, const char *port) {
     int fd, errcode;
@@ -33,16 +34,15 @@ int udpCreateSocket(const char *addressIP, const char *port) {
     return fd;
 }
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
- *
- *  \return <what it returns>.
- */
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int udpCreateServer(const char *addressIP, const char *port) {
     int fd, errcode;
 
@@ -56,30 +56,29 @@ int udpCreateServer(const char *addressIP, const char *port) {
     return fd;
 }
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
- *
- *  \return <what it returns>.
- */
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int udpCreateClient(const char *addressIP, const char *port) {
     return udpCreateSocket(addressIP, port);
 }
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
- *
- *  \return <what it returns>.
- */
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
+ */
 int udpSendMessage(int fd, const char *message, int mssgSize) {
     int n;
 
@@ -89,16 +88,16 @@ int udpSendMessage(int fd, const char *message, int mssgSize) {
     return n;
 }
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
- *
- *  \return <what it returns>.
- */
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
+ */
 int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
     
     int n;
@@ -119,16 +118,14 @@ int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
     return n;
 }
 
-/** \brief <short description>.
- * 
- * 	<long description> blah blah blah please detail me :)
- * 
- * 	\param 	<param name>
- *          <param description>.
- *
- *  \return <what it returns>.
- */
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \return Return parameter description
+ */
 int udpShutdownSocket(int fd) {
 	int ret;
 	freeaddrinfo(res);
