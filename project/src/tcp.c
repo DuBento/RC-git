@@ -2,6 +2,15 @@
 
 struct addrinfo hints, *res;
 
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
+ */
 int tcpCreateSocket(const char *addressIP, const char *port) {
 	int fd, errcode;
 
@@ -24,11 +33,28 @@ int tcpCreateSocket(const char *addressIP, const char *port) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param Parameter Parameter description
+ * \param Parameter Parameter description
+ * \return Return parameter description
+ */
 int tcpCreateClient(const char *addressIP, const char *port) {
 	return tcpCreateSocket(addressIP, port);
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpCreateServer(const char *addressIP, const char *port, int numConnections) {
 	int fd, errcode;
 	fd = tcpCreateSocket(addressIP, port);
@@ -44,6 +70,14 @@ int tcpCreateServer(const char *addressIP, const char *port, int numConnections)
 	return fd;
 }
 
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpConnect(int fd) {
 	int errcode;
 	errcode = connect(fd, res->ai_addr, res->ai_addrlen);
@@ -54,6 +88,13 @@ int tcpConnect(int fd) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpAcceptConnection(int fd) {
 	int newfd, addrlen;
 	struct sockaddr_in addr;
@@ -66,6 +107,15 @@ int tcpAcceptConnection(int fd) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpReceiveMessage(int fd, char *buffer, int mssgSize) {
 	int n;
 	n = read(fd, buffer, mssgSize);
@@ -76,8 +126,18 @@ int tcpReceiveMessage(int fd, char *buffer, int mssgSize) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpSendMessage(int fd, const char *message, int mssgSize) {
 	int n;
+	
 	n = write(fd, message, mssgSize);
 	if (n == -1){
 		fatal("TCP: Failed to send message.");	
@@ -86,6 +146,13 @@ int tcpSendMessage(int fd, const char *message, int mssgSize) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpCloseConnection(int fd) {
 	int errcode;
 	errcode = close(fd);
@@ -97,6 +164,13 @@ int tcpCloseConnection(int fd) {
 }
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
 int tcpShutdownSocket(int fd) {
 	int errcode;
 	freeaddrinfo(res);

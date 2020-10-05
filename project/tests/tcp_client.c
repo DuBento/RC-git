@@ -15,10 +15,10 @@ int main() {
 	
 	errcode = tcpSendMessage(fd, "Hello!\n", 7);
 	
-	errcode = tcpReceiveMessage(fd, buffer, MSSG_SIZE);
+	errcode = tcpReceiveMessage(fd, buffer, 7);
 	
 	write(1, "echo: ", 6);
-	write(1, buffer, n);
+	write(1, buffer, MSSG_SIZE);
 
 	tcpShutdownSocket(fd);
 	exit(EXIT_SUCCESS);

@@ -16,7 +16,7 @@ int main() {
 		printf("Server waiting...\n");
 		newfd = tcpAcceptConnection(fd);
 
-		sz = tcpReceiveMessage(fd, buffer, MSSG_SIZE);
+		sz = tcpReceiveMessage(newfd, buffer, MSSG_SIZE);
 
 		write(1, "received: ", 10);
 		write(1, buffer, sz);
