@@ -139,14 +139,12 @@ void unregisterUser() {
  */
 int handleUser(int sockfd, char* buf, short *flag) {
 	
-	int n;
+	int n, size;
 	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
 	/* Send typed user message. */
-	n = udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
+        size = strlen(buf);
+	n = udpSendMessage(sockfd, (const char*) buf, size);
 	*flag = TRUE;
-
-	/* Receive response. */
-/*	n = udpReceiveMessage(sockfd, response, BUFSIZ);*/
 	return n;
 }
 
@@ -161,14 +159,11 @@ int handleUser(int sockfd, char* buf, short *flag) {
  *  \return <what it returns>.
  */
 int handleServer(int sockfd, char* buf, short *flag){
-	int size, n;
+	int n;
 
-	n = udpReceiveMessage(sockfd, buf, size);
-//        strcpy(buf, "lixo");
+	n = udpReceiveMessage(sockfd, buf, BUFSIZ);
 	*flag = FALSE;
-        puts("inside");
-        printf("handle server : %s", buf);
-	// n = fwrite(buf, 1, size, stdout); /* test for ERROR here */
+        fprintf(stdout, "server: %s", buf);
 	return n;
 }
 
@@ -207,7 +202,7 @@ void waitEvent(int fd) {
 	FD_ZERO(&fds);
         FD_SET(STDIN_FILENO, &fds);
         FD_SET(fd, &fds);
-        fds_size = 2;
+        fds_size = fd+1;
 	tv.tv_sec = 15;
 	tv.tv_usec = 0;
 
@@ -229,13 +224,12 @@ void waitEvent(int fd) {
 		if (selectRet == 0 && msgSent == TRUE) // timeout expired
 			// act as previous message didn't reach the target
 			retVal = handleNoResponse(fd, buffer);
-		// printf("RetVal: %d\n", retVal);
 	}
 }
 
 
 int main(int argc, char *argv[]) {
-        // connectionInfo_t connectionInfo = {"", "57053\0", "localhost\0", "58053\0"};
+        // connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
         connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
         // userInfo_t userInfo = {0};
         int asSockfd;
@@ -247,7 +241,6 @@ int main(int argc, char *argv[]) {
 
 	/* Socket to contact with AS. */
 	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
-
 
 	waitEvent(asSockfd);
 	udpShutdownSocket(asSockfd);

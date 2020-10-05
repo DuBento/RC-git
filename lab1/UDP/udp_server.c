@@ -10,7 +10,7 @@
 #include <netdb.h>
 #include <string.h>
 
-#define PORT "58001"
+#define PORT "58053"
 
 #define TRUE 1
 
@@ -46,6 +46,7 @@ int main() {
     while (TRUE) {
         int n;
         addrlen = sizeof(addr);
+        memset(buffer, 0, sizeof(buffer));
         n = recvfrom(fd, buffer, 128, 0, (struct sockaddr*)&addr, &addrlen);
         if (n == -1)
             exit(EXIT_FAILURE);
