@@ -1,6 +1,7 @@
 #include "common.h"
 #include "udp.h"
 #include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -57,16 +58,15 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         strncpy(info->pdip, argv[1], IP_SIZE);
 	printf("%s\n", info->pdip);
         for (int i = 2; i < argc; i++){
-                if (!strcmp(PDPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE)) 
+                if (!strcmp(PDPORTARG, argv[i]) && checkValidPORT((const char *)argv[i+1])) 
                         strncpy(info->pdport, argv[++i], PORT_SIZE);
-                else if (!strcmp(ASIPARG, argv[i]) && checkValidIp((argv[i+1])))
+                else if (!strcmp(ASIPARG, argv[i]) && checkValidIp((const char*) argv[i+1]))
                         strncpy(info->asip, argv[++i], IP_SIZE);
-                else if (!strcmp(ASPORTARG, argv[i]) && checkOnlyNum(argv[i+1], PORT_SIZE))
+                else if (!strcmp(ASPORTARG, argv[i]) && checkValidPORT((const char *)argv[i+1]))
                        strncpy(info->asport, argv[++i], PORT_SIZE); 
                 else 
-                        fatal("Invalid IP address formart.\nPlease use dot notation.\nOr invalid PORT format. \nPlease only use digits.");
+                        fatal("Invalid IP address formart.\nPlease use dot notation.\nOr invalid PORT format. \nPlease only use unrestricted ports.");
         }
-
 
         /* logs the server information (on debug mod only) */
         _LOG("serverInfo settings:\nPDIP\t: %s\nPDport\t: %s\nASIP\t: %s\nASport\t: %s\n", 
@@ -132,16 +132,27 @@ void unregisterUser() {
 int handleUser(int sockfd, char* buf, short *flag) {
 	
 	int n, size;
-	
-	/* Read user input - Check for error */
-//	fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
-getUserInput(buf);
-	/* Check if command is valid: reg, exit */
+	char command[CMD_SIZE], uid[UID_SIZE], pass[PASS_SIZE];
 
-	/* if command reg
+	/* Read user input - Check for error */
+        // fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
+        getUserInput(buf);
+
+        //sscanf(buf, "%4s %5s %8s", command, uid, pass);
+        
+        /*if (strcmp(command, REGCMD) == 0) {
+                regCmd(uid, pass);
+        } else if (!strcmp(command, EXITCMD)) {
+                unregisterUser(userInfo);       // userInfo dinamically stored
+        } else {
+
+        }*/
+	/* Check if command is valid: reg, exit */
+	/* 
+         * if command reg strcmp(token, REGCMD)  
 	 * 	registerUser()
 	 * else if command exit
-	 * 	unregisterUser()
+	 * 	exit()
 	 * else
 	 * 	not allowed, you dumbass
 	 */
@@ -235,7 +246,7 @@ void waitEvent(int fd) {
 int main(int argc, char *argv[]) {
         // connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
         connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
-        // userInfo_t userInfo = {0};
+//        userInfo_t userInfo = {0};
         int asSockfd;
 
         parseArgs(argc, argv, &connectionInfo);

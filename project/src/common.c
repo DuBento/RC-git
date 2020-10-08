@@ -1,47 +1,14 @@
 #include "common.h"
 
 
-/*! \brief Brief function description here
+/*! \brief Checks if the specified string is a number
  *
  *  Detailed description of the function
  *
  * \param  Parameter description
  * \return Return parameter description
  */
-char *getUserInput(char *buf) {
-        if (fgets(buf, BUFSIZ, stdin) == NULL) { /* fgets return NULL on EOF read? */
-		    fatal("Failed to get user input.");
-	}
-	    return buf;
-}
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-void fatal(const char *message) {
-        fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
-        exit(EXIT_FAILURE);
-}
-
-/* 
-int checkString(char *str, void *predicate, int forceLen) {
-
-} */
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int isNumber(char c) {
+int isNumber(const char c) {
         return c >= '0' && c <= '9';
 }
 
@@ -53,9 +20,50 @@ int isNumber(char c) {
  * \param  Parameter description
  * \return Return parameter description
  */
-int isChar(char c) {
+int isChar(const char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); 
 }
+
+
+
+
+
+
+
+/* reads the user input */
+char *getUserInput(char *buffer) {
+    if (fgets(buffer, BUFSIZ, stdin) == NULL)
+        FATAL("Failed to get user input!");
+        
+	return buffer;
+}
+
+
+
+
+
+/*! \brief Checks if the string is valid using to the match() function and size.
+ *
+ *  Compares each character of the string with the specified match() functiion,
+ *  while also verifying if the string length. 
+ *
+ * \param  buffer   the buffer containing the string.
+ * \param  matcher  the function to check the characters.
+ * \param  forceLen the required size of the string.
+ * \return the string's length if the string is valid, FALSE otherwise.
+ */
+int isStringValid(const char* buffer, int (*matcher)(int), int forceLen) {
+    if (str == NULL)    // invalid string
+        return FALSE;  
+
+    int i = 0;
+    while (str[i] != '\0' && matcher(str[i]))
+        i++;
+
+    return (forceLen == 0 || forceLen == i ? i : FALSE );
+}
+
+
 
 
 /*! \brief Brief function description here
@@ -71,8 +79,8 @@ int isChar(char c) {
 *   and the string length is the same as the argument `forceLen`
 *   \return String length if evalued to True
 *           else False
-  */
-int checkAlfaNum(char *str, int forceLen) {
+*/
+int checkAlfaNum(const char *str, int forceLen) {
         int i=0;
         if (str == NULL) return FALSE;
     
@@ -103,7 +111,7 @@ int checkAlfaNum(char *str, int forceLen) {
 *   \return String length if evalued to True
 *           else False
   */
-int checkOnlyNum(char *str, int forceLen) {
+int checkOnlyNum(const char *str, int forceLen) {
         int i=0;
         if (str == NULL) return FALSE;
 
@@ -133,7 +141,7 @@ int checkOnlyNum(char *str, int forceLen) {
 *   \return String length if evalued to True
 *           else False
   */
-int checkOnlyChar(char *str, int forceLen) {
+int checkOnlyChar(const char *str, int forceLen) {
         int i=0;
         if (str == NULL) return FALSE;
 
@@ -194,6 +202,30 @@ int checkValidIp(const char *str) {
         return TRUE;
 }
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \param  Parameter description
+ * \return Return parameter description
+ */
+/**
+*   Function that checks all chars of a string for only char
+*   and the string length is the same as the argument `forceLen`
+*   \return String length if evalued to True
+*           else False
+*/
+int checkValidPORT(const char *str) {
+    int val;
+    if(checkOnlyNum((const char*) str, 0)){
+        val = atoi(str);
+        return val >= 1000 && val <= 65535;
+    }
+
+    return FALSE;
+}
+
 
 /*! \brief Brief function description here
  *
@@ -202,7 +234,7 @@ int checkValidIp(const char *str) {
  * \param  Parameter description
  * \return Return parameter description
  */
-int isValidUID(char *input) {
+int isValidUID(const char *input) {
 	    return checkOnlyNum(input, UID_SIZE);
 }
 
@@ -246,3 +278,20 @@ int isValidPassword(char *input) {
 		
 	}
 }*/
+
+
+
+
+
+
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
+void fatal(const char *message) {
+        fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
+        exit(EXIT_FAILURE);
+}
