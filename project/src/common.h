@@ -14,11 +14,12 @@
 #define PORT_SIZE   5         /* maximum size of the port */
 #define UID_SIZE    5          /* size of the UID */
 #define PASS_SIZE   8         /* size of the password */
-#define CMD_SIZE    4          /* size of command
+#define CMD_SIZE    4          /* size of command */
 
 #define TRUE        1
 #define FALSE       0
 #define IP_DELIM    "."
+#define ENDMSG      '\n'
 
 #define	PDPORTARG	"-d"          /* console argument to specify PDport */
 #define	ASIPARG		"-n"          /* console argument to specify ASIP */
@@ -27,14 +28,15 @@
 #define	FSPORTARG	"-q"
 #define VERBOSE		"-v"
 
-/* macros for the string validation functions */
-#define DIGIT           isdigit     // digit matcher
-#define ALPHA           isaplha     // alphabetic matcher
-#define ALPHALOWER      islower     // lower case alphabetic
-#define ALPHAUPPER      isupper     // upper case alphabetic
-#define ALPHANUM        isalnum     // alpha numeric matcher
-#define NLEN     0                  // all lengths considered
 
+
+/* macros for the string validation functions */
+#define STR_DIGIT           isdigit     // digit matcher
+#define STR_ALPHA           isalpha     // alphabetic matcher
+#define STR_ALPHALOWER      islower     // lower case alphabetic
+#define STR_ALPHAUPPER      isupper     // upper case alphabetic
+#define STR_ALPHANUM        isalnum     // alpha numeric matcher
+#define STR_NLEN            0           // all lengths considered
 
 
 
@@ -54,7 +56,9 @@
 
 
 
-/* Proto */
+
+
+/* Functions prototypes */
 
 /*! \brief Reads the user input.
  *
@@ -66,35 +70,26 @@
 char* getUserInput(char *buffer);
 
 
+
+/*! \brief Checks if the string is valid using to the match() function and size.
+ *
+ *  Compares each character of the string with the specified match() functiion,
+ *  while also verifying if the string length. 
+ *
+ * \param  buffer   the buffer containing the string.
+ * \param  matcher  the function to check the characters.
+ * \param  forceLen the required size of the string.
+ * \return the string's length if the string is valid, FALSE otherwise.
+ */
+int isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
+
+
 int checkAlfaNum(const char *str, int forceLen);
 int checkOnlyChar(const char *str, int forceLen);
 int checkOnlyNum(const char *str, int forceLen);
+
 int checkValidIp(const char *ip_str);
 int checkValidPORT(const char *str);
-/* A function to show an error and exit */
-/* #define FATAL(MSG, ...) {                                       \
-    fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);     \
-    exit(EXIT_FAILURE); }
- */
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
 
 
 /*! \brief Brief function description here
