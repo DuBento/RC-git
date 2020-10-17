@@ -10,16 +10,20 @@
 
 
 /* generic constants/macros */
-#define IP_SIZE     15          /* maximum size of the ip address */
-#define PORT_SIZE   5         /* maximum size of the port */
-#define UID_SIZE    5          /* size of the UID */
-#define PASS_SIZE   8         /* size of the password */
-#define CMD_SIZE    4          /* size of command */
+#define IP_SIZE     	15          /* maximum size of the ip address */
+#define PORT_SIZE   	5         /* maximum size of the port */
+#define UID_SIZE    	5          /* size of the UID */
+#define PASS_SIZE   	8         /* size of the password */
+#define CMD_SIZE	4          /* size of command */
 
-#define TRUE        1
-#define FALSE       0
-#define IP_DELIM    "."
-#define ENDMSG      '\n'
+#define BUFFERSIZE	128
+#define TRUE		1
+#define FALSE		0
+#define IP_DELIM	"."
+#define ENDMSG		'\n'
+#define	INPUTCHAR	'>'
+#define	RESPONSECHAR	'#'
+#define	DELCHAR		'\b'
 
 #define	PDPORTARG	"-d"          /* console argument to specify PDport */
 #define	ASIPARG		"-n"          /* console argument to specify ASIP */
@@ -27,8 +31,6 @@
 #define	FSIPARG		"-m"
 #define	FSPORTARG	"-q"
 #define VERBOSE		"-v"
-
-
 
 /* macros for the string validation functions */
 #define STR_DIGIT           isdigit     // digit matcher
@@ -39,6 +41,25 @@
 #define STR_NLEN            0           // all lengths considered
 
 
+/* Protocol commands */
+//status
+#define STATUS_OK	"OK"
+#define STATUS_NOK	"NOK"
+//commands
+#define REG_REQ		"REG"
+#define REG_RESP	"RRG"
+#define UNREG_REQ	"UNR"
+#define UNREG_RESP	"RUN"
+#define VALIDCODE_REQ	"VLC"
+#define VALIDCODE_RESP	"RVC"
+//file operations
+#define FOP_L		'L'
+#define FOP_R		'R'
+#define FOP_U		'U'
+#define FOP_D		'D'
+#define FOP_X		'X'
+
+const char *getFileOp(const char op);
 
 /* macro for logging debug messages */
 #ifdef DEBUG
@@ -67,8 +88,11 @@
  * \param  buffer a buffer where the message will be stored.
  * \return the pointer to the specified buffer.
  */
-char* getUserInput(char *buffer);
+void fatal(const char *message);
+void warning(const char *message);
 
+char* getUserInput(char *buffer);
+void display(const char c);
 
 
 /*! \brief Checks if the string is valid using to the match() function and size.
@@ -101,8 +125,6 @@ int checkValidPORT(const char *str);
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-
-void fatal(const char *message);
 
 
 #endif /* COMMON_H */

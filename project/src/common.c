@@ -1,14 +1,48 @@
 #include "common.h"
 
 
+/*! \brief Brief function description here
+ *
+ *  Detailed description of the function
+ *
+ * \param  Parameter description
+ * \return Return parameter description
+ */
+void fatal(const char *message) {
+        fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
+        exit(EXIT_FAILURE);
+}
+
+void warning(const char *message) {
+        fprintf(stderr, "\033[1;33m[WARNING]: \33[0m%s\n", message);
+}
+
 // reads the user input
 char *getUserInput(char *buffer) {
-    if (fgets(buffer, BUFSIZ, stdin) == NULL)
+    if (fgets(buffer, BUFFERSIZE, stdin) == NULL)
         FATAL("Failed to get user input!");
         
 	return buffer;
 }
 
+void display(const char c) {
+        putchar(c);
+        fflush(stdout);
+}
+
+
+const char *getFileOp(const char op) {
+    switch (op){
+        case FOP_L: return "list";
+        case FOP_U: return "upload";
+        case FOP_R: return "retrieve";
+        case FOP_D: return "delete";
+        case FOP_X: return "remove";
+    }
+    //else
+    warning("Unknown file operation.");
+    return "";
+}
 
 
 // checks if the string is valid using to the match() function and size
@@ -23,9 +57,9 @@ int isStringValid(const char* buffer, int (*matcher)(int), int forceLen) {
     return (forceLen == 0 || forceLen == i ? i : FALSE );
 }
 
-//int checkAlfaNum(const char *str, int forceLen)     { return isStringValid(str, STR_ALPHANUM, forceLen); }
-//int checkOnlyChar(const char *str, int forceLen)    { return isStringValid(str, STR_ALPHA, forceLen); }
-//int checkOnlyNum(const char *str, int forceLen)     { return isStringValid(str, STR_DIGIT, forceLen); }
+int checkAlfaNum(const char *str, int forceLen)     { return isStringValid(str, STR_ALPHANUM, forceLen); }
+int checkOnlyChar(const char *str, int forceLen)    { return isStringValid(str, STR_ALPHA, forceLen); }
+int checkOnlyNum(const char *str, int forceLen)     { return isStringValid(str, STR_DIGIT, forceLen); }
 
 
 
@@ -156,16 +190,3 @@ int isValidPassword(char *input) {
 
 
 
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-void fatal(const char *message) {
-        fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
-        exit(EXIT_FAILURE);
-}

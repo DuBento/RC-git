@@ -27,26 +27,26 @@ void displayConnectionInfo(connectionInfo_t *info) {
 /* the user's information */
 typedef struct user_info_t {
 
-        char uid[BUFSIZ];
-        char pass[BUFSIZ];
+        char uid[BUFFERSIZE];
+        char pass[BUFFERSIZE];
+        char sessionFlag;
 
 } userInfo_t;
 
 /* ======== CONSTANTS ========= */
 #define REGCMD  "reg"
 #define EXITCMD "exit"
+#define VALIDCODE "VC"
 
 
 /* ======== GLOBAL VARS ========= */
 userInfo_t userInfo;
 connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
+char msgSentFlag = FALSE; //trace back response from server
 
-
-
-void displayShell() {
-        printf(">");                      //waiting for command visual indicator
-        fflush(stdout);
-}
+void setDirty() { msgSentFlag = TRUE; }
+void setClean() { msgSentFlag = FALSE; }
+char isDirty() { return msgSentFlag; }
 
 
 /*! \brief Parses the execution arguments.
@@ -68,7 +68,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 		FATAL("Invalid IP address!\nUsage: xxx.xxx.xxx.xxx");
 
 	strncpy(info->pdip, argv[1], IP_SIZE);
-	printf("%s\n", info->pdip);
+
 	for (int i = 2; i < argc; i++){
 		if (!strcmp(PDPORTARG, argv[i]) && checkValidPORT((const char *)argv[i+1])) 
 			strncpy(info->pdport, argv[++i], PORT_SIZE);
@@ -94,20 +94,31 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
  * \return NULL.
  */
 void registerUser(int fd, const char *uid, const char *pass) {
-        char cmdAS[BUFSIZ];
+        char cmdAS[BUFFERSIZE];
         int size, retSize;
         
+        if (userInfo.sessionFlag) {
+                warning("Session already on.\nTo register another user please unregister first.");
+                return;
+        }
+
         // Update User info
         strcpy(userInfo.uid, uid);
         strcpy(userInfo.pass, pass);
+        userInfo.sessionFlag = FALSE;
         
         // REG UID pass PDIP PDport
-        size = sprintf(cmdAS, "REG %s %s %s %s%c", userInfo.uid, userInfo.pass, connectionInfo.pdip,\
+        size = sprintf(cmdAS, "%s %s %s %s %s%c", REG_REQ, userInfo.uid, userInfo.pass, connectionInfo.pdip,\
                         connectionInfo.pdport, ENDMSG);
         
         retSize = udpSendMessage(fd, cmdAS, size);
         
-        if (size != retSize) fatal("Failed to send registration message.");
+        if (size != retSize) {
+                warning("Failed to send registration message.");
+                return;
+        }
+        // Only update msg sent status if message successfuly sent
+        setDirty();
 }
 
 
@@ -118,20 +129,30 @@ void registerUser(int fd, const char *uid, const char *pass) {
  * \param  Parameter description
  * \return Return parameter description
  */
-void unregisterUser(int fd) {
+void unregisterUser(int fd, char* msgBuf) {
 	/* verify what comes after - nothing
 	 * send to AS: UNR UID pass
 	 * receive RUN status
 	 */
-        char cmdAS[BUFSIZ];
         int size, retSize;
+
+        // If no user info confirmed
+        if (!userInfo.sessionFlag) {
+                warning("No session currently log in.");
+                return;
+        }
         
-        // UNR UID pass
-        size = sprintf(cmdAS, "UNR %s %s%c", userInfo.uid, userInfo.pass, ENDMSG);
+        // Sending Unregister message "UNR UID pass"
+        size = sprintf(msgBuf, "%s %s %s%c", UNREG_REQ, userInfo.uid, userInfo.pass, ENDMSG);
         
-        retSize = udpSendMessage(fd, cmdAS, size);
+        retSize = udpSendMessage(fd, msgBuf, size);
         
-        if (size != retSize) fatal("Failed to send registration message.");
+        if (size != retSize) {
+                warning("Failed to send unregister message.");
+                return;
+        }
+        // Only update msg sent status if message successfuly sent
+        setDirty();
 }
 
 
@@ -144,28 +165,78 @@ void unregisterUser(int fd) {
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-int handleUser(int sockfd, char* buf, short *flag) {
-	
+int handleUser(int sockfd, char* buf) {
 	int n, size;
-	char command[CMD_SIZE], uid[UID_SIZE], pass[PASS_SIZE];
+	char command[BUFFERSIZE], uid[BUFFERSIZE], pass[BUFFERSIZE];
 
 	/* Read user input - Check for error */
-        // fgets(buf, BUFSIZ, stdin);		/* fgets returns NULL on error or EOF? */
+        // fgets(buf, BUFFERSIZE, stdin);		/* fgets returns NULL on error or EOF? */
         getUserInput(buf);
 
         sscanf(buf, "%s %s %s", command, uid, pass);
-        
+
+        /* logs the server information (on debug mod only) */
+	_LOG("handleUser input:\nBUFFER\t: %s\nCMD\t: %s\nUID\t: %s\nPASS\t: %s\n", 
+			buf, command, uid, pass);
+
 	/* Check if command is valid: reg, exit */
-        if (!strcmp(command, REGCMD)) {
+        if (!strcmp(command, REGCMD))
                 registerUser(sockfd, uid, pass);
-        } else if (!strcmp(command, EXITCMD)) {
-                unregisterUser(sockfd);       // userInfo dinamically stored
-        } else {
-                puts("Not a valid command.");
-        }
+        else if (!strcmp(command, EXITCMD))
+                unregisterUser(sockfd, buf);
+        else
+                warning("Not a valid command.");   
 }
 
+/* ========== SERVER HANDLING ============= */
 
+void registerUser_Response(char *status) {
+        if(!strcmp(status, STATUS_OK)){
+                puts("Registration successful.");
+                userInfo.sessionFlag = TRUE;
+        }
+        else if(!strcmp(status, STATUS_NOK))
+                puts("Registration unsuccessful.");
+}
+
+void sendValidCode_response(int sockfd, char *msgBuf, const char *status) {
+        int size, retSize;
+        size = sprintf(msgBuf, "%s %s %c", VALIDCODE_RESP, STATUS_OK, ENDMSG);
+        retSize = udpSendMessage(sockfd, msgBuf, size);
+        
+        if (size != retSize) warning("Failed to send confirmation reply.");
+}
+
+void validationCode_response(int sockfd, char *msgBuf, char *reponse) {
+        // Parse the rest of the response received from the server
+        char uid[BUFFERSIZE], vc[BUFFERSIZE], fname[BUFFERSIZE];
+        char fop;
+        *fname = '\0';
+        sscanf(reponse, "%s %s %c %s", uid, vc, &fop, fname);
+        if(!strcmp(uid, userInfo.uid)){
+                // Operations over files (with filename)
+                if((fop == FOP_R || fop == FOP_U || fop == FOP_D)
+                        && *fname != '\0')
+                        printf("%s=%s, %s: %s", VALIDCODE, vc, getFileOp(fop), fname);
+                else if(fop == FOP_L || fop == FOP_X)
+                        printf("%s=%s, %s", VALIDCODE, vc, getFileOp(fop));
+                
+                // Respond to server OK
+                sendValidCode_response(sockfd, msgBuf, STATUS_OK);
+        } else 
+                // Respond to server NOT OK
+                sendValidCode_response(sockfd, msgBuf, STATUS_NOK);
+
+}
+
+void unregisterUser_Response(char *status) {
+        if(!strcmp(status, STATUS_OK)){
+                puts("Unregistration was successful.");
+                userInfo.sessionFlag = FALSE;
+        }
+        else if(!strcmp(status, STATUS_NOK))
+                puts("Unregistration was unsuccessful.");
+}
 /*! \brief Brief function description here
  *
  *  Detailed description of the function
@@ -175,14 +246,28 @@ int handleUser(int sockfd, char* buf, short *flag) {
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-int handleServer(int sockfd, char* buf, short *flag){
+void handleServer(int sockfd, char* msgBuf){
 	/* PD will be server to receive VC codes from client AS */
 	int n;
+	char respHead[BUFFERSIZE]; char respEnd[BUFFERSIZE];
+	
+        n = udpReceiveMessage(sockfd, msgBuf, BUFFERSIZE);
+        setClean();
 
-	n = udpReceiveMessage(sockfd, buf, BUFSIZ);
-	*flag = FALSE;
-        printf("\nserver: %s", buf);
-	return n;
+        sscanf(msgBuf, "%s %s", respHead, respEnd);
+
+        // Registration Response "RRG"
+        if (!strcmp(respHead, REG_RESP))
+                registerUser_Response(respEnd);
+        // Validation Code received "VLC"
+        else if (!strcmp(respHead, VALIDCODE_REQ))
+                validationCode_response(sockfd, msgBuf, respEnd);
+        else if (!strcmp(respHead, UNREG_RESP))
+                unregisterUser_Response(respEnd);                
+        else
+                warning("Server Error.");
+
+        // fwrite(buf, n, sizeof(*buf), stdout);
 }
 
 
@@ -194,8 +279,8 @@ int handleServer(int sockfd, char* buf, short *flag){
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-int handleNoResponse(int sockfd, char* buf) {
-	return udpSendMessage(sockfd, (const char*) buf, BUFSIZ);
+int handleNoResponse(int sockfd, char* msgBuf) {
+	return udpSendMessage(sockfd, (const char*) msgBuf, BUFFERSIZE);
 }
 
 
@@ -210,8 +295,7 @@ void waitEvent(int fd) {
 	fd_set fds, ready_fds;
         struct timeval tv, tmp_tv;
         int selectRet, fds_size, retVal;
-	short msgSent=0;	//trace back response from server
-	char buffer[BUFSIZ];
+	char buffer[BUFFERSIZE];
 
 	/* SELECT */
 	FD_ZERO(&fds);
@@ -221,7 +305,7 @@ void waitEvent(int fd) {
 	tv.tv_sec = 15;
 	tv.tv_usec = 0;
 
-        displayShell();
+        display(INPUTCHAR);
         
 	while (TRUE) {
 		// because select is destructive
@@ -234,17 +318,20 @@ void waitEvent(int fd) {
 			fatal("Failed System Call Select");
 		if (FD_ISSET(fd, &ready_fds)){	// give prority to server responses
 			// handle fd interaction
-			retVal = handleServer(fd, buffer, &msgSent);
-                        displayShell();
+                        putchar(DELCHAR);          // clear PREVIOUS INPUTCHAR
+                        display(RESPONSECHAR);
+			handleServer(fd, buffer);
+                        display(INPUTCHAR);
                 }
 		if (FD_ISSET(STDIN_FILENO, &ready_fds)){
 			// handle stdin
-			retVal = handleUser(fd, buffer, &msgSent);
-                        displayShell();
+			retVal = handleUser(fd, buffer);
+                        display(INPUTCHAR);
                 }
-		if (selectRet == 0 && msgSent == TRUE) // timeout expired
+		if (selectRet == 0 && isDirty()) // timeout expired
 			// act as previous message didn't reach the target
 			retVal = handleNoResponse(fd, buffer);
+                
 	}
 }
 
@@ -254,8 +341,7 @@ int main(int argc, char *argv[]) {
 
 	int asSockfd;
 	parseArgs(argc, argv, &connectionInfo);
-	displayConnectionInfo(&connectionInfo);
-
+        userInfo.sessionFlag = FALSE;
 
 	/* Socket to contact with AS. */
 	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
@@ -265,19 +351,6 @@ int main(int argc, char *argv[]) {
 	udpShutdownSocket(asSockfd);
         
 	
-
-        /*if (fgets(buffer, BUFSIZ, stdin) == NULL)
-                fatal("Failed to read user input");
-
-        if ( !strncmp(token, REGCMD, REGCMDLEN) )
-                regCmd(buffer + REGCMDLEN, &userInfo);
-        else if ( !strcmp(token, EXITCMD, EXITCMDLEN) )
-                exitCmd();
-        else
-                */
-           /* udp send to(ASfd, "ERR");*/
-
-
         /* first command should be reg (what if it's not?) DISPLAY ERR */
         
         /*  establish UDP client connection with AS server
