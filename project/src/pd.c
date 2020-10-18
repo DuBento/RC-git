@@ -34,6 +34,7 @@ typedef struct user_info_t {
 } userInfo_t;
 
 /* ======== CONSTANTS ========= */
+#define TIMER_SEC 10		// seconds for SELECT timer 
 #define REGCMD  "reg"
 #define EXITCMD "exit"
 #define VALIDCODE "VC"
@@ -302,7 +303,7 @@ void waitEvent(int fd) {
         FD_SET(STDIN_FILENO, &fds);
         FD_SET(fd, &fds);
         fds_size = fd+1;
-	tv.tv_sec = 15;
+	tv.tv_sec = TIMER_SEC;
 	tv.tv_usec = 0;
 
         display(INPUTCHAR);
