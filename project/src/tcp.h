@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#define TCPMAX_CON SOMAXCONN
+
 int tcpCreateSocket(const char *addressIP, const char *port);
 int tcpCreateClient(const char *addressIP, const char *port);
 int tcpCreateServer(const char *addressIP, const char *port, int numConnections);

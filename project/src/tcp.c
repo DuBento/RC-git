@@ -1,6 +1,6 @@
 #include "tcp.h"
 
-struct addrinfo hints, *res;
+static struct addrinfo hints, *res;
 
 
 /*! \brief Brief function description here

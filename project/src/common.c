@@ -1,6 +1,13 @@
 #include "common.h"
 
 
+static char msgSentFlag = FALSE; //trace back response from server
+
+void setDirty() { msgSentFlag = TRUE; }
+void setClean() { msgSentFlag = FALSE; }
+char isDirty() { return msgSentFlag; }
+
+
 /*! \brief Brief function description here
  *
  *  Detailed description of the function
@@ -14,16 +21,16 @@ void fatal(const char *message) {
 }
 
 void warning(const char *message) {
-        fprintf(stderr, "\033[1;33m[WARNING]: \33[0m%s\n", message);
+        fprintf(stdout, "\033[1;33m[WARNING]: \33[0m%s\n", message);
 }
 
 // reads the user input
 char *getUserInput(char *buffer) {
 	int size;
-	buffer[BUFFERSIZE-2] = '\0';
+	buffer[BUFFERSIZE-2] = '\n';
     	if (fgets(buffer, BUFFERSIZE, stdin) == NULL)
         	fatal("Failed to get user input!");
-	else if (buffer[BUFFERSIZE-2] != '\0' || buffer[BUFFERSIZE-2] != '\n')
+	else if (buffer[BUFFERSIZE-2] != '\0' && buffer[BUFFERSIZE-2] != '\n')
 		warning("Input too big, truncating...");
 	return buffer;
 }
@@ -31,6 +38,20 @@ char *getUserInput(char *buffer) {
 void display(const char c) {
         putchar(c);
         fflush(stdout);
+}
+
+
+void initSignal(void *handler){
+    struct sigaction act;
+    if (sigemptyset(&act.sa_mask) != 0) fatal("initSignal(sigemptyset)");
+    if (sigaddset(&act.sa_mask, SIGINT) != 0) fatal("initSignal(sigaddset)");
+    if (sigaddset(&act.sa_mask, SIGTERM) != 0) fatal("initSignal(sigaddset)");
+    act.sa_flags = SA_SIGINFO;
+    act.sa_sigaction = handler;
+
+
+    if (sigaction(SIGINT, &act, NULL) < 0) fatal("initSignals(sigaction)");
+    if (sigaction(SIGTERM, &act, NULL) < 0) fatal("initSignals(sigaction)");
 }
 
 

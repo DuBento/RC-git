@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
 
 
 /* generic constants/macros */
@@ -14,16 +15,18 @@
 #define PORT_SIZE   	5         /* maximum size of the port */
 #define UID_SIZE    	5          /* size of the UID */
 #define PASS_SIZE   	8         /* size of the password */
-#define CMD_SIZE	4          /* size of command */
+#define CMD_SIZE	    4          /* size of command */
 
-#define BUFFERSIZE	64	
-#define TRUE		1
-#define FALSE		0
-#define IP_DELIM	"."
-#define ENDMSG		'\n'
-#define	INPUTCHAR	'>'
-#define	RESPONSECHAR	'#'
-#define	DELCHAR		'\b'
+#define BUFFERSIZE	    64	
+#define TRUE		    1
+#define FALSE		    0
+#define IP_DELIM	    "."
+#define ENDMSG		    '\n'
+#define	INPUTCHAR	    '>'
+#define	RESPONSECHAR    '#'
+#define	DELCHAR		    '\b'
+#define TIMER_SEC       10          /* seconds for SELECT timer */ 
+#define NTRIES_NORESP   3           /* number of resent messages before quiting */
 
 #define	PDPORTARG	"-d"          /* console argument to specify PDport */
 #define	ASIPARG		"-n"          /* console argument to specify ASIP */
@@ -79,7 +82,13 @@ const char *getFileOp(const char op);
 
 
 
+
 /* Functions prototypes */
+
+// Functions over previous message sent 
+void setDirty();
+void setClean();
+char isDirty();
 
 /*! \brief Reads the user input.
  *
@@ -93,7 +102,14 @@ void warning(const char *message);
 
 char* getUserInput(char *buffer);
 void display(const char c);
-
+/*! \brief Initialize Signals
+ *
+ *  Change default behaviour of SIGINT and SIGTERM
+ *
+ * \param  handler a pointer to the handling fucntion
+ * \return NULL.
+ */
+void initSignal(void *handler);
 
 /*! \brief Checks if the string is valid using to the match() function and size.
  *

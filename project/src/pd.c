@@ -1,54 +1,25 @@
-#include "common.h"
-#include "udp.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
-
-
-/* the information to allow communication with the autentication server */
-typedef struct connectionInfo_t {
-
-        char pdip[IP_SIZE + 1];                 /* ip address of the program */
-        char pdport[PORT_SIZE + 1];             /* port of the program */        
-        char asip[IP_SIZE + 1];                 /* ip address of the autentication server */
-        char asport[PORT_SIZE + 1];             /* port of the autentication server */
-
-} connectionInfo_t;
-
-
-void displayConnectionInfo(connectionInfo_t *info) {
-	printf("serverInfo settings:\nPDIP\t: %s\nPDport\t: %s\nASIP\t: %s\nASport\t: %s\n", 
-                info->pdip, info->pdport, info->asip, info->asport);
-}
-
-
-
-/* the user's information */
-typedef struct user_info_t {
-
-        char uid[BUFFERSIZE];
-        char pass[BUFFERSIZE];
-        char sessionFlag;
-
-} userInfo_t;
+#include "common.h"
+#include "udp.h"
+#include "pd_api.h"
 
 /* ======== CONSTANTS ========= */
-#define TIMER_SEC 10		// seconds for SELECT timer 
 #define REGCMD  "reg"
 #define EXITCMD "exit"
-#define VALIDCODE "VC"
 
 
 /* ======== GLOBAL VARS ========= */
 userInfo_t userInfo;
 connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
-char msgSentFlag = FALSE; //trace back response from server
+// connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
+int asSockfd;
+char msgBuffer[2*BUFFERSIZE];	// prevent overflows, giving space to concatenate msgs
 
-void setDirty() { msgSentFlag = TRUE; }
-void setClean() { msgSentFlag = FALSE; }
-char isDirty() { return msgSentFlag; }
 
+/* ======== METHODS ========= */
 
 /*! \brief Parses the execution arguments.
  *
@@ -61,8 +32,10 @@ char isDirty() { return msgSentFlag; }
  */
 void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 	// check the number of arguments
-	if (argc < 2 || argc > 8 || argc % 2 != 0)
-		_FATAL("Invalid number of arguments!\nUsage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]", argv[0]);
+	if (argc < 2 || argc > 8 || argc % 2 != 0){
+		printf("Usage: %s PDIP [-d PDport] [-n ASIP] [-p ASport]\n", argv[0]);
+		fatal("Invalid number of arguments!");
+        }
 
 	// override default connection settings
 	if (!checkValidIp((const char*) argv[1])) 
@@ -86,76 +59,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 			info->pdip, info->pdport, info->asip, info->asport);
 }
 
-
- /*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  userInfo a pointer to store the user's info.
- * \return NULL.
- */
-void registerUser(int fd, const char *uid, const char *pass) {
-        char cmdAS[BUFFERSIZE];
-        int size, retSize;
-        
-        if (userInfo.sessionFlag) {
-                warning("Session already on.\nTo register another user please unregister first.");
-                return;
-        }
-
-        // Update User info
-        strcpy(userInfo.uid, uid);
-        strcpy(userInfo.pass, pass);
-        userInfo.sessionFlag = FALSE;
-        
-        // REG UID pass PDIP PDport
-        size = sprintf(cmdAS, "%s %s %s %s %s%c", REG_REQ, userInfo.uid, userInfo.pass, connectionInfo.pdip,\
-                        connectionInfo.pdport, ENDMSG);
-        
-        retSize = udpSendMessage(fd, cmdAS, size);
-        
-        if (size != retSize) {
-                warning("Failed to send registration message.");
-                return;
-        }
-        // Only update msg sent status if message successfuly sent
-        setDirty();
-}
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-void unregisterUser(int fd, char* msgBuf) {
-	/* verify what comes after - nothing
-	 * send to AS: UNR UID pass
-	 * receive RUN status
-	 */
-        int size, retSize;
-
-        // If no user info confirmed
-        if (!userInfo.sessionFlag) {
-                warning("No session currently log in.");
-                return;
-        }
-        
-        // Sending Unregister message "UNR UID pass"
-        size = sprintf(msgBuf, "%s %s %s%c", UNREG_REQ, userInfo.uid, userInfo.pass, ENDMSG);
-        
-        retSize = udpSendMessage(fd, msgBuf, size);
-        
-        if (size != retSize) {
-                warning("Failed to send unregister message.");
-                return;
-        }
-        // Only update msg sent status if message successfuly sent
-        setDirty();
-}
-
+ 
 
 /*! \brief Brief function description here
  *
@@ -166,11 +70,12 @@ void unregisterUser(int fd, char* msgBuf) {
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-int handleUser(int sockfd, char* buf) {
+void handleUser(int sockfd, char* buf, connectionInfo_t connectionInfo, userInfo_t *userInfo) {
 	int n, size;
 	char command[BUFFERSIZE], uid[BUFFERSIZE], pass[BUFFERSIZE];
-
-	/* Read user input - Check for error */
+        uid[0] = '\0'; pass[0] = '\0';          // prevent _LOG from priting stack trash
+	
+        /* Read user input - Check for error */
         // fgets(buf, BUFFERSIZE, stdin);		/* fgets returns NULL on error or EOF? */
         getUserInput(buf);
 
@@ -182,62 +87,13 @@ int handleUser(int sockfd, char* buf) {
 
 	/* Check if command is valid: reg, exit */
         if (!strcmp(command, REGCMD))
-                registerUser(sockfd, uid, pass);
+                registerUser(sockfd, uid, pass, connectionInfo, userInfo);
         else if (!strcmp(command, EXITCMD))
-                unregisterUser(sockfd, buf);
+                unregisterUser(sockfd, buf, userInfo);
         else
                 warning("Not a valid command.");   
 }
 
-/* ========== SERVER HANDLING ============= */
-
-void registerUser_Response(char *status) {
-        if(!strcmp(status, STATUS_OK)){
-                puts("Registration successful.");
-                userInfo.sessionFlag = TRUE;
-        }
-        else if(!strcmp(status, STATUS_NOK))
-                puts("Registration unsuccessful.");
-}
-
-void sendValidCode_response(int sockfd, char *msgBuf, const char *status) {
-        int size, retSize;
-        size = sprintf(msgBuf, "%s %s %c", VALIDCODE_RESP, STATUS_OK, ENDMSG);
-        retSize = udpSendMessage(sockfd, msgBuf, size);
-        
-        if (size != retSize) warning("Failed to send confirmation reply.");
-}
-
-void validationCode_response(int sockfd, char *msgBuf, char *reponse) {
-        // Parse the rest of the response received from the server
-        char uid[BUFFERSIZE], vc[BUFFERSIZE], fname[BUFFERSIZE];
-        char fop;
-        *fname = '\0';
-        sscanf(reponse, "%s %s %c %s", uid, vc, &fop, fname);
-        if(!strcmp(uid, userInfo.uid)){
-                // Operations over files (with filename)
-                if((fop == FOP_R || fop == FOP_U || fop == FOP_D)
-                        && *fname != '\0')
-                        printf("%s=%s, %s: %s", VALIDCODE, vc, getFileOp(fop), fname);
-                else if(fop == FOP_L || fop == FOP_X)
-                        printf("%s=%s, %s", VALIDCODE, vc, getFileOp(fop));
-                
-                // Respond to server OK
-                sendValidCode_response(sockfd, msgBuf, STATUS_OK);
-        } else 
-                // Respond to server NOT OK
-                sendValidCode_response(sockfd, msgBuf, STATUS_NOK);
-
-}
-
-void unregisterUser_Response(char *status) {
-        if(!strcmp(status, STATUS_OK)){
-                puts("Unregistration was successful.");
-                userInfo.sessionFlag = FALSE;
-        }
-        else if(!strcmp(status, STATUS_NOK))
-                puts("Unregistration was unsuccessful.");
-}
 /*! \brief Brief function description here
  *
  *  Detailed description of the function
@@ -247,8 +103,8 @@ void unregisterUser_Response(char *status) {
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-void handleServer(int sockfd, char* msgBuf){
-	/* PD will be server to receive VC codes from client AS */
+void handleServer(int sockfd, char* msgBuf, userInfo_t *userInfo){
+	/* PD will receive commands from server AS */
 	int n;
 	char respHead[BUFFERSIZE]; char respEnd[BUFFERSIZE];
 	
@@ -259,16 +115,14 @@ void handleServer(int sockfd, char* msgBuf){
 
         // Registration Response "RRG"
         if (!strcmp(respHead, REG_RESP))
-                registerUser_Response(respEnd);
+                registerUser_Response(respEnd, userInfo);
         // Validation Code received "VLC"
         else if (!strcmp(respHead, VALIDCODE_REQ))
-                validationCode_response(sockfd, msgBuf, respEnd);
+                validationCode_Response(sockfd, msgBuf, respEnd, userInfo);
         else if (!strcmp(respHead, UNREG_RESP))
-                unregisterUser_Response(respEnd);                
+                unregisterUser_Response(respEnd, userInfo);                
         else
                 warning("Server Error.");
-
-        // fwrite(buf, n, sizeof(*buf), stdout);
 }
 
 
@@ -280,8 +134,8 @@ void handleServer(int sockfd, char* msgBuf){
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-int handleNoResponse(int sockfd, char* msgBuf) {
-	return udpSendMessage(sockfd, (const char*) msgBuf, BUFFERSIZE);
+void handleNoResponse(int sockfd, char* msgBuf) {
+	udpSendMessage(sockfd, (const char*) msgBuf, BUFFERSIZE);
 }
 
 
@@ -292,11 +146,11 @@ int handleNoResponse(int sockfd, char* msgBuf) {
  * \param Parameter Parameter description
  * \return Return parameter description
  */
-void waitEvent(int fd) {
+void waitEvent(int fd, char *buffer, connectionInfo_t connectionInfo, userInfo_t *userInfo) {
 	fd_set fds, ready_fds;
         struct timeval tv, tmp_tv;
-        int selectRet, fds_size, retVal;
-	char buffer[2*BUFFERSIZE];	// prevent overflows, giving space to concatenate msgs
+        int selectRet, fds_size;
+        int nTry = 0;
 
 	/* SELECT */
 	FD_ZERO(&fds);
@@ -321,37 +175,43 @@ void waitEvent(int fd) {
 			// handle fd interaction
                         putchar(DELCHAR);          // clear PREVIOUS INPUTCHAR
                         display(RESPONSECHAR);
-			handleServer(fd, buffer);
+			handleServer(fd, buffer, userInfo);
                         display(INPUTCHAR);
                 }
 		if (FD_ISSET(STDIN_FILENO, &ready_fds)){
 			// handle stdin
-			retVal = handleUser(fd, buffer);
+			handleUser(fd, buffer, connectionInfo, userInfo);
                         display(INPUTCHAR);
                 }
-		if (selectRet == 0 && isDirty()) // timeout expired
+		if (selectRet == 0 && isDirty()) {// timeout expired
 			// act as previous message didn't reach the target
-			retVal = handleNoResponse(fd, buffer);
-                
+                        // try to resend NTRIES_NORESP times
+			if (nTry < NTRIES_NORESP)
+                                handleNoResponse(fd, buffer);
+                        else{
+                                nTry = 0;
+                                warning("No response received from sent message.\nCommunication error.");
+                        }
+                }       
 	}
 }
 
+void exitPD() {
+        // unregisterUser(asSockfd, msgBuffer);    // TODO confirm if we can do this (also im not confirming )
+	udpShutdownSocket(asSockfd);
+        exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char *argv[]) {
-	//connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
-
-	int asSockfd;
+        initSignal(&exitPD);
 	parseArgs(argc, argv, &connectionInfo);
         userInfo.sessionFlag = FALSE;
 
 	/* Socket to contact with AS. */
 	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 
-	waitEvent(asSockfd);
+	waitEvent(asSockfd, msgBuffer, connectionInfo, &userInfo);
 
-	udpShutdownSocket(asSockfd);
-        
-	
         /* first command should be reg (what if it's not?) DISPLAY ERR */
         
         /*  establish UDP client connection with AS server
@@ -370,5 +230,5 @@ int main(int argc, char *argv[]) {
         */
 	
 
-        return 0;
+        return 0; // Never used
 }

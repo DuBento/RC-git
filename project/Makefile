@@ -31,14 +31,15 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd #user as fd
+EXE_NAMES := pd as
 # ==============================================================================
 
 
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = pd.c common.c udp.c 
+$(DIR_EXE)/pd.deps = pd.c common.c udp.c pd_api.c
+$(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
 # ==============================================================================
 
 
@@ -46,8 +47,11 @@ $(DIR_EXE)/pd.deps = pd.c common.c udp.c
 # Source code dependencies
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder of the files #included in the code)
-$(DIR_OBJ)/pd.deps =
+#$(DIR_OBJ)/pd.deps 		= common.h upd.h
+#$(DIR_OBJ)/common.deps 	= common.h
+#$(DIR_OBJ)/udp.deps 	= common.h udp.h
 # ==============================================================================
+
 
 
 # Compilation properties
@@ -68,7 +72,7 @@ MACROS 		= -DDEBUG
 .DEFAULT_GOAL := compile
 
 # GCC properties
-CC 			:= gcc
+CC 		:= gcc
 LD   		:= gcc
 CC_FLAGS 	:= -Wall -Wextra -Werror -std=gnu99 -pedantic -I../
 LD_FLAGS 	:= -lm

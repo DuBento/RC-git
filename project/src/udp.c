@@ -4,7 +4,7 @@
 
 
 
-struct addrinfo hints={0}, *res={0};
+static struct addrinfo hints={0}, *res={0};
 
 
 /*! \brief Brief function description here
