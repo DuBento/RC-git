@@ -19,9 +19,12 @@ void warning(const char *message) {
 
 // reads the user input
 char *getUserInput(char *buffer) {
-    if (fgets(buffer, BUFFERSIZE, stdin) == NULL)
-        FATAL("Failed to get user input!");
-        
+	int size;
+	buffer[BUFFERSIZE-2] = '\0'
+    	if (fgets(buffer, BUFFERSIZE, stdin) == NULL)
+        	fatal("Failed to get user input!");
+	else if (buffer[BUFFERSIZE-2] != '\0' || buffer[BUFFERSIZE-2] != '\n')
+		warning("Input too big, truncating...")
 	return buffer;
 }
 
