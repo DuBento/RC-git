@@ -65,7 +65,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
 	// override default connection settings
 	if (!checkValidIp((const char*) argv[1])) 
-		FATAL("Invalid IP address!\nUsage: xxx.xxx.xxx.xxx");
+		fatal("Invalid IP address!\nUsage: xxx.xxx.xxx.xxx");
 
 	strncpy(info->pdip, argv[1], IP_SIZE);
 
@@ -295,7 +295,7 @@ void waitEvent(int fd) {
 	fd_set fds, ready_fds;
         struct timeval tv, tmp_tv;
         int selectRet, fds_size, retVal;
-	char buffer[BUFFERSIZE];
+	char buffer[2*BUFFERSIZE];	// prevent overflows, giving space to concatenate msgs
 
 	/* SELECT */
 	FD_ZERO(&fds);

@@ -16,7 +16,7 @@
 #define PASS_SIZE   	8         /* size of the password */
 #define CMD_SIZE	4          /* size of command */
 
-#define BUFFERSIZE	128
+#define BUFFERSIZE	64	
 #define TRUE		1
 #define FALSE		0
 #define IP_DELIM	"."
