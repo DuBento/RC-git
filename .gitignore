@@ -1,0 +1,7 @@
+# Directories
+project/bin
+project/obj
+
+
+# Files
+.vscode
