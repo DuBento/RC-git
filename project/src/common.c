@@ -1,5 +1,25 @@
 #include "common.h"
 
+// checks if the string is valid using to the match() function and size
+int isStringValid(const char* buffer, int (*matcher)(int), int forceLen) {
+    if (!buffer)        // invalid string
+        return FALSE;  
+
+    int i = 0;
+    while (buffer[i] != '\0' && matcher((int)buffer[i]))
+        i++;
+
+    return (forceLen == 0 || forceLen == i ? i : FALSE );
+}
+
+
+
+int checkAlfaNum(const char *str, int forceLen)     { return isStringValid(str, STR_ALPHANUM, forceLen); }
+int checkOnlyChar(const char *str, int forceLen)    { return isStringValid(str, STR_ALPHA, forceLen); }
+int checkOnlyNum(const char *str, int forceLen)     { return isStringValid(str, STR_DIGIT, forceLen); }
+
+
+
 
 static char msgSentFlag = FALSE; //trace back response from server
 
@@ -68,22 +88,6 @@ const char *getFileOp(const char op) {
     return "";
 }
 
-
-// checks if the string is valid using to the match() function and size
-int isStringValid(const char* buffer, int (*matcher)(int), int forceLen) {
-    if (!buffer)        // invalid string
-        return FALSE;  
-
-    int i = 0;
-    while (buffer[i] != '\0' && matcher((int)buffer[i]))
-        i++;
-
-    return (forceLen == 0 || forceLen == i ? i : FALSE );
-}
-
-int checkAlfaNum(const char *str, int forceLen)     { return isStringValid(str, STR_ALPHANUM, forceLen); }
-int checkOnlyChar(const char *str, int forceLen)    { return isStringValid(str, STR_ALPHA, forceLen); }
-int checkOnlyNum(const char *str, int forceLen)     { return isStringValid(str, STR_DIGIT, forceLen); }
 
 
 

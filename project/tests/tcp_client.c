@@ -20,6 +20,6 @@ int main() {
 	write(1, "echo: ", 6);
 	write(1, buffer, MSSG_SIZE);
 
-	tcpShutdownSocket(fd);
+	tcpDestroySocket(fd);
 	exit(EXIT_SUCCESS);
 }

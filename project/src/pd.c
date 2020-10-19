@@ -198,7 +198,7 @@ void waitEvent(int fd, char *buffer, connectionInfo_t connectionInfo, userInfo_t
 
 void exitPD() {
         // unregisterUser(asSockfd, msgBuffer);    // TODO confirm if we can do this (also im not confirming )
-	udpShutdownSocket(asSockfd);
+	udpDestroySocket(asSockfd);
         exit(EXIT_SUCCESS);
 }
 

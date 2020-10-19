@@ -115,8 +115,8 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 
 
 void exitAS() {
-        udpShutdownSocket(udpServerfd);
-        tcpShutdownSocket(tcpServerfd);
+        udpDestroySocket(udpServerfd);
+        tcpDestroySocket(tcpServerfd);
         exit(EXIT_SUCCESS);
 }
 
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
         // mount UDP server socket
         udpServerfd = udpCreateServer(NULL, connectionInfo.asport);
         // mount TCP server socket
-        tcpServerfd = tcpCreateServer(NULL, connectionInfo.asport, TCPMAX_CON);
+        tcpServerfd = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
 
         waitMainEvent(tcpServerfd, udpServerfd, msgBuffer);
 

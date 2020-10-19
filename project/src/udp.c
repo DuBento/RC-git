@@ -1,136 +1,69 @@
 #include "udp.h"
-#include <netdb.h>
-#include <stdio.h>
 
 
+static struct addrinfo hints = { 0 }, *res = NULL;
 
-static struct addrinfo hints={0}, *res={0};
 
+// creates and initializes an UDP socket
+int udpCreateSocket(const char *addrIP, const char *port) {
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1)
+        _FATAL("[UDP] Unable to create the socket!\n\t - Error code : %d", errno);
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int udpCreateSocket(const char *addressIP, const char *port) {
-    int fd, errcode;
-    
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd == -1) {
-            fatal("Failed to create UDP socket.");
-    }
-    // not necessary because hints global var
-    // memset(&hints, 0, sizeof(hints)); 
-    hints.ai_family=AF_INET;
-    hints.ai_socktype=SOCK_DGRAM;
-    
-    errcode = getaddrinfo(addressIP, port, &hints, &res);
-    if( errcode != 0 )
-        fatal("Failed to get address info");
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;    
+
+    int errCode = getaddrinfo(addrIP, port, &hints, &res);
+    if (errCode)
+        _FATAL("[UDP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
+            "\t - Error code: %d", errCode);
     
     return fd;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int udpCreateServer(const char *addressIP, const char *port) {
-    int fd, errcode;
-
-    hints.ai_flags = AI_PASSIVE;
-    fd = udpCreateSocket(addressIP, port);
-
-    errcode = bind(fd, res->ai_addr, res->ai_addrlen);
-    if (errcode == -1)
-        fatal("Failed to create UDP server.\n");
+// creates an UDP server
+int udpCreateServer(const char *addrIP, const char *port) {
+    hints.ai_flags = AI_PASSIVE;    
+    int fd = udpCreateSocket(addrIP, port);
+    if (bind(fd, res->ai_addr, res->ai_addrlen) == -1)
+        _FATAL("[UDP] Unable to bind the server.\n\t - Error code: %d", errno);
 
     return fd;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int udpCreateClient(const char *addressIP, const char *port) {
-    return udpCreateSocket(addressIP, port);
+// creates an UDP client
+int udpCreateClient(const char *addrIP, const char *port) {
+    return udpCreateSocket(addrIP, port);
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-int udpSendMessage(int fd, const char *message, int mssgSize) {
-    int n;
-
-    n = sendto(fd, message, mssgSize, 0, res->ai_addr, res->ai_addrlen);
+// receives an UDP message
+int udpReceiveMessage(int fd, char *buffer, int len) {
+    struct sockaddr *addr = { 0 };
+    int addrlen = sizeof(addr);
+    int n = recvfrom(fd, buffer, len, 0, addr, &addrlen);
     if (n == -1)
-	        fatal("Fail to send UDP message.\n");
+	    _FATAL("[UDP] Unable to read the message!\n\t - Error code: %d", errno);
+
+    _LOG("[UDP] Message received - bytes read: %d", n);
     return n;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-int udpReceiveMessage(int fd, char *buffer, int mssgSize) {
-    
-    int n;
-    socklen_t addrlen;
-    
-    /* temporary */
-    struct sockaddr *addr={0};
-    addrlen = sizeof(addr);
-    
-    n = recvfrom(fd, buffer, mssgSize, 0, addr, &addrlen);
-
-    /* DEBUG */
-    _LOG("[UDP] Receive Message - return code: %d", n);
-
-    if (n==-1) {
-	        fatal("Fail to receive UDP message.\n");
-    }
+// sends an UDP message
+int udpSendMessage(int fd, const char *buffer, int len) {
+    int n = sendto(fd, buffer, len, 0, res->ai_addr, res->ai_addrlen);
+    if (n == -1)
+	    _FATAL("[UDP] Unable to send the message!\n\t - Error code: %d", errno);
     return n;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-int udpShutdownSocket(int fd) {
-	int ret;
+// terminates the udp socket
+void udpDestroySocket(int fd) {
 	freeaddrinfo(res);
-	ret = close(fd);
-	if (ret == -1)
-		fatal("Failed to close UDP socket\n");
-	return ret;
+	if (close(fd) == -1)
+		_FATAL("[UDP] Error while closing the socket!\n\t - Error code: %d", errno);
 }

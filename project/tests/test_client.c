@@ -11,7 +11,7 @@ int main() {
     puts("sent");
     udpReceiveMessage(fd, buffer, size);
     fwrite(buffer, 1, size, stdin);
-    udpShutdownSocket(fd);
+    udpDestroySocket(fd);
 
     return 0;
 }

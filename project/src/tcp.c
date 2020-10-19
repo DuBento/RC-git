@@ -1,182 +1,96 @@
 #include "tcp.h"
 
-static struct addrinfo hints, *res;
+static struct addrinfo hints = { 0 }, *res = NULL;
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-int tcpCreateSocket(const char *addressIP, const char *port) {
-	int fd, errcode;
-
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd == -1) {
-		fatal("TCP: Failed to create socket.");
-	}
+// creates an initializes a TCP socket
+int tcpCreateSocket(const char *addrIP, const char *port) {
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (fd == -1)
+		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d", errno);
 	
-	/* Define info. */
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET;
+	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+	hints.ai_flags    = AI_PASSIVE;
 
-	errcode = getaddrinfo(addressIP, port, &hints, &res);
-	if ((errcode) != 0) {
-		fatal("TCP: Failed to get address info");
-	}
+	int errCode = getaddrinfo(addrIP, port, &hints, &res);
+	if (errCode)
+		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
+            "\t - Error code: %d", errCode);
+
 	return fd;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-int tcpCreateClient(const char *addressIP, const char *port) {
-	return tcpCreateSocket(addressIP, port);
-}
+// creates a TCP server
+int tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
+	int fd = tcpCreateSocket(addrIP, port);	
+	if (bind(fd, res->ai_addr, res->ai_addrlen) == -1)
+		_FATAL("[TCP] Unable to bind the server.\n\t - Error code: %d", errno);
 
+	if (listen(fd, nConnections) == -1)
+		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d", errno);
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpCreateServer(const char *addressIP, const char *port, int numConnections) {
-	int fd, errcode;
-	fd = tcpCreateSocket(addressIP, port);
-	
-	errcode = bind(fd, res->ai_addr, res->ai_addrlen);
-	if (errcode == -1) {
-		fatal("TCP: Failed to bind server socket.");
-	}	
-
-	if (listen(fd, numConnections) == -1) {
-		fatal("TCP: Failed to set listen");
-	}	
 	return fd;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpConnect(int fd) {
-	int errcode;
-	errcode = connect(fd, res->ai_addr, res->ai_addrlen);
-	if (errcode == -1) {
-		fatal("TCP: Failed to connect.");
-	}
-	return errcode;
+// creates a TCP client
+int tcpCreateClient(const char *addrIP, const char *port) {
+	return tcpCreateSocket(addrIP, port);
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpAcceptConnection(int fd) {
-	int newfd, addrlen;
+// connects the client with the server
+void tcpConnect(int fd) {
+	if (connect(fd, res->ai_addr, res->ai_addrlen) == -1)
+		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
+}
+
+
+// accepts the connections from the clients
+int tcpAcceptConnection(int fd) {	
 	struct sockaddr_in addr;
+	int addrlen = sizeof(addr);
 
-	addrlen = sizeof(addr); /* done every time? */
-	if ((newfd = accept(fd, (struct sockaddr*)&addr, &addrlen)) == -1){
-		fatal("TCP: Failed to accept.");
-	}
+	int newfd = accept(fd, (struct sockaddr*)&addr, &addrlen);
+	if (newfd == -1)
+		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
+
 	return newfd;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpReceiveMessage(int fd, char *buffer, int mssgSize) {
-	int n;
-	n = read(fd, buffer, mssgSize);
-	if (n == -1){
-		fatal("TCP: Failed to read message.");	
-	}
+// receives a TCP message
+int tcpReceiveMessage(int fd, char *buffer, int len) {
+	int n = read(fd, buffer, len);
+	if (n == -1)
+		_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
+	
 	return n;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpSendMessage(int fd, const char *message, int mssgSize) {
-	int n;
+// sends a TCP message
+int tcpSendMessage(int fd, const char *buffer, int len) {
+	int n = write(fd, buffer, len);
+	if (n == -1)
+		_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
 	
-	n = write(fd, message, mssgSize);
-	if (n == -1){
-		fatal("TCP: Failed to send message.");	
-	}
 	return n;
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpCloseConnection(int fd) {
-	int errcode;
-	errcode = close(fd);
-	
-	if (errcode == -1) {
-		fatal("TCP: Failed to shutdown connection.");
-	}
-	return errcode;
+// closes the tcp connection
+void tcpCloseConnection(int fd) {	
+	if (close(fd) == -1)
+		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
 }
 
 
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int tcpShutdownSocket(int fd) {
-	int errcode;
+// terminates the tcp socket
+void tcpDestroySocket(int fd) {
 	freeaddrinfo(res);
-	errcode = close(fd);
-	if (errcode == -1) {
-		fatal("TCP: Failed to close socket.");
-	}
-	return errcode;
+	if (close(fd) == -1)
+		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
 }

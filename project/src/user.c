@@ -1,12 +1,13 @@
 #include "common.h"
 
+
 /* the information to allow communication with the servers */
 typedef struct connectionInfo_t {
 
-        char asip[IP_SIZE + 1];                 /* ip address of the autentication server - same machine if not specified */
-        char asport[PORT_SIZE + 1];         /* port of the program */        
-        char fsip[IP_SIZE + 1];                 /* ip address of the file server - same machine if not specified */
-        char fsport[PORT_SIZE + 1];         /* port of the file server */
+	char asip[IP_SIZE + 1];         /* ip address of the autentication server - same machine if not specified */
+	char asport[PORT_SIZE + 1];     /* port of the program */        
+	char fsip[IP_SIZE + 1];         /* ip address of the file server - same machine if not specified */
+	char fsport[PORT_SIZE + 1];     /* port of the file server */
 
 } connectionInfo_t;
 

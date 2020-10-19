@@ -25,7 +25,7 @@ int main() {
 
 		tcpCloseConnection(newfd);
 	}
-	tcpShutdownSocket(fd);
+	tcpDestroySocket(fd);
 	exit(EXIT_SUCCESS);
 }
 

@@ -38,7 +38,7 @@ EXE_NAMES := pd as
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = pd.c common.c udp.c pd_api.c
+$(DIR_EXE)/pd.deps = pd.c common.c udp.c pd_api.c tcp.c
 $(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
 # ==============================================================================
 
@@ -47,9 +47,11 @@ $(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
 # Source code dependencies
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder of the files #included in the code)
-#$(DIR_OBJ)/pd.deps 		= common.h upd.h
-#$(DIR_OBJ)/common.deps 	= common.h
-#$(DIR_OBJ)/udp.deps 	= common.h udp.h
+$(DIR_OBJ)/common.deps 	= common.h
+$(DIR_OBJ)/upd.deps		= udp.h
+$(DIR_OBJ)/tcp.deps		= tcp.h
+
+$(DIR_OBJ)/pd.deps 		= common.h udp.h
 # ==============================================================================
 
 
@@ -98,7 +100,7 @@ SRC_FILES := $(patsubst $(DIR_SRC)/%.c, %.c, $(SRC_FILES))
 # Compilation of all the src files (into .o files)
 .SECONDEXPANSION:
 .SECONDARY:
-$(DIR_OBJ)/%.o: $(DIR_SRC)/%.c $(DIR_SRC)/$$($(DIR_OBJ)/$$*.deps)
+$(DIR_OBJ)/%.o: $(DIR_SRC)/%.c $$($(DIR_SRC)/$(DIR_OBJ)/$$*.deps)
 	@ echo "\033[97;2m========================================================================================================================\033[0m\n"
 	@ mkdir -p $(dir $@)
 	@ $(CC) $(CFLAGS) -o $@ -c $< $(MACROS) $(INCLUDES)

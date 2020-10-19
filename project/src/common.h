@@ -28,12 +28,14 @@
 #define TIMER_SEC       10          /* seconds for SELECT timer */ 
 #define NTRIES_NORESP   3           /* number of resent messages before quiting */
 
+
 #define	PDPORTARG	"-d"          /* console argument to specify PDport */
 #define	ASIPARG		"-n"          /* console argument to specify ASIP */
 #define	ASPORTARG	"-p"          /* console argument to specify ASport */
 #define	FSIPARG		"-m"
 #define	FSPORTARG	"-q"
 #define VERBOSE		"-v"
+
 
 /* macros for the string validation functions */
 #define STR_DIGIT           isdigit     // digit matcher
@@ -62,7 +64,7 @@
 #define FOP_D		'D'
 #define FOP_X		'X'
 
-const char *getFileOp(const char op);
+
 
 /* macro for logging debug messages */
 #ifdef DEBUG
@@ -74,7 +76,10 @@ const char *getFileOp(const char op);
 #endif
 
 
-/* Macro for logging fatal errors */
+/* Macro for logging warnings fatal errors */
+#define WARN(MSG)          { fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n");               exit(EXIT_FAILURE); }
+#define _WARN(MSG, ...)    { fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n", __VA_ARGS__);  exit(EXIT_FAILURE); }
+
 #define FATAL(MSG)          { fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n");               exit(EXIT_FAILURE); }
 #define _FATAL(MSG, ...)    { fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);  exit(EXIT_FAILURE); }
 
@@ -85,10 +90,21 @@ const char *getFileOp(const char op);
 
 /* Functions prototypes */
 
-// Functions over previous message sent 
-void setDirty();
-void setClean();
-char isDirty();
+/*! \brief Checks if the string is valid using to the match() function and size.
+ *
+ *  Compares each character of the string with the specified match() functiion,
+ *  while also verifying if the string length. 
+ *
+ * \param  buffer   the buffer containing the string.
+ * \param  matcher  the function to check the characters.
+ * \param  forceLen the required size of the string.
+ * \return the string's length if the string is valid, FALSE otherwise.
+ */
+int isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
+
+
+
+
 
 /*! \brief Reads the user input.
  *
@@ -111,22 +127,19 @@ void display(const char c);
  */
 void initSignal(void *handler);
 
-/*! \brief Checks if the string is valid using to the match() function and size.
- *
- *  Compares each character of the string with the specified match() functiion,
- *  while also verifying if the string length. 
- *
- * \param  buffer   the buffer containing the string.
- * \param  matcher  the function to check the characters.
- * \param  forceLen the required size of the string.
- * \return the string's length if the string is valid, FALSE otherwise.
- */
-int isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
+
 
 
 int checkAlfaNum(const char *str, int forceLen);
 int checkOnlyChar(const char *str, int forceLen);
 int checkOnlyNum(const char *str, int forceLen);
+
+
+// Functions over previous message sent 
+void setDirty();
+void setClean();
+char isDirty();
+const char *getFileOp(const char op);
 
 int checkValidIp(const char *ip_str);
 int checkValidPORT(const char *str);
