@@ -14,7 +14,7 @@ typedef struct connectionInfo_t {
 
 /* ========== GLOBAL ============= */
 int udpServerfd, tcpServerfd;
-char msgBuffer[2*BUFFERSIZE];	// prevent overflows, giving space to concatenate msgs
+char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
 
 #define CHECK_VERBOSITY verbosity
@@ -28,7 +28,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 	
         // else
         for (int i = 1; i < argc; i++){
-                if (!strcmp(ASPORTARG, argv[i]) && checkValidPORT((const char*) argv[i+1])
+                if (!strcmp(ASPORTARG, argv[i]) && isPortValid((const char*) argv[i+1])
                         && i+1 < argc)
                         strncpy(info->asport, argv[++i], PORT_SIZE);
                 else if (!strcmp(VERBOSE, argv[i]))
@@ -46,9 +46,9 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 /* Handle UDP Responses (Incoming Messages) */
 void handleUDP(int fd, char *msgBuf) {
 	int n;
-	char respHead[BUFFERSIZE]; char respEnd[BUFFERSIZE];
+	char respHead[BUFFER_SIZE]; char respEnd[BUFFER_SIZE];
 	
-        n = udpReceiveMessage(fd, msgBuf, BUFFERSIZE);
+        n = udpReceiveMessage(fd, msgBuf, BUFFER_SIZE);
         setClean();
 
         sscanf(msgBuf, "%s %s", respHead, respEnd);
@@ -77,10 +77,10 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
         FD_SET(tcpServerFD, &fds);
         FD_SET(udpFD, &fds);
         fds_size = (tcpServerFD > udpFD) ? tcpServerFD+1 : udpFD+1;
-	tv.tv_sec = TIMER_SEC;
+	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 
-        display(INPUTCHAR);
+        display(INPUT_CHAR);
         
 	while (TRUE) {
 		// because select is destructive

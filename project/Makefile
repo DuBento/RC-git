@@ -31,14 +31,14 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd as
+EXE_NAMES := pd
 # ==============================================================================
 
 
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = pd.c common.c udp.c pd_api.c tcp.c
+$(DIR_EXE)/pd.deps = common.c udp.c pd/pd.c pd/pd_aux.c
 $(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
 # ==============================================================================
 
@@ -48,10 +48,11 @@ $(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder of the files #included in the code)
 $(DIR_OBJ)/common.deps 	= common.h
-$(DIR_OBJ)/upd.deps		= udp.h
-$(DIR_OBJ)/tcp.deps		= tcp.h
+$(DIR_OBJ)/upd.deps		= udp.h common.h common.c
+$(DIR_OBJ)/tcp.deps		= tcp.h common.h common.c
 
-$(DIR_OBJ)/pd.deps 		= common.h udp.h
+$(DIR_OBJ)/pd/pd.deps 	  = common.h common.c udp.h udp.c pd/pd_aux.h pd/pd_aux.c
+$(DIR_OBJ)/pd/pd_aux.deps = common.h common.c udp.h udp.c pd/pd_aux.h
 # ==============================================================================
 
 

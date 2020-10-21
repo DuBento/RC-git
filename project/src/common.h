@@ -1,62 +1,73 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-
-/* generic includes */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <signal.h>
+#include <errno.h>
 
 
-/* generic constants/macros */
-#define IP_SIZE     	15          /* maximum size of the ip address */
-#define PORT_SIZE   	5         /* maximum size of the port */
-#define UID_SIZE    	5          /* size of the UID */
-#define PASS_SIZE   	8         /* size of the password */
-#define CMD_SIZE	    4          /* size of command */
 
-#define BUFFERSIZE	    64	
-#define TRUE		    1
-#define FALSE		    0
-#define IP_DELIM	    "."
-#define ENDMSG		    '\n'
-#define	INPUTCHAR	    '>'
-#define	RESPONSECHAR    '#'
-#define	DELCHAR		    '\b'
-#define TIMER_SEC       10          /* seconds for SELECT timer */ 
-#define NTRIES_NORESP   3           /* number of resent messages before quiting */
+/* Generic constants. */
+typedef char bool_t;
+#define TRUE		1
+#define FALSE		0
 
 
-#define	PDPORTARG	"-d"          /* console argument to specify PDport */
-#define	ASIPARG		"-n"          /* console argument to specify ASIP */
-#define	ASPORTARG	"-p"          /* console argument to specify ASport */
-#define	FSIPARG		"-m"
-#define	FSPORTARG	"-q"
-#define VERBOSE		"-v"
+/* Execution arguments */
+#define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
+#define	ARG_ASIP	"-n"	// the execution argument to specify the ASIP
+#define	ARG_ASPORT	"-p"	// the execution argument to specify the ASport
+#define	ARG_FSIP	"-m"	// the execution argument to specify the FSIP
+#define	ARG_FSPORT	"-q"	// the execution argument to specify the FSport
+#define ARG_VERBOS	"-v"	// the execution argument to specify the server verbose mode
 
 
-/* macros for the string validation functions */
-#define STR_DIGIT           isdigit     // digit matcher
-#define STR_ALPHA           isalpha     // alphabetic matcher
-#define STR_ALPHALOWER      islower     // lower case alphabetic
-#define STR_ALPHAUPPER      isupper     // upper case alphabetic
-#define STR_ALPHANUM        isalnum     // alpha numeric matcher
-#define STR_NLEN            0           // all lengths considered
+/* Connection constants. */
+#define IP_SIZE		15	// the maximum size of the IPv4 address
+#define PORT_SIZE	5	// the maximum size of the port
+#define IP_BLOCK_MIN	0	// the minimum value of each block of the IPv4
+#define IP_BLOCK_MAX	255	// the minimum value of each block of the IPv4
+#define PORT_MIN	1000	// the minumum value of the port allowed
+#define PORT_MAX	65535	// the maximum value of the port allowed
+
+/* Protocol constants. */
+#define CMD_SIZE	4	// the size of command
+#define UID_SIZE	5	// the size of the UID
+#define PASS_SIZE	8	// the size of the password
+#define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
+
+#define TIMEOUT		10	// the number of seconds before timeout
+#define NREQUEST_TRIES	3	// the number of resent messages before quiting
+#define	STR_INPUT	"> "	// the string before the user input
+#define	STR_RESPONSE	"# "	// the string before the server output
+#define STR_CLEAN	"\b\b"	// the string to clean the input and response strings
+#define CHAR_SEP_MSG	' '	// the sepatation character on a protocol message
+#define CHAR_END_MSG	'\n'	// the last character of a protocol message
+
+/* Protocol commands */
+#define OPCODE_SIZE	3
+#define REQ_REG		"REG"
+#define REQ_UNR		"UNR"
+#define REQ_VLC		"VLC"
+
+#define RESP_REG	"RRG"
+#define RESP_UNR	"RUN"
+#define RESP_VLC	"RVC"
+
+/* Protocol status */
+#define STATUS_SIZE	3
+#define STATUS_OK	"OK"
+#define STATUS_NOK	"NOK"
 
 
 /* Protocol commands */
-//status
-#define STATUS_OK	"OK"
-#define STATUS_NOK	"NOK"
-//commands
-#define REG_REQ		"REG"
-#define REG_RESP	"RRG"
-#define UNREG_REQ	"UNR"
-#define UNREG_RESP	"RUN"
-#define VALIDCODE_REQ	"VLC"
-#define VALIDCODE_RESP	"RVC"
+
+
+
 //file operations
 #define FOP_L		'L'
 #define FOP_R		'R'
@@ -66,44 +77,116 @@
 
 
 
-/* macro for logging debug messages */
+/* Macro for logging debug messages. */
 #ifdef DEBUG
-    #define LOG(MSG)        printf("\033[1;36m[LOG]: \33[0m" MSG "\n")
-    #define _LOG(MSG, ...)  printf("\033[1;36m[LOG]: \33[0m" MSG "\n", __VA_ARGS__)
+	#define LOG(MSG)	printf("\033[1;36m[LOG]: \33[0m" MSG "\n")
+	#define _LOG(MSG, ...)	printf("\033[1;36m[LOG]: \33[0m" MSG "\n", __VA_ARGS__)
 #else
-    #define LOG(MSG)
-    #define _LOG(MSG, ...)
+	#define LOG(MSG)
+	#define _LOG(MSG, ...)
 #endif
 
 
-/* Macro for logging warnings fatal errors */
-#define WARN(MSG)          { fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n");               exit(EXIT_FAILURE); }
-#define _WARN(MSG, ...)    { fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n", __VA_ARGS__);  exit(EXIT_FAILURE); }
+/* Macro for logging warnings fatal errors. */
+#define WARN(MSG)		{ fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n");}
+#define _WARN(MSG, ...)		{ fprintf(stderr, "\033[1;33m[WARNING]: \33[0m" MSG "\n", __VA_ARGS__); }
 
-#define FATAL(MSG)          { fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n");               exit(EXIT_FAILURE); }
-#define _FATAL(MSG, ...)    { fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);  exit(EXIT_FAILURE); }
-
-
+#define FATAL(MSG)		{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n");               raise(SIGABRT); }
+#define _FATAL(MSG, ...)	{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);  raise(SIGABRT); }
 
 
 
+/*! \brief Initializes the program termination signals.
+ *
+ *  Change the actions of the SIGINT and SIGTERM signals to match the specified
+ *  handler function.
+ *
+ * \param  handlerSucc	the pointer to success termination handeling function.
+ * \param  handlerUn	the pointer to unsuccess termination handeling function.
+ */
+void initSignal(void *handlerSucc, void *handlerUn);
 
-/* Functions prototypes */
+
+
+/* Macros for the string validation functions. */
+#define STR_DIGIT	isdigit		// digit matcher
+#define STR_ALPHA	isalpha		// alphabetic matcher
+#define STR_ALPHALOWER	islower		// lower case alphabetic
+#define STR_ALPHAUPPER	isupper		// upper case alphabetic
+#define STR_ALPHANUM	isalnum		// alpha numeric matcher
+#define STR_ALLLEN	0 		// all lengths considered
 
 /*! \brief Checks if the string is valid using to the match() function and size.
  *
  *  Compares each character of the string with the specified match() functiion,
  *  while also verifying if the string length. 
  *
- * \param  buffer   the buffer containing the string.
- * \param  matcher  the function to check the characters.
- * \param  forceLen the required size of the string.
- * \return the string's length if the string is valid, FALSE otherwise.
+ * \param  buffer	the buffer containing the string.
+ * \param  matcher	the function to check the characters.
+ * \param  forceLen	the required size of the string.
+ * \return the string's length if the string is valid, 0 otherwise.
  */
-int isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
+size_t isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
 
 
 
+/*! \brief Checks if the IP address' format is valid (in dot notaion).
+ *
+ *  Checks if the IP address is made of four blocks separated by '.' and
+ *  each of them is a number between IP_BLOCK_MIN and IP_BLOCK_MAX.
+ *
+ * \param  buffer	the buffer containing the ip address.
+ * \return TRUE if the IP address' format is valid, FALSE otherwise.
+ */
+bool_t isIPValid(const char *buffer);
+
+
+/*! \brief Checks if the port number's format is valid.
+ *
+ *  Checks if the port is a number between PORT_MIN and PORT_MAX.
+ * 
+ * \param  buffer	the buffer containing the port number.
+ * \return TRUE if the IP address' format is valid, FALSE otherwise.
+ */
+bool_t isPortValid(const char *buffer);
+
+
+
+/*! \brief Reads an input line from the user.
+ *
+ *  Stores the input line read from the user on a temporary buffer and then
+ *  copies it to a dynamic allocated string returning a pointer to it.
+ * 
+ * \param   buffer	the buffer where the input will be stored.
+ * \param   size	the size of the specified buffer.
+ * \return  the pointer to the buffer if the input didn't exceed the buffer's 
+ *          size, NULL otherwise.
+ */
+char* getUserInput(char *buffer, size_t size);
+
+
+
+/*! \brief Outputs a string character by character.
+ *
+ *  Writes the specified string on to the output stream, character by character,
+ *  using the putchar() function.
+ * 
+ * \param  buffer	the string to be displayed.
+ * \param  flush	TRUE to flush the output stream, FALSE, otherwise.
+ */
+void putStr(const char *buffer, bool_t flush);
+
+
+
+
+
+
+
+
+// Functions over previous message sent 
+const char *getFileOp(const char op);
+
+/* ========== [ TEMP ] ========== */
 
 
 /*! \brief Reads the user input.
@@ -116,44 +199,6 @@ int isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
 void fatal(const char *message);
 void warning(const char *message);
 
-char* getUserInput(char *buffer);
-void display(const char c);
-/*! \brief Initialize Signals
- *
- *  Change default behaviour of SIGINT and SIGTERM
- *
- * \param  handler a pointer to the handling fucntion
- * \return NULL.
- */
-void initSignal(void *handler);
 
 
-
-
-int checkAlfaNum(const char *str, int forceLen);
-int checkOnlyChar(const char *str, int forceLen);
-int checkOnlyNum(const char *str, int forceLen);
-
-
-// Functions over previous message sent 
-void setDirty();
-void setClean();
-char isDirty();
-const char *getFileOp(const char op);
-
-int checkValidIp(const char *ip_str);
-int checkValidPORT(const char *str);
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-
-
-#endif /* COMMON_H */
+#endif 	/* COMMON_H */

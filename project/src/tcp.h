@@ -1,8 +1,6 @@
 #ifndef TCP_H
 #define TCP_H
 
-#include <unistd.h>
-#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -17,8 +15,8 @@
  *  Creates a new socket for a TCP connection with the specified IP address
  *  and port number (after translating them into the appropriate formats).
  *
- * \param  addrIP   the ip address (IPv4 or IPv6).
- * \param  port     the service name (or the port number).
+ * \param  addrIP	the ip address (IPv4 or IPv6).
+ * \param  port		the service name (or the port number).
  * \return the socket's file descriptor.
  */
 int tcpCreateSocket(const char *addrIP, const char *port);
@@ -28,9 +26,9 @@ int tcpCreateSocket(const char *addrIP, const char *port);
  *
  *  Creates an TCP server with the specified IP address and port number.
  *
- * \param  addrIP           the ip address (IPv4 or IPv6).
- * \param  port             the service name (or the port number).
- * \param  nConnections     the maximum number of connections in queue.
+ * \param  addrIP	the ip address (IPv4 or IPv6).
+ * \param  port		the service name (or the port number).
+ * \param  nConnections	the maximum number of connections in queue.
  * \return the server's file descriptor.
  */
 int tcpCreateServer(const char *addrIP, const char *port, int nConnections);
@@ -40,8 +38,8 @@ int tcpCreateServer(const char *addrIP, const char *port, int nConnections);
  *
  *  Creates an TCP client with the specified IP address and port number.
  *
- * \param  addrIP   the ip address (IPv4 or IPv6).
- * \param  port     the service name (or the port number).
+ * \param  addrIP	the ip address (IPv4 or IPv6).
+ * \param  port		the service name (or the port number).
  * \return the server's file descriptor.
  */
 int tcpCreateClient(const char *addrIP, const char *port);
@@ -51,7 +49,7 @@ int tcpCreateClient(const char *addrIP, const char *port);
  *
  *  Tries to connect to the server.
  *
- * \param  fd   the TCP connection file descriptor
+ * \param  fd		the TCP connection file descriptor.
  */
 void tcpConnect(int fd);
 
@@ -61,7 +59,7 @@ void tcpConnect(int fd);
  *  Accepts a new connection from a clients and returns a new file descriptor
  *  for communicating with it.
  *
- * \param  fd   the TCP connection file descriptor.
+ * \param  fd		the TCP connection file descriptor.
  * \return the file descriptor for communicating with the client.
  */
 int tcpAcceptConnection(int fd);
@@ -71,9 +69,9 @@ int tcpAcceptConnection(int fd);
  *
  *  Stores a TCP message in the specified buffer.
  *
- * \param fd        the TCP connection file description.
- * \param buffer    a buffer where the message will be stored.
- * \param len       the length of the specified buffer.
+ * \param  fd		the TCP connection file description.
+ * \param  buffer	a buffer where the message will be stored.
+ * \param  len		the length of the specified buffer.
  * \return the number of bytes read.
  */
 int tcpReceiveMessage(int fd, char *buffer, int len);
@@ -83,9 +81,9 @@ int tcpReceiveMessage(int fd, char *buffer, int len);
  *
  *  Sends the specified TCP message.
  *
- * \param fd        the TCP connection file description.
- * \param buffer    a buffer containing the message.
- * \param len       the length of the message.
+ * \param  fd		the TCP connection file description.
+ * \param  buffer	a buffer containing the message.
+ * \param  len		the length of the message.
  * \return the number of bytes sent.
  */
 int tcpSendMessage(int fd, const char *buffer, int len);
@@ -95,7 +93,7 @@ int tcpSendMessage(int fd, const char *buffer, int len);
  *
  *  Closes the specified TCP connection.
  *
- * \param  fd   the TCP connection file descriptor.
+ * \param  fd		the TCP connection file descriptor.
  * \return the file descriptor for communicating with the client.
  */
 void tcpCloseConnection(int fd);
@@ -105,10 +103,10 @@ void tcpCloseConnection(int fd);
  *
  *  Frees the information associated with an TCP socket and closes it.
  *
- * \param fd        the TCP connection file description.
+ * \param fd		the TCP connection file description.
  */
 void tcpDestroySocket(int fd);
 
 
 
-#endif /* TCP_H */
+#endif  /* TCP_H */

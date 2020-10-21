@@ -3,6 +3,7 @@
 static struct addrinfo hints = { 0 }, *res = NULL;
 
 
+
 // creates an initializes a TCP socket
 int tcpCreateSocket(const char *addrIP, const char *port) {
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -16,7 +17,7 @@ int tcpCreateSocket(const char *addrIP, const char *port) {
 	int errCode = getaddrinfo(addrIP, port, &hints, &res);
 	if (errCode)
 		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
-            "\t - Error code: %d", errCode);
+		"\t - Error code: %d", errCode);
 
 	return fd;
 }
@@ -25,10 +26,10 @@ int tcpCreateSocket(const char *addrIP, const char *port) {
 // creates a TCP server
 int tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
 	int fd = tcpCreateSocket(addrIP, port);	
-	if (bind(fd, res->ai_addr, res->ai_addrlen) == -1)
+	if (bind(fd, res->ai_addr, res->ai_addrlen))
 		_FATAL("[TCP] Unable to bind the server.\n\t - Error code: %d", errno);
 
-	if (listen(fd, nConnections) == -1)
+	if (listen(fd, nConnections))
 		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d", errno);
 
 	return fd;
@@ -43,7 +44,7 @@ int tcpCreateClient(const char *addrIP, const char *port) {
 
 // connects the client with the server
 void tcpConnect(int fd) {
-	if (connect(fd, res->ai_addr, res->ai_addrlen) == -1)
+	if (connect(fd, res->ai_addr, res->ai_addrlen))
 		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
 }
 
@@ -83,7 +84,7 @@ int tcpSendMessage(int fd, const char *buffer, int len) {
 
 // closes the tcp connection
 void tcpCloseConnection(int fd) {	
-	if (close(fd) == -1)
+	if (close(fd))
 		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
 }
 
@@ -91,6 +92,6 @@ void tcpCloseConnection(int fd) {
 // terminates the tcp socket
 void tcpDestroySocket(int fd) {
 	freeaddrinfo(res);
-	if (close(fd) == -1)
+	if (close(fd))
 		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
 }

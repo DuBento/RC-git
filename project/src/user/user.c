@@ -21,13 +21,13 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
     
         for (int i = 1; i < argc; i++){
-                if (!strcmp(ASIPARG, argv[i]) && checkValidIp((const char *)argv[i+1])) 
+                if (!strcmp(ASIPARG, argv[i]) && isIPValid((const char *)argv[i+1])) 
                         strncpy(info->asip, argv[++i], IP_SIZE);
-                else if (!strcmp(ASPORTARG, argv[i]) && checkValidPORT((const char*) argv[i+1]))
+                else if (!strcmp(ASPORTARG, argv[i]) && isPortValid((const char*) argv[i+1]))
                         strncpy(info->asip, argv[++i], PORT_SIZE);
-                else if (!strcmp(FSIPARG, argv[i]) && checkValidIp((const char *)argv[i+1]))
+                else if (!strcmp(FSIPARG, argv[i]) && isIPValid((const char *)argv[i+1]))
                        strncpy(info->asport, argv[++i], IP_SIZE); 
-                else if (!strcmp(FSPORTARG, argv[i]) && checkValidPORT((const char *)argv[i+1]))
+                else if (!strcmp(FSPORTARG, argv[i]) && isPortValid((const char *)argv[i+1]))
                        strncpy(info->asport, argv[++i], PORT_SIZE);
                 else 
                         fatal("Invalid IP address format.\nPlease use dot notation.\nOr invalid PORT format. \nPlease only use unrestricted ports.");
