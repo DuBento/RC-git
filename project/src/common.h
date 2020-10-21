@@ -40,6 +40,7 @@ typedef char bool_t;
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
 
+#define BUFFER_SIZE	128	// the maximum number of characters of a message/input line
 #define TIMEOUT		10	// the number of seconds before timeout
 #define NREQUEST_TRIES	3	// the number of resent messages before quiting
 #define	STR_INPUT	"> "	// the string before the user input
@@ -49,7 +50,7 @@ typedef char bool_t;
 #define CHAR_END_MSG	'\n'	// the last character of a protocol message
 
 /* Protocol commands */
-#define OPCODE_SIZE	3
+#define SERVER_ERR	"ERR"
 #define REQ_REG		"REG"
 #define REQ_UNR		"UNR"
 #define REQ_VLC		"VLC"
@@ -59,16 +60,10 @@ typedef char bool_t;
 #define RESP_VLC	"RVC"
 
 /* Protocol status */
-#define STATUS_SIZE	3
 #define STATUS_OK	"OK"
 #define STATUS_NOK	"NOK"
 
-
-/* Protocol commands */
-
-
-
-//file operations
+/* file operations */
 #define FOP_L		'L'
 #define FOP_R		'R'
 #define FOP_U		'U'
@@ -151,6 +146,24 @@ bool_t isIPValid(const char *buffer);
 bool_t isPortValid(const char *buffer);
 
 
+/*! \brief Checks if the UID is valid.
+ *
+ *  Checks if the UID is a number with 5 digits.
+ * \param  buffer	the buffer containing the UID.
+ * \return TRUE if the UID is valid, FALSE otherwise.
+ */
+bool_t isUIDValid(const char *buffer);
+
+
+/*! \brief Checks if the password is valid.
+ *
+ *  Checks if the password is a alphanumerical string with 8 symbols.
+ * \param  buffer	the buffer containing the password.
+ * \return TRUE if the password is valid, FALSE otherwise.
+ */
+bool_t isPassValid(const char *buffer);
+
+
 
 /*! \brief Reads an input line from the user.
  *
@@ -178,26 +191,15 @@ void putStr(const char *buffer, bool_t flush);
 
 
 
-
-
-
-
-
-// Functions over previous message sent 
+/*! \brief Gets the string correspondent to the file operation.
+ *
+ *  Writes the specified string on to the output stream, character by character,
+ *  using the putchar() function.
+ * 
+ * \param  op		file operation
+ * \return the string correspondent to the file operation.
+ */ 
 const char *getFileOp(const char op);
-
-/* ========== [ TEMP ] ========== */
-
-
-/*! \brief Reads the user input.
- *
- *  Reads the user input while checking for errors.
- *
- * \param  buffer a buffer where the message will be stored.
- * \return the pointer to the specified buffer.
- */
-void fatal(const char *message);
-void warning(const char *message);
 
 
 

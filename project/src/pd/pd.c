@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "udp.h"
-#include "protocol.h"
+#include "pd_aux.h"
 
 
 
@@ -100,8 +100,6 @@ void parseArgs(int argc, char *argv[]) {
 /* User commands */
 #define CMD_REG		"reg"		// register command
 #define CMD_EXIT	"exit"		// exit command
-#define CMD_REG_L	3		// length of the register command
-#define CMD_EXIT_L	4		// length of the exit command
 
 
 /*! \brief Handles the user input during the runtime.
@@ -112,42 +110,19 @@ void parseArgs(int argc, char *argv[]) {
  * \return TRUE if the message was well sent on to the server, FALSE otherwise.
  */
 bool_t handleUser() {
-	char buffer[BUFSIZ];
-	if (!getUserInput(buffer, BUFSIZ))
+	char buffer[BUFFER_SIZE];
+	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
 
+	char cmd[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, pass[BUFFER_SIZE] = { 0 };
+	sscanf(buffer, "%s %s %s", cmd, uid, pass);
+
 	// register command
-	if (!strncmp(buffer, CMD_REG, CMD_REG_L) && buffer[CMD_REG_L] == CHAR_SEP_MSG) {
-		// uid argument 
-		char *uidArg = &buffer[CMD_REG_L];
-		*(uidArg++)  = '\0';
-
-		// pass argument
-		char *passArg = strchr(uidArg, CHAR_SEP_MSG);
-		if (passArg == NULL || passArg == uidArg) { 
-			WARN("Invalid format for the 'reg' command!"); 
-			return FALSE; 
-		}
-		*(passArg++) = '\0';
-
-		// end of the arguments		
-		char *endArg = strchr(passArg, CHAR_END_MSG);
-		if (endArg == NULL || endArg == passArg || endArg[1] != '\0' || strchr(passArg, CHAR_SEP_MSG) != NULL) { 
-			WARN("Invalid command! Operation ignored."); 
-			return FALSE; 
-		}		
-		*(endArg++)  = '\0';
-
-		// store the uid and pass and call the protocol function
-		userInfo.uid  = (char*)malloc((passArg - uidArg) * sizeof(char));
-		userInfo.pass = (char*)malloc((endArg - passArg) * sizeof(char));
-		strcpy(userInfo.uid, uidArg);
-		strcpy(userInfo.pass, passArg);
-		return req_registerUser(asSockfd, &connectionInfo, &userInfo);
-	}
+	if (!strcmp(cmd, CMD_REG) && uid[0] != '\0' && pass[0] != '\0')
+		return req_registerUser(asSockfd, &connectionInfo, uid, pass, &userInfo);
 
 	// exit command
-	if (!strncmp(buffer, CMD_EXIT, CMD_EXIT_L) && buffer[CMD_EXIT_L] == '\n' && buffer[CMD_EXIT_L + 1] == '\0')
+	if (!strcmp(cmd, CMD_EXIT) && uid[0] == '\0')
 		return req_unregisterUser(asSockfd, &userInfo);
 		
 	WARN("Invalid command! Operation ignored.");
@@ -162,42 +137,29 @@ bool_t handleUser() {
  * \return TRUE if the message was well received from the server, FALSE otherwise.
  */
 bool_t handleServer() {
-	char buffer[BUFSIZ];	
-	int size = udpReceiveMessage(asSockfd, buffer, BUFSIZ);
-
-	if (buffer[OPCODE_SIZE] != ' ' || buffer[size - 1] != '\n') {
-		WARN("Invalid format on the server response! Operation ignored.");
-		return FALSE;
-	}
-	buffer[size - 1] = '\0';
+	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE] = { 0 }, args[BUFFER_SIZE] = { 0 };	
+	int size = udpReceiveMessage(asSockfd, buffer, BUFFER_SIZE);
+	sscanf(buffer, "%s %s\n", opcode, args);
 
 	// Registration response "RRG"
-	if (!strncmp(buffer, RESP_REG, OPCODE_SIZE))
-		return resp_registerUser(&buffer[OPCODE_SIZE + 1], &userInfo);
+	if (!strcmp(opcode, RESP_REG))
+		return resp_registerUser(args, &userInfo);
 
 	// Validation code request "VLC"	
-	if (!strncmp(buffer, REQ_VLC, OPCODE_SIZE))
-		return req_valCode(asSockfd, &buffer[OPCODE_SIZE + 1], &userInfo);
+	if (!strcmp(opcode, REQ_VLC))
+		return req_valCode(asSockfd, args, &userInfo);
 
 	// Unegistration response "RUN"
-	if (!strncmp(buffer, RESP_UNR, OPCODE_SIZE))
-		return resp_unregisterUser(&buffer[OPCODE_SIZE + 1], &userInfo);
+	if (!strcmp(opcode, RESP_UNR))
+		return resp_unregisterUser(args, &userInfo);
+
+	if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
 	
-	WARN("Invalid opcode on the server response! Operation ignored.");
+	_WARN("Invalid opcode on the server response! Operation ignored.%s", opcode);
 	return FALSE;
-}
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param Parameter Parameter description
- * \param Parameter Parameter description
- * \return Return parameter description
- */
-void handleNoResponse(int sockfd, char* msgBuf) {
-	udpSendMessage(sockfd, (const char*) msgBuf, BUFFER_SIZE);
 }
 
 
@@ -248,12 +210,13 @@ void runPD() {
 		
 		if (selRetv == 0 && waitingReply) {
 			if (nRequestTries == NREQUEST_TRIES) {
-				nRequestTries = 0;
 				WARN("The server is not responding! Operation ignored");
+				waitingReply = FALSE;
 			}
 			else
-				;//waitingReply = handleNoResponse(asSockfd);
-		}       
+				waitingReply = req_resendLastMessage(asSockfd);
+		}
+			
 	}
 }
 
@@ -267,24 +230,5 @@ int main(int argc, char *argv[]) {
 	userInfo.connected = FALSE;
 
 	runPD();
-
-	/* first command should be reg (what if it's not?) DISPLAY ERR */
-
-	/*  establish UDP client connection with AS server
-			sends register message REG to AS
-			receives RRG from AS
-			while command is not exit
-					waits for VLCs from AS and displays them
-					sends RVC to AS server
-			unregister user: send UNR to AS
-			receives RUN response from AS
-			shut down UDP client connection with AS server
-	*/  
-	/* 
-
-	what if exit comes before reg?
-	*/
-
-
-	return 0; // Never used
+	return 0;
 }

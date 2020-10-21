@@ -115,6 +115,18 @@ bool_t isPortValid(const char *buffer) {
 }
 
 
+// checks if the UID is valid
+bool_t isValidUID(const char *buffer) {
+	    return isStringValid(buffer, STR_DIGIT, UID_SIZE);
+}
+
+
+// checks if the password is valid
+bool_t isValidPassword(const char *buffer) {
+    return isStringValid(buffer, STR_ALPHANUM, PASS_SIZE);
+}
+
+
 
 // reads the user input
 char* getUserInput(char *buffer, size_t size) {
@@ -144,121 +156,14 @@ void putStr(const char *buffer, bool_t flush) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const char *getFileOp(const char op) {
-    switch (op){
+// return te operation string correspondent to the file op
+const char* getFileOp(const char op) {
+    switch (op) {
 	case FOP_L: return "list";
 	case FOP_U: return "upload";
 	case FOP_R: return "retrieve";
 	case FOP_D: return "delete";
 	case FOP_X: return "remove";
+	default: return "\0";
     }
-    //else
-    warning("Unknown file operation.");
-    return "";
-}
-
-
-
-
-
-
-
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int isValidUID(const char *input) {
-	    return isStringValid(input, STR_ALLLEN, UID_SIZE);
-}
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-int isValidPassword(char *input) {
-    return isStringValid(input, STR_ALPHANUM, PASS_SIZE);
-}
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \param  Parameter description
- * \return Return parameter description
- */
-/*int checkFlag(const char *flag, const char *input) {
-	if (!strcmp(PDPORTARG, flag)) {
-		
-	} else if (!strcmp(ASIPARG, flag)) {
-		
-	} else if (!strcmp(ASPORTARG, flag)) {
-		
-	} else if (!strcmp(FSIPARG)) {
-		
-	} else if (!strcmp(FSPORTARG)) {
-		
-	} else if (!strcmp(PDPORTARG)) {
-		
-	} else if (!strcmp(VERBOSE)) {
-		
-	} else {
-		
-	}
-}*/
-
-
-
-
-
-
-
-
-
-
-
-/* ========== [ TEMP ] ========== */
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-void fatal(const char *message) {
-	fprintf(stderr, "\033[1;31m[FATAL]: \33[0m%s\n", message);
-	exit(EXIT_FAILURE);
-}
-
-void warning(const char *message) {
-	fprintf(stdout, "\033[1;33m[WARNING]: \33[0m%s\n", message);
 }
