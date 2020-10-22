@@ -1,7 +1,7 @@
 #include <sys/select.h>
 
-#include "common.h"
-#include "udp.h"
+#include "../common.h"
+#include "../udp.h"
 #include "pd_aux.h"
 
 
@@ -20,10 +20,12 @@ static int asSockfd = -1;
  *	required modules.
  */
 void cleanPD() {
+	if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
 	if (asSockfd != -1)     udpDestroySocket(asSockfd);
 	free(userInfo.uid);
 	free(userInfo.pass);
 }
+
 
 /*! \brief Terminates the program on sucess.
  *
@@ -33,6 +35,7 @@ void terminatePD() {
 	cleanPD();
 	exit(EXIT_SUCCESS);
 }
+
 
 /*! \brief Terminates the program on fatal errors.
  *
@@ -44,13 +47,6 @@ void abortPD() {
 }
 
 
-
-#define ARG_IP          1
-#define ARG_PORT 	2
-#define ARG_STR_IP	"IP address"
-#define ARG_STR_PORT	"Port number"
-#define ARG_USAGE_IP	"xxx.xxx.xxx.xxx"
-#define ARG_USAGE_PORT	"xxxxx"
 
 /*! \brief Parses the execution arguments.
  *
@@ -84,9 +80,11 @@ void parseArgs(int argc, char *argv[]) {
 			if (ipPortSwitch == ARG_IP)
 				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
-			else
+			else if (ipPortSwitch == ARG_PORT)
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
+			else
+				FATAL("Invalid execution argument flag!");
 		}			
 	}
 
@@ -100,7 +98,6 @@ void parseArgs(int argc, char *argv[]) {
 /* User commands */
 #define CMD_REG		"reg"		// register command
 #define CMD_EXIT	"exit"		// exit command
-
 
 /*! \brief Handles the user input during the runtime.
  *
@@ -146,20 +143,22 @@ bool_t handleServer() {
 		return resp_registerUser(args, &userInfo);
 
 	// Validation code request "VLC"	
-	if (!strcmp(opcode, REQ_VLC))
+	else if (!strcmp(opcode, REQ_VLC))
 		return req_valCode(asSockfd, args, &userInfo);
 
 	// Unegistration response "RUN"
-	if (!strcmp(opcode, RESP_UNR))
+	else if (!strcmp(opcode, RESP_UNR))
 		return resp_unregisterUser(args, &userInfo);
 
-	if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
+	else if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
 	
-	_WARN("Invalid opcode on the server response! Operation ignored.%s", opcode);
-	return FALSE;
+	else{
+		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
+		return req_serverError(asSockfd);
+	}
 }
 
 

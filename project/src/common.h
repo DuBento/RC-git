@@ -25,6 +25,12 @@ typedef char bool_t;
 #define	ARG_FSPORT	"-q"	// the execution argument to specify the FSport
 #define ARG_VERBOS	"-v"	// the execution argument to specify the server verbose mode
 
+#define ARG_IP          1
+#define ARG_PORT 	2
+#define ARG_STR_IP	"IP address"
+#define ARG_STR_PORT	"Port number"
+#define ARG_USAGE_IP	"xxx.xxx.xxx.xxx"
+#define ARG_USAGE_PORT	"xxxxx"
 
 /* Connection constants. */
 #define IP_SIZE		15	// the maximum size of the IPv4 address

@@ -1,9 +1,19 @@
 #include "pd_aux.h"
 
 // the buffer containing the last message sent to the server and its size
-static char buffer[BUFFER_SIZE * 2];
-static int sizeFormat;
+static char msgBuffer[BUFFER_SIZE * 2];
+static int msgSize;
 
+// send server error
+bool_t req_serverError(int fd) {
+        msgSize = sprintf(msgBuffer, "%s\n", SERVER_ERR);
+        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);
+        if (msgSize != sizeSent) {
+                WARN("A problem may have occured while sending the registration request!");
+                return FALSE;
+        }
+        return TRUE;
+}
 
 // registers a user on the authentication system.
 bool_t req_registerUser(int fd, const connectionInfo_t *connectionInfo, const char *uid, 
@@ -15,10 +25,10 @@ const char *pass, userInfo_t *userInfo) {
                 return FALSE;
         }
 
-        sizeFormat = sprintf(buffer, "%s %s %s %s %s\n", REQ_REG, uid, pass, 
+        msgSize = sprintf(msgBuffer, "%s %s %s %s %s\n", REQ_REG, uid, pass, 
         connectionInfo->pdip, connectionInfo->pdport);        
-        int sizeSent = udpSendMessage(fd, buffer, sizeFormat);        
-        if (sizeFormat != sizeSent) {
+        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+        if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the registration request!");
                 return FALSE;
         }
@@ -39,9 +49,9 @@ bool_t req_unregisterUser(int fd, userInfo_t *userInfo) {
                 return FALSE;
         }
 
-        sizeFormat = sprintf(buffer, "%s %s %s\n", REQ_UNR, userInfo->uid, userInfo->pass);        
-        int sizeSent = udpSendMessage(fd, buffer, sizeFormat);        
-        if (sizeFormat != sizeSent) {
+        msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_UNR, userInfo->uid, userInfo->pass);        
+        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+        if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the unregistration request!");
                 return FALSE;
         }
@@ -60,10 +70,10 @@ bool_t req_unregisterUser(int fd, userInfo_t *userInfo) {
  * \return TRUE if the status is STATUS_OK, FALSE otherwise.
  */
 bool_t _req_valCode(int fd, const char *uid, const char *status) {
-        sizeFormat = sprintf(buffer, "%s %s %s\n", RESP_VLC, uid, status);
-        int sizeSent = udpSendMessage(fd, buffer, sizeFormat);
+        msgSize = sprintf(msgBuffer, "%s %s %s\n", RESP_VLC, uid, status);
+        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);
         
-        if (sizeFormat != sizeSent) {
+        if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the validation code response!");
                 return FALSE;
         }
@@ -88,7 +98,7 @@ bool_t req_valCode(int fd, char *args, userInfo_t *userInfo) {
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
                 printf("VC=%s, %s\n", vc, getFileOp(fop));
                 return _req_valCode(fd, userInfo->uid, STATUS_OK);
-         }
+        }
 
         return  _req_valCode(fd, userInfo->uid, STATUS_NOK);
 }
@@ -134,8 +144,8 @@ bool_t resp_unregisterUser(char *status, userInfo_t *userInfo) {
 
 // resends the last message sent
 bool_t req_resendLastMessage(int fd) {   
-        int sizeSent = udpSendMessage(fd, buffer, sizeFormat);        
-        if (sizeFormat != sizeSent) {
+        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+        if (msgSize != sizeSent) {
                 WARN("A problem may have occured while resending the previous message!");
                 return FALSE;
         }

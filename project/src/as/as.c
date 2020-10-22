@@ -1,6 +1,6 @@
-#include "common.h"
-#include "udp.h"
-#include "tcp.h"
+#include "../common.h"
+#include "../udp.h"
+#include "../tcp.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -17,25 +17,23 @@ int udpServerfd, tcpServerfd;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
 
-#define CHECK_VERBOSITY verbosity
+#define CHECK_VERBOSITY { return verbosity }
 
 void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         /* check the number of arguments */        
-	if (argc < 1 || argc > 4) {
-		printf("Usage: %s [-p ASport] [-v]\n", argv[0]);
-		fatal("Failed to parse arguments.");
-	}
+	if (argc < 1 || argc > 4)
+		_FATAL("Failed to parse arguments.\nUsage: %s [-p ASport] [-v]\n", argv[0]);
 	
         // else
         for (int i = 1; i < argc; i++){
-                if (!strcmp(ASPORTARG, argv[i]) && isPortValid((const char*) argv[i+1])
+                if (!strcmp(ARG_ASPORT, argv[i]) && isPortValid((const char*) argv[i+1])
                         && i+1 < argc)
                         strncpy(info->asport, argv[++i], PORT_SIZE);
-                else if (!strcmp(VERBOSE, argv[i]))
+                else if (!strcmp(ARG_VERBOS, argv[i]))
                         /* activate verbose mode - flag */
                         verbosity = TRUE;
                 else 
-                        fatal("Invalid PORT format. \nPlease only use unrestricted ports.");
+                        FATAL("Invalid PORT format. \nPlease only use unrestricted ports.");
         }
 
         /* logs the server information (on debug mod only) */
@@ -54,16 +52,16 @@ void handleUDP(int fd, char *msgBuf) {
         sscanf(msgBuf, "%s %s", respHead, respEnd);
 
         // Registration Request
-        if (!strcmp(respHead, REG_REQ))
+        if (!strcmp(respHead, REQ_REG))
                 ;// TODO registerUser(respEnd);
         // Unregistration Request
-        else if (!strcmp(respHead, UNREG_REQ))
+        else if (!strcmp(respHead, REQ_UNR))
                 ;// TODO unregisterUser(respEnd);                
         // Validation Code received "VLC"
-        else if (!strcmp(respHead, VALIDCODE_RESP))
+        else if (!strcmp(respHead, RESP_VLC))
                 ;// TODO validationCode_Response();
         else
-                warning("Server Error.");
+                WARN("Server Error.");
 }
 
 void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
@@ -80,7 +78,7 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 
-        display(INPUT_CHAR);
+	putStr(STR_INPUT, TRUE);		// string before the user input
         
 	while (TRUE) {
 		// because select is destructive
@@ -90,7 +88,7 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 		selectRet = select(fds_size, &ready_fds, NULL, NULL, &tmp_tv);
 
 		if (selectRet == -1)
-			fatal("Failed System Call Select");
+			FATAL("Failed System Call Select");
 		if (FD_ISSET(udpFD, &ready_fds)){
 			// handle PD interaction
                         handleUDP(udpFD, msgBuf);
@@ -101,11 +99,11 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 		if (selectRet == 0 && isDirty()) {// timeout expired
 			// act as previous message didn't reach the target
                         // try to resend NTRIES_NORESP times
-			if (nTry < NTRIES_NORESP)
+			if (nTry < NREQUEST_TRIES)
                                 ;//handle no reponse to prev msg
                         else{
                                 nTry = 0;
-                                warning("No response received from sent message.\nCommunication error.");
+                                WARN("No response received from sent message.\nCommunication error.");
                         }
                 }       
                 

@@ -1,9 +1,8 @@
 #ifndef PD_API_H
 #define PD_API_H
 
-#include "common.h"
-#include "udp.h"
-
+#include "../common.h"
+#include "../udp.h"
 
 
 /* The information to allow communication with the autentication server. */
@@ -27,6 +26,15 @@ typedef struct user_info_t {
 
 } userInfo_t;
 
+
+
+/*! \brief TODO
+ *
+ *  
+ * \param  fd			the authentication system's file descriptor.
+ * \return TRUE if succeds on sending error , FALSE otherwise.
+ */
+bool_t req_serverError(int fd);
 
 
 /*! \brief Registers a user on the authentication system.
