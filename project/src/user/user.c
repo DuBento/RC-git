@@ -5,6 +5,7 @@
 
 static connectionInfo_t connectionInfo = {"", "58053\0", "193.136.138.142\0", "58011\0"};
 static int asSockfd = -1;
+static int fsSockfd = -1;
 
 
 
@@ -14,8 +15,10 @@ static int asSockfd = -1;
  *	required modules.
  */
 void cleanFS() {
-        /*if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);*/
+        // if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
+	// close tcp conection
         if (asSockfd != -1)     tcpDestroySocket(asSockfd);
+	if (fsSockfd != -1)	tcpDestroySocket(fsSockfd);
 }
 
 /*! \brief Terminates the program on sucess.
@@ -63,7 +66,7 @@ void parseArgs(int argc, char *argv[]) {
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
 			else
-				FATAL("Invalid execution argument flag!");
+				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
 		}
         }
 
@@ -186,14 +189,15 @@ void runPD() {
 		if (selRetv  == -1)
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
-		// handle server responses
+		// handle AS server responses
 		if (FD_ISSET(asSockfd, &fdsTemp)) {
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleServer();	
+			//handleASServer();	
 			putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
+
 
 		// handle stdin
 		if (FD_ISSET(STDIN_FILENO, &fdsTemp)) {
@@ -226,3 +230,4 @@ int main(int argc, char *argv[]) {
         runFS();
 
         return 0;
+}

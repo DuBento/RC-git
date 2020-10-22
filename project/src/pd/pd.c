@@ -84,7 +84,7 @@ void parseArgs(int argc, char *argv[]) {
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
 			else
-				FATAL("Invalid execution argument flag!");
+				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-d','-n', '-p'");
 		}			
 	}
 

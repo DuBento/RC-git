@@ -31,15 +31,16 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd
+EXE_NAMES := pd user
 # ==============================================================================
 
 
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = common.c udp.c pd/pd.c pd/pd_aux.c
+$(DIR_EXE)/pd.deps = pd/pd.c pd/pd_aux.c common.c udp.c
 $(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
+$(DIR_EXE)/user.deps = user/user.c user/user_aux.c common.c tcp.c
 # ==============================================================================
 
 
@@ -53,6 +54,9 @@ $(DIR_OBJ)/tcp.deps		= tcp.h common.h common.c
 
 $(DIR_OBJ)/pd/pd.deps 	  = common.h common.c udp.h udp.c pd/pd_aux.h pd/pd_aux.c
 $(DIR_OBJ)/pd/pd_aux.deps = common.h common.c udp.h udp.c pd/pd_aux.h
+
+$(DIR_OBJ)/user/user.deps 	  = common.h common.c tcp.h tcp.c user/user_aux.h user/user_aux.c
+$(DIR_OBJ)/user/user_aux.deps = common.h common.c tcp.h tcp.c user/user_aux.h
 # ==============================================================================
 
 
