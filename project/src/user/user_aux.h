@@ -17,4 +17,16 @@ typedef struct connectionInfo_t {
 
 
 
+/* The user's information. The information is only stored in this strutcture once its validity is confirmed.  */
+typedef struct user_info_t {
+
+    char *uid;				// the user's ID.
+    char *pass;				// the user's password.
+    bool_t connected;		// the connection flag.
+
+} userInfo_t;
+
+
+
+
 #endif 	/* USER_AUX */

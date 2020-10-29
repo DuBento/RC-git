@@ -167,3 +167,9 @@ const char* getFileOp(const char op) {
 	default: return "\0";
     }
 }
+
+
+// generates a random number
+int randomNumber(int min, int max) {
+	return rand() % (max - min) + min;
+}

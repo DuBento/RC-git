@@ -5,6 +5,9 @@
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 typedef struct connectionInfo_t {
 
@@ -13,6 +16,7 @@ typedef struct connectionInfo_t {
 } connectionInfo_t;
 
 /* ========== GLOBAL ============= */
+DIR *dir;
 int udpServerfd, tcpServerfd;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
@@ -41,35 +45,43 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
                 info->asport, verbosity);
 }
 
+
 /* Handle UDP Responses (Incoming Messages) */
-void handleUDP(int fd, char *msgBuf) {
+bool_t handleUDP(int fd, char *msgBuf) {
 	int n;
-	char respHead[BUFFER_SIZE]; char respEnd[BUFFER_SIZE];
+	char opcode[BUFFER_SIZE]; char args[BUFFER_SIZE];
 	
         n = udpReceiveMessage(fd, msgBuf, BUFFER_SIZE);
-        setClean();
+        // TODO setClean();
 
-        sscanf(msgBuf, "%s %s", respHead, respEnd);
+        sscanf(msgBuf, "%s %s", opcode, args);
 
         // Registration Request
-        if (!strcmp(respHead, REQ_REG))
-                ;// TODO registerUser(respEnd);
+        if (!strcmp(opcode, REQ_REG))
+                ;// TODO req_registerUser(args);
         // Unregistration Request
-        else if (!strcmp(respHead, REQ_UNR))
+        else if (!strcmp(opcode, REQ_UNR))
                 ;// TODO unregisterUser(respEnd);                
         // Validation Code received "VLC"
-        else if (!strcmp(respHead, RESP_VLC))
+        else if (!strcmp(opcode, RESP_VLC))
                 ;// TODO validationCode_Response();
-        else
-                WARN("Server Error.");
+        else if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
+	else{
+		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
+		// return req_serverError(fd);
+	}
 }
+
 
 void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 	fd_set fds, ready_fds;
         struct timeval tv, tmp_tv;
         int selectRet, fds_size;
         int nTry = 0;
-
+        int waitingReply = FALSE;
 	/* SELECT */
 	FD_ZERO(&fds);
         FD_SET(tcpServerFD, &fds);
@@ -91,12 +103,12 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 			FATAL("Failed System Call Select");
 		if (FD_ISSET(udpFD, &ready_fds)){
 			// handle PD interaction
-                        handleUDP(udpFD, msgBuf);
+                        waitingReply = handleUDP(udpFD, msgBuf);
                 }
 		if (FD_ISSET(tcpServerFD, &ready_fds)){
 			// handle User new connection
                 }
-		if (selectRet == 0 && isDirty()) {// timeout expired
+		if (selectRet == 0 && waitingReply) {// timeout expired
 			// act as previous message didn't reach the target
                         // try to resend NTRIES_NORESP times
 			if (nTry < NREQUEST_TRIES)
@@ -110,6 +122,18 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 	}
 }
 
+DIR* initDirectory() {
+        DIR* d;
+        // try to create dir
+        if (mkdir(DIR_NAME, S_IRUSR|S_IWUSR) == -1)
+                //if dir already exists, open
+                if (errno == EEXIST) {
+                        d = opendir(DIR_NAME);
+                        if (d)  return d;
+                }
+        // else
+        FATAL("Failed to open data directory.")
+}
 
 
 void exitAS() {
@@ -118,12 +142,13 @@ void exitAS() {
         exit(EXIT_SUCCESS);
 }
 
+
 int main(int argc, char *argv[]) {
         /* AS makes available two server applications? Does it mean 2 process? */
         /* Default AS port. */        
         connectionInfo_t connectionInfo = {"58053\0"};
         parseArgs(argc, argv, &connectionInfo);
-
+        dir = initDirectory();
         // mount UDP server socket
         udpServerfd = udpCreateServer(NULL, connectionInfo.asport);
         // mount TCP server socket

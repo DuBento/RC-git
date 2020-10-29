@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <errno.h>
+#include <time.h>
 
 
 
@@ -15,7 +16,8 @@
 typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
-
+#define DIR_NAME	"USERS"
+#define FILE_SUFIX 	"UID"
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
@@ -57,13 +59,23 @@ typedef char bool_t;
 
 /* Protocol commands */
 #define SERVER_ERR	"ERR"
+
 #define REQ_REG		"REG"
 #define REQ_UNR		"UNR"
 #define REQ_VLC		"VLC"
 
+#define REQ_LOG		"LOG"
+#define REQ_REQ		"REQ"
+#define REQ_RRQ		"RRQ"
+
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
 #define RESP_VLC	"RVC"
+
+#define RESP_RLO	"RLO"
+#define RESP_RRQ	"RRQ"
+#define RESP_RAU	"RAU"
+
 
 /* Protocol status */
 #define STATUS_OK	"OK"
@@ -207,6 +219,17 @@ void putStr(const char *buffer, bool_t flush);
  */ 
 const char *getFileOp(const char op);
 
+
+
+/*! \brief Generates a random number
+ *
+ *  Generates a random number between the min and max and resets the random seed.
+ * 
+ * \param  min
+ * \param  max
+ * \return a random number between min and max.
+ */ 
+int randomNumber(int min, int max);
 
 
 #endif 	/* COMMON_H */

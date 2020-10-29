@@ -11,7 +11,9 @@ static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "5
 // static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
 static int asSockfd = -1;
 
-
+/* User commands */
+#define CMD_REG		"reg"		// register command
+#define CMD_EXIT	"exit"		// exit command
 
 
 /*! \brief Cleans the program on termination
@@ -94,10 +96,6 @@ void parseArgs(int argc, char *argv[]) {
 }
 
 
-
-/* User commands */
-#define CMD_REG		"reg"		// register command
-#define CMD_EXIT	"exit"		// exit command
 
 /*! \brief Handles the user input during the runtime.
  *

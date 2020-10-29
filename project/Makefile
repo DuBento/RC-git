@@ -31,16 +31,16 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd user
+EXE_NAMES := pd/pd user/user as/as
 # ==============================================================================
 
 
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd.deps = pd/pd.c pd/pd_aux.c common.c udp.c
-$(DIR_EXE)/as.deps = as.c common.c udp.c tcp.c
-$(DIR_EXE)/user.deps = user/user.c user/user_aux.c common.c tcp.c
+$(DIR_EXE)/pd/pd.deps = pd/pd.c pd/pd_aux.c common.c udp.c
+$(DIR_EXE)/as/as.deps = as/as.c as/as_aux.c common.c udp.c tcp.c
+$(DIR_EXE)/user/user.deps = user/user.c user/user_aux.c common.c tcp.c
 # ==============================================================================
 
 
@@ -79,7 +79,7 @@ MACROS 		= -DDEBUG
 .DEFAULT_GOAL := compile
 
 # GCC properties
-CC 		:= gcc
+CC 			:= gcc
 LD   		:= gcc
 CC_FLAGS 	:= -Wall -Wextra -Werror -std=gnu99 -pedantic -I../
 LD_FLAGS 	:= -lm

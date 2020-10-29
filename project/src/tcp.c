@@ -64,21 +64,33 @@ int tcpAcceptConnection(int fd) {
 
 // receives a TCP message
 int tcpReceiveMessage(int fd, char *buffer, int len) {
-	int n = read(fd, buffer, len);
-	if (n == -1)
+	int sizeRead = 0;
+	do {
+		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
+		Otherwise, the functions shall return -1 and set errno to indicate the error. */
+		int n = read(fd, buffer, len);
+		if (n == -1)
 		_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
-	
-	return n;
+		sizeRead += n;
+	} while (buffer[sizeRead] != '\n');
+
+	return sizeRead;
 }
 
 
 // sends a TCP message
 int tcpSendMessage(int fd, const char *buffer, int len) {
-	int n = write(fd, buffer, len);
-	if (n == -1)
-		_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
+	int sizeWritten;
+	do {
+		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
+		On error, -1 is returned, and errno is set appropriately.*/
+		int n = write(fd, buffer, len);
+		if (n == -1)
+			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
+		sizeWritten += n;
+	} while (sizeWritten != len);
 	
-	return n;
+	return sizeWritten;
 }
 
 

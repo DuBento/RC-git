@@ -4,6 +4,7 @@
 
 
 static connectionInfo_t connectionInfo = {"", "58053\0", "193.136.138.142\0", "58011\0"};
+static userInfo_t userInfo = { 0 };
 static int asSockfd = -1;
 static int fsSockfd = -1;
 
@@ -14,7 +15,7 @@ static int fsSockfd = -1;
  *	Frees all the memory alocated by the program and cleans terminates all the 
  *	required modules.
  */
-void cleanFS() {
+void cleanUser() {
         // if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
 	// close tcp conection
         if (asSockfd != -1)     tcpDestroySocket(asSockfd);
@@ -25,8 +26,8 @@ void cleanFS() {
  *
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
-void terminateFS() {
-	cleanFS();
+void terminateUser() {
+	cleanUser();
 	exit(EXIT_SUCCESS);
 }
 
@@ -34,8 +35,8 @@ void terminateFS() {
  *
  *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
  */
-void abortFS() {
-	cleanFS();
+void abortUser() {
+	cleanUser();
 	exit(EXIT_FAILURE);
 }
 
@@ -116,43 +117,43 @@ bool_t handleUser() {
 	char cmd[BUFFER_SIZE] = { 0 }, input1[BUFFER_SIZE] = { 0 }, input2[BUFFER_SIZE] = { 0 };
 	sscanf(buffer, "%s %s %s", cmd, input1, input2);
 
-        _LOG("[handleUser] cmd: %s\n input1: %s\n input2: %s", cmd, input1, input2);
+    _LOG("[handleUser] cmd: %s\n input1: %s\n input2: %s", cmd, input1, input2);
 
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0')
-		return TRUE;
+		return req_login(asSockfd, &userInfo, input1, input2);
 
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0')
-		return TRUE;
+		return req_request(asSockfd, input1, input2);
 
-        // val command: val VC
-        else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
-		return TRUE;
+	// val command: val VC
+	else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
+		;//return req_val();
 
-        // list command: list or l
-        else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
-		return TRUE;
+	// list command: list or l
+	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
+		;//return req_list();
 
-        // retrieve command: retrieve filename or r filename
-        else if ((!strcmp(cmd, CMD_RETRIEVE) || !strcmp(cmd, CMD_RETRIEVE_S)) && input1[0] != '\0' && input2[0] == '\0')
-		return TRUE;
+	// retrieve command: retrieve filename or r filename
+	else if ((!strcmp(cmd, CMD_RETRIEVE) || !strcmp(cmd, CMD_RETRIEVE_S)) && input1[0] != '\0' && input2[0] == '\0')
+		;//return req_retrieve();
 
-        // upload command: upload filename or u filename
-        else if ((!strcmp(cmd, CMD_UPLOAD) || !strcmp(cmd, CMD_UPLOAD_S)) && input1[0] != '\0' && input2[0] == '\0')
-		return TRUE;
-                
-        // delete command: delete filename or d filename
-        else if ((!strcmp(cmd, CMD_DELETE) || !strcmp(cmd, CMD_DELETE_S)) && input1[0] != '\0' && input2[0] == '\0')
-		return TRUE;
+	// upload command: upload filename or u filename
+	else if ((!strcmp(cmd, CMD_UPLOAD) || !strcmp(cmd, CMD_UPLOAD_S)) && input1[0] != '\0' && input2[0] == '\0')
+		;//return req_upload();
+			
+	// delete command: delete filename or d filename
+	else if ((!strcmp(cmd, CMD_DELETE) || !strcmp(cmd, CMD_DELETE_S)) && input1[0] != '\0' && input2[0] == '\0')
+		;//return req_delete();
 
-        //remove command: remove or x 
-        else if ((!strcmp(cmd, CMD_REMOVE) || !strcmp((cmd), CMD_REMOVE_S)) && input1[0] == '\0')
-		return TRUE;
+	//remove command: remove or x 
+	else if ((!strcmp(cmd, CMD_REMOVE) || !strcmp((cmd), CMD_REMOVE_S)) && input1[0] == '\0')
+		;//return req_remove();
 
-        // exit command: exit
-        else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
-		return TRUE;
+	// exit command: exit
+	else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
+		;//return req_exit();
              
 	WARN("Invalid command! Operation ignored.");
 	return FALSE;
@@ -164,7 +165,7 @@ bool_t handleUser() {
  *
  *  Waits for an interaction from the user/server and then handles them.
  */
-void runPD() {
+void runUser() {
 	// select
 	fd_set fds;
 	FD_ZERO(&fds);
@@ -219,15 +220,18 @@ void runPD() {
 
 
 
-int main(int argc, char *argv[]) {
-        initSignal(&terminateFS, &abortFS);
-        parseArgs(argc, argv);
+int main(int argc, char *argv[]) { 
+	srand(time(NULL));
+		
+	initSignal(&terminateUser, &abortUser);
+	parseArgs(argc, argv);	
 
-        /* Establish TCP connection with AS. */
-        asSockfd = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
-        tcpConnect(asSockfd);
+	/* Establish TCP connection with AS. */
+	asSockfd = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	tcpConnect(asSockfd);	
+	//runUser();
 
-        runFS();
+
 
         return 0;
 }
