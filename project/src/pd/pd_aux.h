@@ -8,10 +8,10 @@
 /* The information to allow communication with the autentication server. */
 typedef struct connectionInfo_t {
 
-    char pdip[IP_SIZE + 1];		// the ip address of the program.
-    char pdport[PORT_SIZE + 1];		// the port of the program.
-    char asip[IP_SIZE + 1];	 	// the ip address of the autentication server.
-    char asport[PORT_SIZE + 1];		// the port of the autentication server.
+	char pdip[IP_SIZE + 1];		// the ip address of the program.
+	char pdport[PORT_SIZE + 1];		// the port of the program.
+	char asip[IP_SIZE + 1];	 	// the ip address of the autentication server.
+	char asport[PORT_SIZE + 1];		// the port of the autentication server.
 
 } connectionInfo_t;
 
@@ -20,9 +20,9 @@ typedef struct connectionInfo_t {
 /* The user's information. */
 typedef struct user_info_t {
 
-    char *uid;				// the user's ID.
-    char *pass;				// the user's password.
-    bool_t connected;			// the connection flag.
+	char *uid;				// the user's ID.
+	char *pass;				// the user's password.
+	bool_t connected;			// the connection flag.
 
 } userInfo_t;
 

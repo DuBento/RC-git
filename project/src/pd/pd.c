@@ -29,7 +29,7 @@ void cleanPD() {
 }
 
 
-/*! \brief Terminates the program on sucess.
+/*! \brief Terminates the program on success.
  *
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */

@@ -84,7 +84,8 @@ bool_t _req_valCode(int fd, const char *uid, const char *status) {
 
 // processes the server's requests to display the 2FA validation code
 bool_t req_valCode(int fd, char *args, userInfo_t *userInfo) {
-        char uid[BUFFER_SIZE] = { 0 }, vc[BUFFER_SIZE] = { 0 }, fname[BUFFER_SIZE] = { 0 }, fop;
+        char uid[BUFFER_SIZE] = { 0 }, vc[BUFFER_SIZE] = { 0 }, 
+        fname[BUFFER_SIZE] = { 0 }, fop;
         sscanf(args, "%s %s %c %s", uid, vc, &fop, fname);
 
         if (strcmp(uid, userInfo->uid))
@@ -112,6 +113,7 @@ bool_t resp_registerUser(char *status, userInfo_t *userInfo) {
                 return TRUE;
         }
 
+        // Free memory in case something didn't go so well...
         free(userInfo->uid);
 	free(userInfo->pass);
         if (!strcmp(status, STATUS_NOK)) {
