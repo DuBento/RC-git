@@ -97,16 +97,16 @@ bool_t handleUser() {
 	_LOG("[handleUser] cmd: %s\n input1: %s\n input2: %s", cmd, input1, input2);
 
 	// login command: login UID pass
-	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0')
+	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
 		req_login(asSockfd, &userInfo, input1, input2);
-
+	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0')
 		return req_request(asSockfd, &userInfo, input1, input2);
 
 	// val command: val VC
 	else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
-		;//return req_val();
+		return req_val(asSockfd, &userInfo, input1);
 
 	// list command: list or l
 	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
@@ -132,10 +132,40 @@ bool_t handleUser() {
 	else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
 		;//return req_exit();
 			 
-	WARN("Invalid command! Operation ignored.");
+	else {
+		WARN("Invalid command! Operation ignored.");
+		return FALSE;
+	}
 	return FALSE;
 }
 
+
+bool_t handleASServer() {
+	/* User always receives 1 arg from AS*/
+	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
+	int size;
+	
+	size = tcpReceiveMessage(asSockfd, buffer,BUFFER_SIZE);
+	sscanf(buffer, "%s %s", opcode, arg);
+_LOG("AS contact: opcode %s, arg %s", opcode, arg);
+	// Login response "RLO"
+	if (!strcmp(opcode, RESP_LOG))
+		return resp_login(arg);
+
+	// Request code response "RRQ"	
+	else if (!strcmp(opcode, RESP_REQ))
+		return resp_request(arg);
+
+	// Authentication response "RAU"
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_val(arg);
+
+	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
+	return TRUE;
+}
 
 
 /*! \brief Main loop for the FS application.
@@ -174,9 +204,10 @@ void runUser() {
 
 		// handle AS server responses
 		if (FD_ISSET(asSockfd, &fdsTemp)) {
+			//LOG("Yey as contacted us!");
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			//handleASServer();	
+			handleASServer();	
 			putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
@@ -209,6 +240,8 @@ void runUser() {
 			
 	}
 }
+
+
 
 
 

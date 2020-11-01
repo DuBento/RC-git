@@ -12,6 +12,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
 
 	char msgBuffer[BUFFER_SIZE * 2];
 	int msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
+
 	int sizeSent = tcpSendMessage(fd, msgBuffer, msgSize);
 	if (msgSize != sizeSent) {
 		WARN("A problem may have occured while sending the registration request!");
@@ -27,7 +28,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
 }
 
 
-bool_t req_request(int fd, const userInfo_t *userInfo, const char fop, const char *fname) {
+bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname) {
 	/* User sends a message to the AS requesting a transaction ID code (TID). 
 	This request message includes the UID and the type of file operation desired (Fop), either list (L), retrieve (R),
 upload (U), delete (D) or remove (X), and if appropriate (when Fop is R, U or D)
@@ -38,23 +39,23 @@ inform of the user’s desire to perform the operation Fop (either L, R, U, D or
 on the FS server. 
  Upon receipt of this message, the AS will send the VLC
 message to the PD.*/
-	LOG("User request request");
+	_LOG("User request request, fop: %s fname %s", fop, fname);
 	int rid, mssgSize;
 
 	//A random natural number of 4 digits is added as a request identifier RID.
 	rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
 	
 	char mssgBuffer[2 * BUFFER_SIZE];
-	
 	//If the operation is retrieve (R), upload (U) or delete (D) also the file name Fname is sent. 
-	if ((fop == FOP_R)|| (fop == FOP_U)|| (fop == FOP_D) ) {
+	if ((!strcmp(fop, FOP_STR_R))|| (!strcmp(fop, FOP_STR_U))|| (!strcmp(fop, FOP_STR_D)) ) {
 		// what if R is written without fname?
-		mssgSize = sprintf(mssgBuffer, "%s %s %d %c %s\n", REQ_REQ, userInfo->uid, rid, fop, fname);
+		mssgSize = sprintf(mssgBuffer, "%s %s %d %s %s\n", REQ_REQ, userInfo->uid, rid, fop, fname);
 	} else {
-		mssgSize = sprintf(mssgBuffer, "%s %s %d %c\n", REQ_REQ, userInfo->uid, rid, fop);
+		mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_REQ, userInfo->uid, rid, fop);
 	}
 		
 	// Send message = REQ UID RID Fop [Fname] to AS requesting TID.
+	_LOG("Message to be sent: %s", mssgBuffer);
 	int sizeSent = tcpSendMessage(fd, mssgBuffer, mssgSize);
 
 	if (mssgSize != sizeSent) {
@@ -65,7 +66,7 @@ message to the PD.*/
 }
 
 
-bool_t req_val() {
+bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc) {
 	/*User has checked the VC on the PD
 	User issues this command, sending a message to the AS with the VC. 
 	*/
@@ -188,7 +189,7 @@ bool_t req_resendLastMessage() {
 }
 
 
-bool_t resp_login() {
+bool_t resp_login(char *status) {
 /*RLO status
 In reply to a LOG request the AS server replies with the status of the login
 request. 
@@ -196,21 +197,17 @@ If UID and pass are valid the status is OK;
 if the UID exists but the pass is incorrect the status is NOK; 
 otherwise the status is ERR.*/
 
-	/*
-	if stauts = OK
-		printf Login successeful. Congrats lad.
-		return TRUE
-	else if status = NOK
-		printf Incorrect password
-		return FALSE
-	else if status = ERR
-		printf Smth went wrong.
-		return FALSE
-	*/
+	if (!strcmp(status,STATUS_OK)) 
+		printf("Login successeful. Congrats lad.\n");
+	else if (!strcmp(status, STATUS_NOK))
+		printf("Incorrect password.\n");
+	else if (!strcmp(status, SERVER_ERR))
+		printf("Smth went wrong.\n");
+	return TRUE;
 }
 
 
-bool_t resp_request() {
+bool_t resp_request(char *status) {
 /*RRQ status
 The AS server replies informing if the REQ request could be processed (valid
 UID), a message was sent to the PD and a successful RVC confirmation received.
@@ -222,34 +219,28 @@ if the UID is incorrect the status is EUSER;
 if the Fop is invalid the status is EFOP; 
 otherwise (e.g. incorrectly formatted REQ message) the status is ERR.*/
 
-	/*
-		if status = OK
-			printf Request successefully made
-			return TRUE
-		else if status = ELOG
-			printf A successeful login hasn't been made before. 
-			Please login successefully before making requests.
-			return FALSE
-		else if status = EPD
-			printf Authentication server (AS) failed to contact your 
-			personal device (PD)
-			return FALSE
-		else if status = EUSER
-			printf Incorrect UID
-			return FALSE
-		else if status = EFOP
-			printf Invalid file operation.
-			return FALSE
-		else if status = ERR
-			printf Incorrectly formatted request.
-			return FALSE
-	*/
+		if (!strcmp(status, STATUS_OK))
+			printf("Request successefully made, you smart ass.\n");
+		else if (!strcmp(status, STATUS_ELOG))
+			printf("A successeful login hasn't been made before. \
+			Please login successefully before making requests.");
+		else if (!strcmp(status, STATUS_EPD))
+			printf("Authentication server (AS) failed to contact your \
+			personal device (PD)\n");
+		else if (!strcmp(status, STATUS_EUSER))
+			printf("Incorrect UID, moron.\n");
+		else if (!strcmp(status, STATUS_EFOP))
+			printf("Invalid file operation, dumbass\n.");
+		else if (!strcmp(status, SERVER_ERR))
+			printf("Incorrectly formatted request, dear.\n");
+	
 
 	// DO NOT close connection to AS
+	return TRUE;
 }
 
 
-bool_t resp_val() {
+bool_t resp_val(char *tid) {
 /*In reply the AS should confirm (or not) the success of the two-factor authentication, 
 	which should be displayed. The AS also sends the transaction ID TID.*/
 	/*RAU TID

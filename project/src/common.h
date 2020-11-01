@@ -72,14 +72,19 @@ typedef char bool_t;
 #define RESP_UNR	"RUN"
 #define RESP_VLC	"RVC"
 
-#define RESP_RLO	"RLO"
-#define RESP_RRQ	"RRQ"
-#define RESP_RAU	"RAU"
+#define RESP_LOG	"RLO"
+#define RESP_REQ	"RRQ"
+#define RESP_AUT	"RAU"
 
 
 /* Protocol status */
 #define STATUS_OK	"OK"
 #define STATUS_NOK	"NOK"
+
+#define STATUS_EPD	"EPD"
+#define	STATUS_ELOG "ELOG"
+#define	STATUS_EUSER "EUSER"
+#define	STATUS_EFOP	"EFOP"
 
 /* file operations */
 #define FOP_L		'L'

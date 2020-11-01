@@ -26,9 +26,9 @@ int udpCreateSocket(const char *addrIP, const char *port) {
 int udpCreateServer(const char *addrIP, const char *port) {
 	hints.ai_flags = AI_PASSIVE;    
 	int fd = udpCreateSocket(addrIP, port);
-	if (bind(fd, res->ai_addr, res->ai_addrlen))
+	if (bind(fd, res->ai_addr, res->ai_addrlen)) {
 		_FATAL("[UDP] Unable to bind the server.\n\t - Error code: %d", errno);
-
+	}
 	return fd;
 }
 
