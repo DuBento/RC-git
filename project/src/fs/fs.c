@@ -1,4 +1,4 @@
-#include "fs-aux.h"
+#include "fs_aux.h"
 
 char verbosity = FALSE;
 

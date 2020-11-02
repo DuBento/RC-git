@@ -31,7 +31,7 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := pd/pd user/user as/as
+EXE_NAMES := fs/fs #pd/pd user/user as/as
 # ==============================================================================
 
 
@@ -41,6 +41,7 @@ EXE_NAMES := pd/pd user/user as/as
 $(DIR_EXE)/pd/pd.deps = pd/pd.c pd/pd_aux.c common.c udp.c
 $(DIR_EXE)/as/as.deps = as/as.c as/as_aux.c common.c udp.c tcp.c
 $(DIR_EXE)/user/user.deps = user/user.c user/user_aux.c common.c tcp.c
+$(DIR_EXE)/fs/fs.deps = fs/fs.c fs/fs_aux.c common.c list.c
 # ==============================================================================
 
 
@@ -49,14 +50,18 @@ $(DIR_EXE)/user/user.deps = user/user.c user/user_aux.c common.c tcp.c
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder of the files #included in the code)
 $(DIR_OBJ)/common.deps 	= common.h
-$(DIR_OBJ)/upd.deps		= udp.h common.h common.c
-$(DIR_OBJ)/tcp.deps		= tcp.h common.h common.c
+$(DIR_OBJ)/upd.deps		= udp.h common.h
+$(DIR_OBJ)/tcp.deps		= tcp.h common.h
+$(DIR_OBJ)/list.deps	= list.h common.h
 
-$(DIR_OBJ)/pd/pd.deps 	  = common.h common.c udp.h udp.c pd/pd_aux.h pd/pd_aux.c
-$(DIR_OBJ)/pd/pd_aux.deps = common.h common.c udp.h udp.c pd/pd_aux.h
+$(DIR_OBJ)/pd/pd.deps 	  = common.h udp.h pd/pd_aux.h
+$(DIR_OBJ)/pd/pd_aux.deps = common.h udp.h pd/pd_aux.h
 
-$(DIR_OBJ)/user/user.deps 	  = common.h common.c tcp.h tcp.c user/user_aux.h user/user_aux.c
-$(DIR_OBJ)/user/user_aux.deps = common.h common.c tcp.h tcp.c user/user_aux.h
+$(DIR_OBJ)/user/user.deps 	  = common.h tcp.h user/user_aux.h
+$(DIR_OBJ)/user/user_aux.deps = common.h tcp.h user/user_aux.h
+
+$(DIR_OBJ)/fs/fs.deps = common.h list.h fs/fs_aux.h
+$(DIR_OBJ)/fs/fs_aux.deps = common.h fs/fs_aux.h
 # ==============================================================================
 
 
