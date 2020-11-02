@@ -110,6 +110,8 @@ typedef char bool_t;
 #define FOP_D		'D'
 #define FOP_X		'X'
 
+/* Folder properties */
+#define FILE_NAME_SIZE 24
 
 
 /* Macro for logging debug messages. */

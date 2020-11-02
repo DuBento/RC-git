@@ -1,10 +1,11 @@
 #include "fs_aux.h"
+#include "files.h"
 
 
 
-connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
-DIR *files;
-char verbosity = FALSE;
+static connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
+static DIR *files;
+bool_t verbosity = FALSE;
 
 
 
@@ -87,7 +88,16 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
-	files = initDirectory(argv[0], "files");
+	files = initDirectory(argv[0], FILES_DIR);
+
+	DIR *temp = initDirectory(argv[0], FILES_DIR "test");
+	List_t list = listFiles(temp);
+
+	ListIterator_t iterator = listIteratorCreate(list);
+	while (!listIteratorEmpty(&iterator)) {
+		char *filename = (char*) listIteratorNext(&iterator);
+		printf("%s\n", filename);
+	}
 
 	return 0;
-}
+}	

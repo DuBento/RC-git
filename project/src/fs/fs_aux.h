@@ -5,6 +5,8 @@
 #include "../udp.h"
 #include "../tcp.h"
 
+extern bool_t verbosity;
+
 typedef struct connectionInfo_t {
 
 	char fsip[IP_SIZE + 1];				// the ip address of the file server

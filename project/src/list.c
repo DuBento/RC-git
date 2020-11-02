@@ -104,8 +104,7 @@ struct list_iterator_t
 // creates an iterator for the specified list
 ListIterator_t listIteratorCreate(List_t list)
 {
-  ListIterator_t iterator = (ListIterator_t) 
-    malloc(sizeof(struct list_iterator_t));
+  ListIterator_t iterator = (ListIterator_t) malloc(sizeof(struct list_iterator_t));
   if (!list)
     FATAL("Unable to allocate memory for the list iterator");
   
