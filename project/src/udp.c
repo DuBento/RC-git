@@ -49,6 +49,8 @@ int udpReceiveMessage(int fd, char *buffer, int len) {
 	if (n == -1)
 		_FATAL("[UDP] Unable to read the message!\n\t - Error code: %d", errno);
 
+	buffer[n] = '\0'; // null terminate for string manipulation
+	
 	_LOG("[UDP] Message received (%d bytes) - '%s'", n, buffer);
 	return n;
 }
