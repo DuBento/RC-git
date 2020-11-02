@@ -12,15 +12,14 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
+#include <arpa/inet.h>
+#include <netdb.h>
 
 
 /* Generic constants. */
 typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
-#define DIR_NAME	"USERS"
-#define FILE_SUFIX 	"UID"
 
 #define TEJO_IP "193.136.138.142\0"
 #define TEJO_FS_PORT	"59000\0"
@@ -83,6 +82,18 @@ typedef char bool_t;
 #define REQ_RRQ		"RRQ"
 #define	REQ_AUT		"AUT"
 
+#define REQ_LST		"LST"
+#define REQ_RTV		"RTV"
+#define REQ_UPL		"UPL"
+#define REQ_DEL		"DEL"
+#define REQ_REM		"REM"
+
+#define RESP_RLS	"RLS"
+#define RESP_RRT	"RRT"
+#define RESP_RUP	"RUP"
+#define RESP_RDL	"RDL"
+#define RESP_RRM	"RRM"
+
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
 #define RESP_VLC	"RVC"
@@ -112,6 +123,8 @@ typedef char bool_t;
 #define FOP_D		'D'
 #define FOP_X		'X'
 
+/* Folder properties */
+#define FILE_NAME_SIZE 24
 
 
 /* Macro for logging debug messages. */
@@ -130,6 +143,11 @@ typedef char bool_t;
 
 #define FATAL(MSG)		{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n");               raise(SIGABRT); }
 #define _FATAL(MSG, ...)	{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);  raise(SIGABRT); }
+
+
+/* Macro for the verbose logs. */
+#define VERBOSE(MSG) 		{ if (verbosity) printf(MSG "\n"); }
+#define _VERBOSE(MSG, ...)	{ if (verbosity) printf(MSG "\n", __VA_ARGS__); }
 
 
 
@@ -186,6 +204,15 @@ bool_t isIPValid(const char *buffer);
  * \return TRUE if the IP address' format is valid, FALSE otherwise.
  */
 bool_t isPortValid(const char *buffer);
+
+
+/*! \brief Find the ip address of the local machine.
+ *
+ * 	Finds the ip address of the local machine and returns a pointer to him.
+ * 
+ * \return ip		a pointer with the ip address of the machine.
+ */
+char* findLocalIP();
 
 
 /*! \brief Checks if the UID is valid.
@@ -258,13 +285,13 @@ int randomNumber(int min, int max);
 
 /*! \brief Initialize a directory near the executable
  *
- *  Opens a directory. Also creates if it does not exist.
+ *  Opens a directory. The directory is created if it does not exist.
  * 
- * \param  sufix
- * \param  dirname
+ * \param  exePath			the path of the executable (will act as a relative path).
+ * \param  dirname			the name of the directory.
  * \return an open directory named `dirname`.
  */ 
-DIR* initDirectory(char* sufix, const char* dirname);
+DIR* initDirectory(const char* relativePath, const char* dirname);
 
 
 #endif 	/* COMMON_H */

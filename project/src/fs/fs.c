@@ -1,37 +1,103 @@
-#include "fs-aux.h"
+#include "fs_aux.h"
+#include "files.h"
 
-char verbosity = FALSE;
 
-void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
-		/* check the number of arguments */    
+
+static connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
+static DIR *files;
+bool_t verbosity = FALSE;
+
+
+
+
+
+/*! \brief Cleans the program on termination
+ *
+ *	Frees all the memory alocated by the program and cleans terminates all the 
+ *	required modules.
+ */
+void cleanFS() {
+	;
+}
+
+
+/*! \brief Terminates the program on success.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void terminateFS() {
+	cleanFS();
+	exit(EXIT_SUCCESS);
+}
+
+
+/*! \brief Terminates the program on fatal errors.
+ *
+ *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
+ */
+void abortFS() {
+	cleanFS();
+	exit(EXIT_FAILURE);
+}
+
+
+
+void parseArgs(int argc, char *argv[]) {
+	// checks the number of arguments   
 	if (argc < 1 || argc > 8 )
 		_FATAL("Failed to parse arguments.\nUsage: %s [-q FSport] [-n ASIP] [-p ASport] [-v]\n", argv[0]);
 	
-		// else
-		for (int i = 1; i < argc; i++){
-				if (!strcmp(ARG_FSPORT, argv[i]) && isPortValid((const char*) argv[i+1])
-						&& i+1 < argc)
-						strncpy(info->fsport, argv[++i], PORT_SIZE);
-				else if (!strcmp(ARG_ASIP, argv[i]) && isIPValid((const char*) argv[i+1])
-						&& i+1 < argc)
-						strncpy(info->asip, argv[++i], IP_SIZE);
-				else if (!strcmp(ARG_ASPORT, argv[i]) && isPortValid((const char*) argv[i+1])
-						&& i+1 < argc)
-						strncpy(info->asport, argv[++i], PORT_SIZE);
-				else if (!strcmp(ARG_VERBOS, argv[i]))
-						/* activate verbose mode - flag */
-						verbosity = TRUE;
-				else 
-						_FATAL("Failed to parse arguments.\nUsage: %s [-q FSport] [-n ASIP] [-p ASport] [-v]\n", argv[0]);
+	for (int i = 1; i < argc; i++){
+		int ipPortSwitch = 0;	
+		if (!strcmp(ARG_FSPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && i + 1 < argc && isPortValid(argv[i + 1]))
+				strncpy(connectionInfo.fsport, argv[++i], PORT_SIZE);
+		else if (!strcmp(ARG_ASIP, argv[i]) && (ipPortSwitch = ARG_IP) && i + 1 < argc && isIPValid(argv[i + 1]))
+				strncpy(connectionInfo.asip, argv[++i], IP_SIZE);
+		else if (!strcmp(ARG_ASPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && i + 1 < argc && isPortValid(argv[i+1]))
+				strncpy(connectionInfo.asport, argv[++i], PORT_SIZE);
+		else if (!strcmp(ARG_VERBOS, argv[i]))
+				verbosity = TRUE;
+		else {
+			if (ipPortSwitch == ARG_IP)
+				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
+				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
+			else if (ipPortSwitch == ARG_PORT)
+				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
+				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
+			else
+				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-q','-n', '-p', '-v'");
 		}
-		/* logs the server information (on debug mod only) */
-		_LOG("Runtime settings:\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbosity\t: %d", 
-				info->fsport, info->asip, info->asport, verbosity);
+	}
+
+	// fills the ip's if they were not specified
+	char *localIP = findLocalIP();
+	strcpy(connectionInfo.fsip, localIP);
+	if (connectionInfo.asip[0] == '\0')
+		strcpy(connectionInfo.asip, localIP);
+
+	// logs the server information (on debug mod only)
+	_LOG("Runtime settings:\nFSIP\t: %s\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
+			connectionInfo.fsip, connectionInfo.fsport, connectionInfo.asip, connectionInfo.asport, verbosity);
 }
+
+
+
 
 
 int main(int argc, char *argv[]) {
-	connectionInfo_t connectionInfo = {"59053\0", "", "58053\0"}; 
-	parseArgs(argc, argv, &connectionInfo);
+	initSignal(&terminateFS, &abortFS);
+	parseArgs(argc, argv);
+
+	files = initDirectory(argv[0], FILES_DIR);
+
+	DIR *temp = initDirectory(argv[0], FILES_DIR "test");
+	List_t list = listFiles(temp);
+
+	ListIterator_t iterator = listIteratorCreate(list);
+	while (!listIteratorEmpty(&iterator)) {
+		char *filename = (char*) listIteratorNext(&iterator);
+		printf("%s\n", filename);
+	}
+
 	return 0;
-}
+}	

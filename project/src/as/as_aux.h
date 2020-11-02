@@ -4,6 +4,9 @@
 #include "../common.h"
 #include "../udp.h"
 
+#define DIR_NAME	"USERS"
+#define FILE_SUFIX 	"UID"
+
 typedef struct as_node_udp {
         struct as_node_udp *next;
         char uid[UID_SIZE+1];
