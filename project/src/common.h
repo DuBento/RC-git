@@ -12,15 +12,14 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
+#include <arpa/inet.h>
+#include <netdb.h>
 
 
 /* Generic constants. */
 typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
-#define DIR_NAME	"USERS"
-#define FILE_SUFIX 	"UID"
 
 /* General implementation constants  */
 #define UID_SIZE	5
@@ -100,6 +99,10 @@ typedef char bool_t;
 #define FOP_X		'X'
 
 
+#define DIR_NAME	"USERS"
+#define FILE_SUFIX 	"UID"
+
+
 
 /* Macro for logging debug messages. */
 #ifdef DEBUG
@@ -117,6 +120,11 @@ typedef char bool_t;
 
 #define FATAL(MSG)		{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n");               raise(SIGABRT); }
 #define _FATAL(MSG, ...)	{ fprintf(stderr, "\033[1;31m[FATAL]: \33[0m" MSG "\n", __VA_ARGS__);  raise(SIGABRT); }
+
+
+/* Macro for the verbose logs. */
+#define VERBOSE(MSG) 		{ if (verbosity) printf(MSG "\n"); }
+#define _VERBOSE(MSG, ...)	{ if (verbosity) printf(MSG "\n", __VA_ARGS__); }
 
 
 
@@ -173,6 +181,15 @@ bool_t isIPValid(const char *buffer);
  * \return TRUE if the IP address' format is valid, FALSE otherwise.
  */
 bool_t isPortValid(const char *buffer);
+
+
+/*! \brief Find the ip address of the local machine.
+ *
+ * 	Finds the ip address of the local machine and returns a pointer to him.
+ * 
+ * \return ip		a pointer with the ip address of the machine.
+ */
+char* findLocalIP();
 
 
 /*! \brief Checks if the UID is valid.

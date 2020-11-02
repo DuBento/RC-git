@@ -2,12 +2,15 @@
 #define FS_AUX_H
 
 #include "../common.h"
+#include "../udp.h"
+#include "../tcp.h"
 
 typedef struct connectionInfo_t {
 
-	char fsport[PORT_SIZE + 1];          /* port of the file server */
-	char asip[IP_SIZE + 1];              /* IP of authentication server*/
-	char asport[PORT_SIZE + 1];          /* port of authentication server */
+	char fsip[IP_SIZE + 1];				// the ip address of the file server
+	char fsport[PORT_SIZE + 1];			// the port of the file server
+	char asip[IP_SIZE + 1];             // the IP address of authentication server
+	char asport[PORT_SIZE + 1];         // the port of authentication server
 
 } connectionInfo_t;
 
