@@ -73,6 +73,18 @@ typedef char bool_t;
 #define REQ_REQ		"REQ"
 #define REQ_RRQ		"RRQ"
 
+#define REQ_LST		"LST"
+#define REQ_RTV		"RTV"
+#define REQ_UPL		"UPL"
+#define REQ_DEL		"DEL"
+#define REQ_REM		"REM"
+
+#define RESP_RLS	"RLS"
+#define RESP_RRT	"RRT"
+#define RESP_RUP	"RUP"
+#define RESP_RDL	"RDL"
+#define RESP_RRM	"RRM"
+
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
 #define RESP_VLC	"RVC"
@@ -97,10 +109,6 @@ typedef char bool_t;
 #define FOP_U		'U'
 #define FOP_D		'D'
 #define FOP_X		'X'
-
-
-#define DIR_NAME	"USERS"
-#define FILE_SUFIX 	"UID"
 
 
 
@@ -262,13 +270,13 @@ int randomNumber(int min, int max);
 
 /*! \brief Initialize a directory near the executable
  *
- *  Opens a directory. Also creates if it does not exist.
+ *  Opens a directory. The directory is created if it does not exist.
  * 
- * \param  sufix
- * \param  dirname
+ * \param  exePath			the path of the executable (will act as a relative path).
+ * \param  dirname			the name of the directory.
  * \return an open directory named `dirname`.
  */ 
-DIR* initDirectory(char* sufix, const char* dirname);
+DIR* initDirectory(const char* relativePath, const char* dirname);
 
 
 #endif 	/* COMMON_H */

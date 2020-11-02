@@ -2,7 +2,8 @@
 
 
 
-connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"}; 
+connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
+DIR *files;
 char verbosity = FALSE;
 
 
@@ -85,6 +86,8 @@ void parseArgs(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
+
+	files = initDirectory(argv[0], "files");
 
 	return 0;
 }
