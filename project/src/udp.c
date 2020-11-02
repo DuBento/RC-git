@@ -57,6 +57,7 @@ int udpReceiveMessage(int fd, char *buffer, int len) {
 // sends an UDP message
 int udpSendMessage(int fd, const char *buffer, int len) {
 	int n = sendto(fd, buffer, len, 0, res->ai_addr, res->ai_addrlen);
+
 	if (n == -1)
 	    _FATAL("[UDP] Unable to send the message!\n\t - Error code: %d", errno);
 

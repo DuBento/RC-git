@@ -28,7 +28,7 @@ typedef struct user_info_t {
 
 } userInfo_t;
 
-#define RAND_NUM_MIN 0
+#define RAND_NUM_MIN 1000
 #define RAND_NUM_MAX 9999
 
 
@@ -80,7 +80,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname);
+bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname, int *rid);
 
 
 /*! \brief Brief function description here
@@ -90,7 +90,7 @@ bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const ch
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc);
+bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc, int *rid);
 
 
 /*! \brief Brief function description here
@@ -220,7 +220,7 @@ bool_t resp_retrieve();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_upload();
+bool_t resp_upload(int fsSockfd, char *status);
 
 
 /*! \brief Brief function description here
@@ -230,7 +230,7 @@ bool_t resp_upload();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_delete();
+bool_t resp_delete(int fsSockfd, char *status);
 
 
 /*! \brief Brief function description here
@@ -240,7 +240,7 @@ bool_t resp_delete();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_remove();
+bool_t resp_remove(int fsSockfd, char *status);
 
 
 /*! \brief Brief function description here
