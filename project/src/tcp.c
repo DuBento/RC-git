@@ -70,10 +70,14 @@ int tcpReceiveMessage(int fd, char *buffer, int len) {
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
 		int n = read(fd, buffer, len);
 		if (n == -1)
-		_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
+			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
+		
 		sizeRead += n;
-	} while (buffer[sizeRead] != '\n');
-
+		
+	} while (buffer[sizeRead-1] != '\n');
+	
+	// Insert null char to be able to handle buffer content as a string.
+	buffer[sizeRead] = '\0';
 	return sizeRead;
 }
 
@@ -81,6 +85,8 @@ int tcpReceiveMessage(int fd, char *buffer, int len) {
 // sends a TCP message
 int tcpSendMessage(int fd, const char *buffer, int len) {
 	int sizeWritten;
+
+	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
 		On error, -1 is returned, and errno is set appropriately.*/
@@ -89,7 +95,6 @@ int tcpSendMessage(int fd, const char *buffer, int len) {
 			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
 		sizeWritten += n;
 	} while (sizeWritten != len);
-	
 	return sizeWritten;
 }
 

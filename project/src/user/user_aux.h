@@ -56,6 +56,13 @@ typedef struct user_info_t {
 
 #define CMD_EXIT        "exit"
 
+/* Fops */
+#define FOP_STR_L	"L"
+#define FOP_STR_R	"R"
+#define FOP_STR_U	"U"
+#define FOP_STR_D	"D"
+#define FOP_STR_X	"X"
+
 /*! \brief Brief function description here
  *
  *  Detailed description of the function
@@ -73,7 +80,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_request(int fd, const userInfo_t *userInfo, const char fop, const char *fname);
+bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname);
 
 
 /*! \brief Brief function description here
@@ -83,7 +90,7 @@ bool_t req_request(int fd, const userInfo_t *userInfo, const char fop, const cha
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_val();
+bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc);
 
 
 /*! \brief Brief function description here
@@ -163,7 +170,7 @@ bool_t req_resendLastMessage();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_login();
+bool_t resp_login(char *status);
 
 
 /*! \brief Brief function description here
@@ -173,7 +180,7 @@ bool_t resp_login();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_request();
+bool_t resp_request(char *status);
 
 
 /*! \brief Brief function description here
@@ -183,7 +190,7 @@ bool_t resp_request();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_val();
+bool_t resp_val(char *tid);
 
 
 /*! \brief Brief function description here

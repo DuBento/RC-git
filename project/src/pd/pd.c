@@ -11,6 +11,9 @@ static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "5
 // static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
 static int asSockfd = -1;
 
+// fd to the socket in which PD acts as an UDP server
+static int pdSockfd = -1;
+
 /* User commands */
 #define CMD_REG		"reg"		// register command
 #define CMD_EXIT	"exit"		// exit command
@@ -24,6 +27,7 @@ static int asSockfd = -1;
 void cleanPD() {
 	if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
 	if (asSockfd != -1)     udpDestroySocket(asSockfd);
+	if (pdSockfd != -1)		udpDestroySocket(pdSockfd);
 	free(userInfo.uid);
 	free(userInfo.pass);
 }
@@ -213,10 +217,8 @@ void runPD() {
 			else
 				waitingReply = req_resendLastMessage(asSockfd);
 		}
-			
 	}
 }
-
 
 
 int main(int argc, char *argv[]) {
@@ -225,6 +227,8 @@ int main(int argc, char *argv[]) {
 
 	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 	userInfo.connected = FALSE;
+
+	//pdSockfd = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 
 	runPD();
 	return 0;
