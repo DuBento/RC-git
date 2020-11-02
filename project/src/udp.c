@@ -2,7 +2,9 @@
 
 static struct addrinfo hints = { 0 }, *res = NULL;
 
-
+/* ===================== */
+/* UDP General Fuctions */
+/* ===================== */
 
 // creates and initializes an UDP socket
 int udpCreateSocket(const char *addrIP, const char *port) {
@@ -47,7 +49,7 @@ int udpReceiveMessage(int fd, char *buffer, int len) {
 	if (n == -1)
 		_FATAL("[UDP] Unable to read the message!\n\t - Error code: %d", errno);
 
-	//_LOG("[UDP] Message received (%d bytes) - '%s'", n, buffer);
+	_LOG("[UDP] Message received (%d bytes) - '%s'", n, buffer);
 	return n;
 }
 
@@ -58,7 +60,7 @@ int udpSendMessage(int fd, const char *buffer, int len) {
 	if (n == -1)
 	    _FATAL("[UDP] Unable to send the message!\n\t - Error code: %d", errno);
 
-	//_LOG("[UDP] Message sent (%d bytes) - '%s'", n, buffer);
+	_LOG("[UDP] Message sent (%d bytes) - '%s'", n, buffer);
 	return n;
 }
 

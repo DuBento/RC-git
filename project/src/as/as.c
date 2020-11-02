@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <errno.h>
 
 typedef struct connectionInfo_t {
 
@@ -23,6 +24,69 @@ char verbosity = FALSE;
 
 #define CHECK_VERBOSITY { return verbosity }
 
+
+/* ========================== */
+/* Linked list Implementation */
+/* ========================== */
+void pushHead(int key, struct addrinfo data) {
+	//create a new node
+	udpNode_t *new = (udpNode_t*) malloc(sizeof(udpNode_t));
+
+	// fill in the values
+	new->id = key;
+	new->addr = data;
+	new->next = listHead;
+	
+	// updates head	
+	listHead = new;
+}
+
+udpNode_t* delete(int key) {
+	udpNode_t* current = listHead;
+	udpNode_t* previous = NULL;
+		
+	// If empty
+	if(listHead == NULL) return NULL;
+
+	while(current->id != key) {
+		//if enf of list
+		if(current->next == NULL) return NULL;
+		else {
+			// move forward
+			previous = current;
+			current = current->next;
+		}
+	}
+
+	// if match is list head
+	if(current == listHead) 
+		listHead = listHead->next;
+	else 
+		previous->next = current->next; //update
+		
+	return current;
+}
+
+udpNode_t* find(int key) {
+	// Start search from head
+	udpNode_t* current = listHead;
+
+	// If empty
+	if(listHead == NULL) return NULL;
+
+	// loop through queue until key match
+	while(current->id != key) {
+		if(current->next == NULL) return NULL;
+		current = current->next;
+	}      
+		
+	return current;
+}
+
+
+/* ======= */
+/* General */
+/* ======= */
 void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
         /* check the number of arguments */        
 	if (argc < 1 || argc > 4)
@@ -58,7 +122,7 @@ bool_t handleUDP(int fd, char *msgBuf) {
 
         // Registration Request
         if (!strcmp(opcode, REQ_REG))
-                ;// TODO req_registerUser(args);
+                req_registerUser(args);
         // Unregistration Request
         else if (!strcmp(opcode, REQ_UNR))
                 ;// TODO unregisterUser(respEnd);                
@@ -122,18 +186,7 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 	}
 }
 
-DIR* initDirectory() {
-        DIR* d;
-        // try to create dir
-        if (mkdir(DIR_NAME, S_IRUSR|S_IWUSR) == -1)
-                //if dir already exists, open
-                if (errno == EEXIST) {
-                        d = opendir(DIR_NAME);
-                        if (d)  return d;
-                }
-        // else
-        FATAL("Failed to open data directory.")
-}
+
 
 
 void exitAS() {
@@ -148,7 +201,7 @@ int main(int argc, char *argv[]) {
         /* Default AS port. */        
         connectionInfo_t connectionInfo = {"58053\0"};
         parseArgs(argc, argv, &connectionInfo);
-        dir = initDirectory();
+        dir = initDirectory(argv[0], DIR_NAME);
         // mount UDP server socket
         udpServerfd = udpCreateServer(NULL, connectionInfo.asport);
         // mount TCP server socket

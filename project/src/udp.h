@@ -8,7 +8,10 @@
 
 #include "common.h"
 
-
+typedef struct udp_node_t {
+    struct sockaddr *ai_addr;
+    socklen_t ai_addrlen;
+} udpNode_t;
 
 /*! \brief Creates and initializes an UDP socket.
  *

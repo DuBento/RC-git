@@ -173,3 +173,49 @@ const char* getFileOp(const char op) {
 int randomNumber(int min, int max) {
 	return rand() % (max - min) + min;
 }
+
+
+// open (and create if not exists) directory 
+DIR* initDirectory(char* sufix, const char* dirname) {
+	DIR* d;
+	// make dir path
+	int sufix_len = strlen(sufix);
+	int path_len;
+	int dirname_len = strlen(dirname);
+	char* dir_pwd = (char*) malloc( (sufix_len+dirname_len+2) * sizeof(char) ); // +2 ("/" and "\0")
+	char* path_end = strrchr(sufix, '/'); //find the last occurrence of the '/'
+        
+	
+	if(path_end) {
+		char *path = (char*) malloc( (sufix_len + 1) * sizeof(char) );
+		strncpy(path, sufix, path_end-sufix);
+		sprintf(dir_pwd, "%s/%s", path, dirname);
+		free(path);
+	}
+	else // == NULL		
+		sprintf(dir_pwd, "%s", dirname);
+        
+	
+        //try to open dir
+        d = opendir(dir_pwd);
+
+        if(d) {
+                // dir opened
+                free(dir_pwd);
+                return d;
+        } else if (errno == ENOENT || errno == ENOTDIR ) {
+                // dir does not exist, create new
+                if (mkdir(dir_pwd, S_IRUSR|S_IWUSR) == -1) {
+			free(dir_pwd);
+                        FATAL("Failed to create log directory.")
+                }
+		// retry to open
+                d = opendir(dir_pwd);
+                free(dir_pwd);
+                if (d) return d;
+        }
+
+        // else
+        free(dir_pwd);
+        FATAL("Failed to open log directory.")
+}

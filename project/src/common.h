@@ -9,6 +9,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
 
@@ -18,6 +21,9 @@ typedef char bool_t;
 #define FALSE		0
 #define DIR_NAME	"USERS"
 #define FILE_SUFIX 	"UID"
+
+/* General implementation constants  */
+#define UID_SIZE	5
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
@@ -230,6 +236,17 @@ const char *getFileOp(const char op);
  * \return a random number between min and max.
  */ 
 int randomNumber(int min, int max);
+
+
+/*! \brief Initialize a directory near the executable
+ *
+ *  Opens a directory. Also creates if it does not exist.
+ * 
+ * \param  sufix
+ * \param  dirname
+ * \return an open directory named `dirname`.
+ */ 
+DIR* initDirectory(char* sufix, const char* dirname);
 
 
 #endif 	/* COMMON_H */

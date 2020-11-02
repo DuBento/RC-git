@@ -1,5 +1,11 @@
 #include "as_aux.h"
 
+bool_t req_registerUser(char* args) {
+    
+}
+
+
+
 // send server error
 // bool_t req_serverError(int fd) {
 //         msgSize = sprintf(msgBuffer, "%s\n", SERVER_ERR);
