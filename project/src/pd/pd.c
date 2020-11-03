@@ -211,11 +211,16 @@ void runPD() {
 		
 		if (selRetv == 0 && waitingReply) {
 			if (nRequestTries == NREQUEST_TRIES) {
+				nRequestTries = 0;
+				putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 				WARN("The server is not responding! Operation ignored");
 				waitingReply = FALSE;
+				putStr(STR_INPUT, TRUE);		// string before the user input
 			}
-			else
+			else {
 				waitingReply = req_resendLastMessage(asSockfd);
+				nRequestTries++;
+			}
 		}
 	}
 }
