@@ -193,24 +193,26 @@ int randomNumber(int min, int max) {
 
 
 // initialize a directory on the specified path
-DIR* initDirectory(const char* path, const char* dirname, char* outPath) {
+DIR* initDir(const char* path, const char* dirname, char* outPath) {
 	int pathLen = strlen(path);
 	int dirnameLen = strlen(dirname);
+	char tempPath[PATH_MAX];
+	char *formatedPath = (outPath == NULL ? tempPath : outPath);
 	if (pathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
 		_FATAL("The specified path + dirname is too big.\n\t - Max size: %d", PATH_MAX);
 
-	sprintf(outPath, "%s%s/", path, dirname);
-	DIR* directory = opendir(outPath);
-	printf("%s\n", outPath);
+	sprintf(formatedPath, "%s%s/", path, dirname);
+	DIR* directory = opendir(formatedPath);
+	printf("%s\n", formatedPath);
 
 	if (directory)											// returns the directory if it already exists
 		return directory;
 	else if (errno == ENOENT || errno == ENOTDIR ) {		// creates the directory		
-		if (mkdir(outPath, S_IRUSR|S_IWUSR) == -1)
+		if (mkdir(formatedPath, S_IRUSR|S_IWUSR) == -1)
 			_FATAL("Failed to create log directory.\n\t - Error code: %d", errno);
 		
 		// retry to open the directory
-		directory = opendir(outPath);
+		directory = opendir(formatedPath);
 		if (directory)
 			return directory;
 	}
@@ -220,54 +222,12 @@ DIR* initDirectory(const char* path, const char* dirname, char* outPath) {
 
 
 // initialize a directory near the executable
-DIR* initDirectoryFromExe(char* exePath, const char* dirname, char* outPath) {
+DIR* initDirFromExe(char* exePath, const char* dirname, char* outPath) {
 	char* exeName = strrchr(exePath, '/'); 	// finds the executable name
 	*(++exeName) = '\0';					// removes the executable from the path
-	return initDirectory(exePath + 2, dirname, outPath);
+	return initDir(exePath + 2, dirname, outPath);
 }
 
-
-// initialize a directory near the executable
-/*DIR* initDirectory(const char* exePath, const char* dirname, char* path) {
-	DIR* d;
-	// make dir path
-	int exePathLen = strlen(exePath);
-	int dirnameLen = strlen(dirname);
-	if (exePathLen + dirnameLen + 2 > PATH_MAX) { // + 2 ("/" and "\0")
-		WARN("The path lenght too big.") 
-		return NULL;
-	}
-	char* pathEnd = strrchr(exePath, '/'); 	//find the last occurrence of the '/'
-	
-	if(pathEnd) {
-		char *base_path = (char*)malloc((exePathLen + 1) * sizeof(char));
-		strncpy(base_path, exePath, pathEnd - exePath);
-		sprintf(path, "%s/%s/", base_path, dirname);
-		free(base_path);
-	}
-	else
-		sprintf(path, "%s/", dirname);
-    
-	d = opendir(path);        			//try to open dir
-	if(d) {
-		// dir opened
-		return d;	// and path var updated
-	} else if (errno == ENOENT || errno == ENOTDIR ) {
-		// dir does not exist, create new
-		if (mkdir(path, S_IRUSR|S_IWUSR) == -1) {
-			_WARN("Failed to create log directory.\n\t - Error code: %d", errno);
-			return NULL;
-		}
-
-		// retry to open
-		d = opendir(path);
-		if (d)
-			return d;
-	}
-
-	_WARN("Failed to open log directory.\n\t - Error code: %d", errno);
-	return NULL;
-}*/
 
 // checks if the specified file is whitin the given directory.
 bool_t inDir(DIR* dir, char* filename){

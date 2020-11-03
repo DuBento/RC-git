@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
-	files = initDirectoryFromExe(argv[0], "files", filesPath);
+	files = initDirFromExe(argv[0], "files", filesPath);
 	//List_t list = listFiles("test");
 	//ListIterator_t iterator = listIteratorCreate(list);
 	//while (!listIteratorEmpty(&iterator)) {

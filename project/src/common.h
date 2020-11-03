@@ -278,10 +278,10 @@ int randomNumber(int min, int max);
  * 
  * 	\param  path			the path to the main directory.
  * 	\param  dirname			the name of the directory (relative to the path).
- * 	\param  outPath			buffer to hold directory path.
+ * 	\param  outPath			buffer to hold directory path (can be set to NULL).
  * 	\return the directory pointer.
  */ 
-DIR* initDirectory(const char* path, const char* dirname, char* outPath);
+DIR* initDir(const char* path, const char* dirname, char* outPath);
 
 
 /*! \brief Initialize a directory near the executable.
@@ -290,10 +290,10 @@ DIR* initDirectory(const char* path, const char* dirname, char* outPath);
  * 
  * 	\param  exePath			the path of the executable (will act as a relative path).
  * 	\param  dirname			the name of the directory.
- * 	\param  outPath			buffer to hold relative path.
+ * 	\param  outPath			buffer to hold relative path (can be set to NULL).
  * 	\return the directory pointer.
  */ 
-DIR* initDirectoryFromExe(char* exePath, const char* dirname, char* outPath);
+DIR* initDirFromExe(char* exePath, const char* dirname, char* outPath);
 
 
 /*! \brief Checks if the specified file is whitin the given directory.
