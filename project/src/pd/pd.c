@@ -9,10 +9,10 @@
 static userInfo_t userInfo = {0};
 static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
 // static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
-static int asSockfd = -1;
+static UDPConnection_t *asConnection = NULL;
 
 // fd to the socket in which PD acts as an UDP server
-static int pdSockfd = -1;
+static UDPConnection_t *pdConnection = NULL;
 
 /* User commands */
 #define CMD_REG		"reg"		// register command
@@ -25,9 +25,9 @@ static int pdSockfd = -1;
  *	required modules.
  */
 void cleanPD() {
-	if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
-	if (asSockfd != -1)     udpDestroySocket(asSockfd);
-	if (pdSockfd != -1)		udpDestroySocket(pdSockfd);
+	if(userInfo.connected)  	req_unregisterUser(asConnection, &userInfo);
+	if (asConnection != NULL)   udpDestroySocket(asConnection);
+	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
 	free(userInfo.uid);
 	free(userInfo.pass);
 }
@@ -118,11 +118,11 @@ bool_t handleUser() {
 
 	// register command
 	if (!strcmp(cmd, CMD_REG) && uid[0] != '\0' && pass[0] != '\0')
-		return req_registerUser(asSockfd, &connectionInfo, uid, pass, &userInfo);
+		return req_registerUser(asConnection, &connectionInfo, uid, pass, &userInfo);
 
 	// exit command
 	if (!strcmp(cmd, CMD_EXIT) && uid[0] == '\0')
-		return req_unregisterUser(asSockfd, &userInfo);
+		return req_unregisterUser(asConnection, &userInfo);
 		
 	WARN("Invalid command! Operation ignored.");
 	return FALSE;
@@ -137,7 +137,7 @@ bool_t handleUser() {
  */
 bool_t handleServer() {
 	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE] = { 0 }, args[BUFFER_SIZE] = { 0 };	
-	int size = udpReceiveMessage(asSockfd, buffer, BUFFER_SIZE);
+	int size = udpReceiveMessage(asConnection, buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s %s\n", opcode, args);
 
 	// Registration response "RRG"
@@ -146,7 +146,7 @@ bool_t handleServer() {
 
 	// Validation code request "VLC"	
 	else if (!strcmp(opcode, REQ_VLC))
-		return req_valCode(asSockfd, args, &userInfo);
+		return req_valCode(asConnection, args, &userInfo);
 
 	// Unegistration response "RUN"
 	else if (!strcmp(opcode, RESP_UNR))
@@ -159,7 +159,7 @@ bool_t handleServer() {
 	
 	else{
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
-		return req_serverError(asSockfd);
+		return req_serverError(asConnection);
 	}
 }
 
@@ -174,8 +174,8 @@ void runPD() {
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);		// only user input 
-	FD_SET(asSockfd, &fds);
-	int fdsSize = asSockfd + 1;
+	FD_SET(asConnection->fd, &fds);
+	int fdsSize = asConnection->fd + 1;
 	
 	// timeouts
 	struct timeval tv;
@@ -195,7 +195,7 @@ void runPD() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle server responses
-		if (FD_ISSET(asSockfd, &fdsTemp)) {
+		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
 			handleServer();	
@@ -218,7 +218,7 @@ void runPD() {
 				putStr(STR_INPUT, TRUE);		// string before the user input
 			}
 			else {
-				waitingReply = req_resendLastMessage(asSockfd);
+				waitingReply = req_resendLastMessage(asConnection);
 				nRequestTries++;
 			}
 		}
@@ -230,10 +230,10 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminatePD, &abortPD);	// sets the termination signals
 	parseArgs(argc, argv);			// parses the execution arguments
 
-	asSockfd = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 	userInfo.connected = FALSE;
 
-	//pdSockfd = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
+	pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 
 	runPD();
 	return 0;

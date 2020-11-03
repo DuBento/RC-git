@@ -97,21 +97,8 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
-	files = initDirFromExe(argv[0], "files", filesPath);
-	List_t list = listFiles(filesPath, "test");
+	files = initDir(argv[0], "files", filesPath);
 
-	/* 	[ TEST LIST ]
-	ListIterator_t iterator = listIteratorCreate(list);
-	while (!listIteratorEmpty(&iterator)) {
-		char *filename = (char*) listIteratorNext(&iterator);
-		printf("%s\n", filename);
-	} */
-
-	/* 	[ TEST FILE RETRIVE ]
-	char *contents;
-	printf("%lu\n", getFile(filesPath, "test", "test.txt", &contents));
-	printf("%s\n", contents);
-	*/
-	
+	closedir(files);
 	return 0;
 }	

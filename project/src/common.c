@@ -193,38 +193,44 @@ int randomNumber(int min, int max) {
 
 
 // initialize a directory on the specified path
-DIR* initDir(const char* path, const char* dirname, char* outPath) {
-	int pathLen = strlen(path);
+DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
+	DIR* d;
+	// make dir path
+	int exePathLen = strlen(exePath);
 	int dirnameLen = strlen(dirname);
 	char tempPath[PATH_MAX];
 	char *formatedPath = (outPath == NULL ? tempPath : outPath);
-	if (pathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
+	if (exePathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
 		_FATAL("The specified path + dirname is too big.\n\t - Max size: %d", PATH_MAX);
-
-	sprintf(formatedPath, "%s%s/", path, dirname);
-	DIR* directory = opendir(formatedPath);
-
-	if (directory)											// returns the directory if it already exists
-		return directory;
-	else if (errno == ENOENT || errno == ENOTDIR ) {		// creates the directory		
-		if (mkdir(formatedPath, S_IRUSR|S_IWUSR) == -1)
-			_FATAL("Failed to create log directory.\n\t - Error code: %d", errno);
 		
-		// retry to open the directory
-		directory = opendir(formatedPath);
-		if (directory)
-			return directory;
+	char* pathEnd = strrchr(exePath, '/'); 	//find the last occurrence of the '/'	
+	if(pathEnd) {
+		char *base_path = (char*)malloc((exePathLen + 1) * sizeof(char));
+		strncpy(base_path, exePath, pathEnd - exePath);
+		sprintf(formatedPath, "%s/%s/", base_path, dirname);
+		free(base_path);
 	}
+	else
+		sprintf(formatedPath, "%s/", dirname);
+        
+        //try to open dir
+        d = opendir(formatedPath);
 
-	_FATAL("Failed to open log directory.\n\t - Error code: %d", errno);
-}
+        if(d) {
+			// dir opened
+			return d;	// and path var updated
+        } else if (errno == ENOENT || errno == ENOTDIR ) {
+			// dir does not exist, create new
+			if (mkdir(formatedPath, S_IRUSR|S_IWUSR) == -1) 
+				_FATAL("Failed to create log directory.\n\t - Error: %s", strerror(errno));
 
+			// retry to open
+			d = opendir(formatedPath);
+			if (d) return d;
+        }
 
-// initialize a directory near the executable
-DIR* initDirFromExe(char* exePath, const char* dirname, char* outPath) {
-	char* exeName = strrchr(exePath, '/'); 	// finds the executable name
-	*(++exeName) = '\0';					// removes the executable from the path
-	return initDir(exePath + 2, dirname, outPath);
+        // else
+        _FATAL("Failed to open log directory.\n\t - Error: %s", strerror(errno));
 }
 
 

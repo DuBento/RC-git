@@ -13,14 +13,14 @@
 #define FILE_SIZE       32
 
 typedef struct as_node_udp {
-        struct as_node_udp *next;
-        char uid[UID_SIZE+1];
-        bool_t msg_sent;
-        char msg[BUFFER_SIZE];
-        udpNode_t udp_node;
+	struct as_node_udp *next;
+	char uid[UID_SIZE+1];
+	bool_t msg_sent;
+	char msg[BUFFER_SIZE];
+	udpNode_t udp_node;
 } asNodeUDP_t;
 
-bool_t req_registerPD(int fd, char* args, char* path);
+bool_t req_registerPD(UDPConnection_t *udpConnec, char* args, char* path);
 void registerPD(char* relative_path, char* filename, char* pdip, char* pdport);
 void storePassPD(char* relative_path, char* filename, char* pass);
 
