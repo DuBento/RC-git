@@ -82,7 +82,7 @@ static bool_t _isIPBlockValid(const char *buffer) {
 
 // checks if the ip address format is valid (in dot notaion)
 bool_t isIPValid(const char *buffer) {
-	static const char *delimChars = "...\0";
+	const char *delimChars = "...\0";
 	char ipBlock[strlen(buffer) + 1];
 	int i = 0, j = 0;
 
@@ -132,13 +132,13 @@ char* findLocalIP() {
 
 
 // checks if the UID is valid
-bool_t isValidUID(const char *buffer) {
+bool_t isUIDValid(const char *buffer) {
 	    return isStringValid(buffer, STR_DIGIT, UID_SIZE);
 }
 
 
 // checks if the password is valid
-bool_t isValidPassword(const char *buffer) {
+bool_t isPassValid(const char *buffer) {
     return isStringValid(buffer, STR_ALPHANUM, PASS_SIZE);
 }
 
@@ -190,46 +190,72 @@ int randomNumber(int min, int max) {
 	return rand() % (max - min) + min;
 }
 
+/* ========================= */
+/* Dir and File Manipulation */
+/* ========================= */
 
 // open (and create if not exists) directory 
-DIR* initDirectory(const char* exePath, const char* dirname) {
+DIR* initDirectory(const char* exePath, const char* dirname, char* path) {
 	DIR* d;
 	// make dir path
 	int exePathLen = strlen(exePath);
 	int dirnameLen = strlen(dirname);
-	char* dirPwd = (char*)malloc((exePathLen + dirnameLen + 2) * sizeof(char)); // + 2 ("/" and "\0")
+	if (exePathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
+		FATAL("Path lenght too big.")
 	char* pathEnd = strrchr(exePath, '/'); 	//find the last occurrence of the '/'
 	
 	if(pathEnd) {
-		char *path = (char*)malloc((exePathLen + 1) * sizeof(char));
-		strncpy(path, exePath, pathEnd - exePath);
-		sprintf(dirPwd, "%s/%s", path, dirname);
-		free(path);
+		char *base_path = (char*)malloc((exePathLen + 1) * sizeof(char));
+		strncpy(base_path, exePath, pathEnd - exePath);
+		sprintf(path, "%s/%s/", base_path, dirname);
+		free(base_path);
 	}
 	else
-		sprintf(dirPwd, "%s", dirname);
+		sprintf(path, "%s/", dirname);
         
 	
         //try to open dir
-        d = opendir(dirPwd);
+        d = opendir(path);
 
         if(d) {
                 // dir opened
-                free(dirPwd);
-                return d;
+                return d;	// and path var updated
         } else if (errno == ENOENT || errno == ENOTDIR ) {
                 // dir does not exist, create new
-                if (mkdir(dirPwd, S_IRUSR|S_IWUSR) == -1) {
-			free(dirPwd);
+                if (mkdir(path, S_IRUSR|S_IWUSR) == -1) {
                         FATAL("Failed to create log directory.")
                 }
 		// retry to open
-                d = opendir(dirPwd);
-                free(dirPwd);
+                d = opendir(path);
                 if (d) return d;
         }
 
         // else
-        free(dirPwd);
         FATAL("Failed to open log directory.")
+}
+
+// check if filename in dir
+bool_t inDir(DIR* dir, char* filename){
+	struct dirent *ent;
+    	while ((ent = readdir(dir)) != NULL)
+		if (!strcmp(ent->d_name, filename)) return TRUE;
+
+	//else
+	return FALSE;	
+}
+
+// creates and writes to file
+bool_t createFile(char* pathname, const char* data, int data_len) {
+        int ret;
+        int fd = open(pathname, S_IRUSR|S_IWUSR|O_CREAT|O_WRONLY);
+        if (fd < 0) {
+                WARN("Failed to create file.");
+                return FALSE;
+        }
+        
+        if (write(fd, data, data_len) == -1){
+		fprintf(stderr, "%s", strerror(errno));
+                WARN("Unable to write to file.");
+	}
+	close(fd);
 }

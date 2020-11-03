@@ -1,6 +1,7 @@
 #ifndef UDP_H
 #define UDP_H
 
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -70,6 +71,7 @@ int udpReceiveMessage(int fd, char *buffer, int len);
  */
 int udpSendMessage(int fd, const char *buffer, int len);
 
+int udpSendMessage_specify(int fd, const char *buffer, int len, char* ip, char* port);
 
 /*! \brief Terminates the UDP socket.
  *

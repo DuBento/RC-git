@@ -45,7 +45,7 @@ int udpCreateClient(const char *addrIP, const char *port) {
 int udpReceiveMessage(int fd, char *buffer, int len) {
 	struct sockaddr *addr = { 0 };
 	int addrlen = sizeof(addr);
-	int n = recvfrom(fd, buffer, len, 0, addr, &addrlen);
+	int n = recvfrom(fd, buffer, len-1, 0, addr, &addrlen);
 	if (n == -1)
 		_FATAL("[UDP] Unable to read the message!\n\t - Error code: %d", errno);
 
@@ -61,11 +61,28 @@ int udpSendMessage(int fd, const char *buffer, int len) {
 	int n = sendto(fd, buffer, len, 0, res->ai_addr, res->ai_addrlen);
 	if (n == -1)
 	    _FATAL("[UDP] Unable to send the message!\n\t - Error code: %d", errno);
-
+	if (n != len)
+		WARN("[UDP] Something went wrong with comunication.");
 	_LOG("[UDP] Message sent (%d bytes) - '%s'", n, buffer);
 	return n;
 }
 
+// populate struct and sends an UDP message
+int udpSendMessage_specify(int fd, const char *buffer, int len, char* ip, char* port) {
+	struct sockaddr_in addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	inet_pton(AF_INET, ip, &(addr.sin_addr));
+	addr.sin_port = htons(atoi(port));
+
+	int n = sendto(fd, buffer, len, 0, (const struct sockaddr *) &addr, sizeof(addr));
+	if (n == -1)
+		_FATAL("[UDP] Unable to send the message!\n\t - Error code: %d", errno);
+	if (n != len)
+		WARN("[UDP] Something went wrong with comunication.");
+	_LOG("[UDP] Message sent (%d bytes) - '%s'", n, buffer);
+	return n;
+}
 
 // terminates the udp socket
 void udpDestroySocket(int fd) {

@@ -14,7 +14,8 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include <linux/limits.h>
+#include <fcntl.h>
 
 /* Generic constants. */
 typedef char bool_t;
@@ -99,8 +100,8 @@ typedef char bool_t;
 #define STATUS_NOK	"NOK"
 
 #define STATUS_EPD	"EPD"
-#define	STATUS_ELOG "ELOG"
-#define	STATUS_EUSER "EUSER"
+#define	STATUS_ELOG 	"ELOG"
+#define	STATUS_EUSER	"EUSER"
 #define	STATUS_EFOP	"EFOP"
 
 /* file operations */
@@ -273,12 +274,16 @@ int randomNumber(int min, int max);
 /*! \brief Initialize a directory near the executable
  *
  *  Opens a directory. The directory is created if it does not exist.
+ *  Returns the relative path in `path` buffer. 
  * 
  * \param  exePath			the path of the executable (will act as a relative path).
  * \param  dirname			the name of the directory.
+ * \param  path				buffer to hold relative path.
  * \return an open directory named `dirname`.
  */ 
-DIR* initDirectory(const char* relativePath, const char* dirname);
+DIR* initDirectory(const char* relativePath, const char* dirname, char* path);
 
+bool_t inDir(DIR* dir, char* filename);
+bool_t createFile(char* pathname, const char* data, int data_len);
 
 #endif 	/* COMMON_H */
