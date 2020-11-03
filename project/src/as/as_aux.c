@@ -33,7 +33,7 @@ bool_t req_registerPD(int fd, char* buf, char* path) {
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        dir = initDirectory(path, dirname, user_path);
+        dir = initDirectoryFromExe(path, dirname, user_path);
         printf("old path:%s\n", user_path);
         // check if connection not already established (reg file)
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);

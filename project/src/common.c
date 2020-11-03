@@ -190,18 +190,53 @@ int randomNumber(int min, int max) {
 	return rand() % (max - min) + min;
 }
 
-/* ========================= */
-/* Dir and File Manipulation */
-/* ========================= */
 
-// open (and create if not exists) directory 
-DIR* initDirectory(const char* exePath, const char* dirname, char* path) {
+
+// initialize a directory on the specified path
+DIR* initDirectory(const char* path, const char* dirname, char* outPath) {
+	int pathLen = strlen(path);
+	int dirnameLen = strlen(dirname);
+	if (pathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
+		_FATAL("The specified path + dirname is too big.\n\t - Max size: %d", PATH_MAX);
+
+	sprintf(outPath, "%s%s/", path, dirname);
+	DIR* directory = opendir(outPath);
+	printf("%s\n", outPath);
+
+	if (directory)											// returns the directory if it already exists
+		return directory;
+	else if (errno == ENOENT || errno == ENOTDIR ) {		// creates the directory		
+		if (mkdir(outPath, S_IRUSR|S_IWUSR) == -1)
+			_FATAL("Failed to create log directory.\n\t - Error code: %d", errno);
+		
+		// retry to open the directory
+		directory = opendir(outPath);
+		if (directory)
+			return directory;
+	}
+
+	_FATAL("Failed to open log directory.\n\t - Error code: %d", errno);
+}
+
+
+// initialize a directory near the executable
+DIR* initDirectoryFromExe(char* exePath, const char* dirname, char* outPath) {
+	char* exeName = strrchr(exePath, '/'); 	// finds the executable name
+	*(++exeName) = '\0';					// removes the executable from the path
+	return initDirectory(exePath + 2, dirname, outPath);
+}
+
+
+// initialize a directory near the executable
+/*DIR* initDirectory(const char* exePath, const char* dirname, char* path) {
 	DIR* d;
 	// make dir path
 	int exePathLen = strlen(exePath);
 	int dirnameLen = strlen(dirname);
-	if (exePathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
-		FATAL("Path lenght too big.")
+	if (exePathLen + dirnameLen + 2 > PATH_MAX) { // + 2 ("/" and "\0")
+		WARN("The path lenght too big.") 
+		return NULL;
+	}
 	char* pathEnd = strrchr(exePath, '/'); 	//find the last occurrence of the '/'
 	
 	if(pathEnd) {
@@ -212,50 +247,52 @@ DIR* initDirectory(const char* exePath, const char* dirname, char* path) {
 	}
 	else
 		sprintf(path, "%s/", dirname);
-        
-	
-        //try to open dir
-        d = opendir(path);
+    
+	d = opendir(path);        			//try to open dir
+	if(d) {
+		// dir opened
+		return d;	// and path var updated
+	} else if (errno == ENOENT || errno == ENOTDIR ) {
+		// dir does not exist, create new
+		if (mkdir(path, S_IRUSR|S_IWUSR) == -1) {
+			_WARN("Failed to create log directory.\n\t - Error code: %d", errno);
+			return NULL;
+		}
 
-        if(d) {
-                // dir opened
-                return d;	// and path var updated
-        } else if (errno == ENOENT || errno == ENOTDIR ) {
-                // dir does not exist, create new
-                if (mkdir(path, S_IRUSR|S_IWUSR) == -1) {
-                        FATAL("Failed to create log directory.")
-                }
 		// retry to open
-                d = opendir(path);
-                if (d) return d;
-        }
+		d = opendir(path);
+		if (d)
+			return d;
+	}
 
-        // else
-        FATAL("Failed to open log directory.")
-}
+	_WARN("Failed to open log directory.\n\t - Error code: %d", errno);
+	return NULL;
+}*/
 
-// check if filename in dir
+// checks if the specified file is whitin the given directory.
 bool_t inDir(DIR* dir, char* filename){
 	struct dirent *ent;
     	while ((ent = readdir(dir)) != NULL)
-		if (!strcmp(ent->d_name, filename)) return TRUE;
+			if (!strcmp(ent->d_name, filename)) 
+				return TRUE;
 
-	//else
 	return FALSE;	
 }
 
-// creates and writes to file
-bool_t createFile(char* pathname, const char* data, int data_len) {
-        int ret;
-        int fd = open(pathname, S_IRUSR|S_IWUSR|O_CREAT|O_WRONLY);
-        if (fd < 0) {
-                WARN("Failed to create file.");
-                return FALSE;
-        }
-        
-        if (write(fd, data, data_len) == -1){
-		fprintf(stderr, "%s", strerror(errno));
-                WARN("Unable to write to file.");
+// creates a new file in a directory
+bool_t createFile(char* pathname, const char* data, int len) {
+	int ret;
+	int fd = open(pathname, S_IRUSR|S_IWUSR|O_CREAT|O_WRONLY);
+	if (fd < 0) {
+		_WARN("Failed to create file.\n\t - Error code: %d", errno);
+		return FALSE;
 	}
+	
+	if (write(fd, data, len) == -1) {
+		_WARN("Unable to write to file.\n\t - Error code: %d", errno);
+		return FALSE;
+	}
+		
 	close(fd);
+	return TRUE;
 }

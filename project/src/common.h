@@ -164,10 +164,10 @@ void initSignal(void *handlerSucc, void *handlerUn);
  *  Compares each character of the string with the specified match() functiion,
  *  while also verifying if the string length. 
  *
- * \param  buffer	the buffer containing the string.
- * \param  matcher	the function to check the characters.
- * \param  forceLen	the required size of the string.
- * \return the string's length if the string is valid, 0 otherwise.
+ * 	\param  buffer	the buffer containing the string.
+ * 	\param  matcher	the function to check the characters.
+ * 	\param  forceLen	the required size of the string.
+ * 	\return the string's length if the string is valid, 0 otherwise.
  */
 size_t isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
 
@@ -178,8 +178,8 @@ size_t isStringValid(const char* buffer, int (*matcher)(int), int forceLen);
  *  Checks if the IP address is made of four blocks separated by '.' and
  *  each of them is a number between IP_BLOCK_MIN and IP_BLOCK_MAX.
  *
- * \param  buffer	the buffer containing the ip address.
- * \return TRUE if the IP address' format is valid, FALSE otherwise.
+ * 	\param  buffer	the buffer containing the ip address.
+ * 	\return TRUE if the IP address' format is valid, FALSE otherwise.
  */
 bool_t isIPValid(const char *buffer);
 
@@ -188,8 +188,8 @@ bool_t isIPValid(const char *buffer);
  *
  *  Checks if the port is a number between PORT_MIN and PORT_MAX.
  * 
- * \param  buffer	the buffer containing the port number.
- * \return TRUE if the IP address' format is valid, FALSE otherwise.
+ * 	\param  buffer	the buffer containing the port number.
+ * 	\return TRUE if the IP address' format is valid, FALSE otherwise.
  */
 bool_t isPortValid(const char *buffer);
 
@@ -198,7 +198,7 @@ bool_t isPortValid(const char *buffer);
  *
  * 	Finds the ip address of the local machine and returns a pointer to him.
  * 
- * \return ip		a pointer with the ip address of the machine.
+ * 	\return ip		a pointer with the ip address of the machine.
  */
 char* findLocalIP();
 
@@ -206,8 +206,8 @@ char* findLocalIP();
 /*! \brief Checks if the UID is valid.
  *
  *  Checks if the UID is a number with 5 digits.
- * \param  buffer	the buffer containing the UID.
- * \return TRUE if the UID is valid, FALSE otherwise.
+ * 	\param  buffer	the buffer containing the UID.
+ * 	\return TRUE if the UID is valid, FALSE otherwise.
  */
 bool_t isUIDValid(const char *buffer);
 
@@ -215,8 +215,8 @@ bool_t isUIDValid(const char *buffer);
 /*! \brief Checks if the password is valid.
  *
  *  Checks if the password is a alphanumerical string with 8 symbols.
- * \param  buffer	the buffer containing the password.
- * \return TRUE if the password is valid, FALSE otherwise.
+ * 	\param  buffer	the buffer containing the password.
+ * 	\return TRUE if the password is valid, FALSE otherwise.
  */
 bool_t isPassValid(const char *buffer);
 
@@ -227,9 +227,9 @@ bool_t isPassValid(const char *buffer);
  *  Stores the input line read from the user on a temporary buffer and then
  *  copies it to a dynamic allocated string returning a pointer to it.
  * 
- * \param   buffer	the buffer where the input will be stored.
- * \param   size	the size of the specified buffer.
- * \return  the pointer to the buffer if the input didn't exceed the buffer's 
+ * 	\param   buffer	the buffer where the input will be stored.
+ * 	\param   size	the size of the specified buffer.
+ * 	\return  the pointer to the buffer if the input didn't exceed the buffer's 
  *          size, NULL otherwise.
  */
 char* getUserInput(char *buffer, size_t size);
@@ -241,8 +241,8 @@ char* getUserInput(char *buffer, size_t size);
  *  Writes the specified string on to the output stream, character by character,
  *  using the putchar() function.
  * 
- * \param  buffer	the string to be displayed.
- * \param  flush	TRUE to flush the output stream, FALSE, otherwise.
+ * 	\param  buffer	the string to be displayed.
+ * 	\param  flush	TRUE to flush the output stream, FALSE, otherwise.
  */
 void putStr(const char *buffer, bool_t flush);
 
@@ -253,8 +253,8 @@ void putStr(const char *buffer, bool_t flush);
  *  Writes the specified string on to the output stream, character by character,
  *  using the putchar() function.
  * 
- * \param  op		file operation
- * \return the string correspondent to the file operation.
+ * 	\param  op		file operation
+ * 	\return the string correspondent to the file operation.
  */ 
 const char *getFileOp(const char op);
 
@@ -264,26 +264,60 @@ const char *getFileOp(const char op);
  *
  *  Generates a random number between the min and max and resets the random seed.
  * 
- * \param  min
- * \param  max
- * \return a random number between min and max.
+ * 	\param  min
+ * 	\param  max
+ * 	\return a random number between min and max.
  */ 
 int randomNumber(int min, int max);
 
 
-/*! \brief Initialize a directory near the executable
+/*! \brief Initialize a directory on the specified path.
  *
- *  Opens a directory. The directory is created if it does not exist.
- *  Returns the relative path in `path` buffer. 
+ *  Opens a directory on the specified path. The directory is created if it does not exist.
+ *  Returns a pointer to the directory and stores its path on the 'path' variable
  * 
- * \param  exePath			the path of the executable (will act as a relative path).
- * \param  dirname			the name of the directory.
- * \param  path				buffer to hold relative path.
- * \return an open directory named `dirname`.
+ * 	\param  path			the path to the main directory.
+ * 	\param  dirname			the name of the directory (relative to the path).
+ * 	\param  outPath			buffer to hold directory path.
+ * 	\return the directory pointer.
  */ 
-DIR* initDirectory(const char* relativePath, const char* dirname, char* path);
+DIR* initDirectory(const char* path, const char* dirname, char* outPath);
 
+
+/*! \brief Initialize a directory near the executable.
+ *
+ *  Opens a directory near the specified executable file.
+ * 
+ * 	\param  exePath			the path of the executable (will act as a relative path).
+ * 	\param  dirname			the name of the directory.
+ * 	\param  outPath			buffer to hold relative path.
+ * 	\return the directory pointer.
+ */ 
+DIR* initDirectoryFromExe(char* exePath, const char* dirname, char* outPath);
+
+
+/*! \brief Checks if the specified file is whitin the given directory.
+ *
+ *  Iterates through the directory and checks in any file matches the specified filename.
+ *  If so, returns TRUE, otherwise returns FALSE.
+ * 
+ * 	\param  dir			the directory where to search.
+ * 	\param  filename		the name of the file.
+ * 	\return TRUE if the file is whitin the directory, FALSE otherwise.
+ */ 
 bool_t inDir(DIR* dir, char* filename);
-bool_t createFile(char* pathname, const char* data, int data_len);
+
+
+/*! \brief Creates a new file in a directory.
+ *
+ *  Creates a new file with the specified filename and copies the data buffer on to him.
+ * 
+ * 	\param  filename		the name of the new file.
+ * 	\param 	data			a buffer containing the data to be stored on the file.
+ * 	\param 	len				the size of the buffer.
+ * 	\return TRUE if the file was successfully created, FALSE, otherwise
+ */ 
+bool_t createFile(char* pathname, const char* data, int len);
+
 
 #endif 	/* COMMON_H */

@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
         /* Default AS port. */        
         connectionInfo_t connectionInfo = {"58053\0"};
         parseArgs(argc, argv, &connectionInfo);
-        dir = initDirectory(argv[0], DIR_NAME, dir_path);
+        dir = initDirectoryFromExe(argv[0], DIR_NAME, dir_path);
 	// mount UDP server socket
         udpServerfd = udpCreateServer(NULL, connectionInfo.asport);
         // mount TCP server socket

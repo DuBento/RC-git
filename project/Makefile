@@ -31,7 +31,7 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := fs/fs #pd/pd user/user as/as
+EXE_NAMES := fs/fs #pd/pd #user/user as/as
 # ==============================================================================
 
 
