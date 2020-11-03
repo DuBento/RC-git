@@ -203,7 +203,6 @@ DIR* initDir(const char* path, const char* dirname, char* outPath) {
 
 	sprintf(formatedPath, "%s%s/", path, dirname);
 	DIR* directory = opendir(formatedPath);
-	printf("%s\n", formatedPath);
 
 	if (directory)											// returns the directory if it already exists
 		return directory;

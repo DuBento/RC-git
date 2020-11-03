@@ -4,8 +4,6 @@
 #include "../common.h"
 #include "../list.h"
 
-extern char filesPath[PATH_MAX];
-
 
 /*! Lists all the files in the specified directory.
  *
@@ -13,10 +11,11 @@ extern char filesPath[PATH_MAX];
  *  in the specified buffer and returns the number of characters of the buffer.
  *  The buffer will be dynamicly allocated by this function.
  * 
- *  \param  directory            the directory from where to list.
+ *  \param  filesPath           the path of the main files directory.
+ *  \param  dirname             the name of the directory.
  *  \return a list with all the file names of the directory.
  */
-List_t listFiles(const char *directory);
+List_t listFiles(const char *directory, const char *dirname);
 
 
 /*! Returns the specified file's content.
@@ -24,11 +23,13 @@ List_t listFiles(const char *directory);
  *  Returns a pointer to a dynamically allocated buffer with the content of the specified
  *  file (null terminated string).
  * 
- *  \param  directory           the name of the directory.
+ *  \param  filesPath           the path of the main files directory.
+ *  \param  dirname             the name of the directory of the file.
  *  \param  filename            the name of the file.
- *  \return a buffer with the file's content
+ *  \param  contents            a pointer to store the contents of the file.
+ *  \return the number of bytes read to the contents buffer.
  */
-char* getFile(const char *directory, const char *filename);
+size_t getFile(const char *directory, const char *dirname, const char *filename, char**contents);
 
 
 #endif 	/* FILES */

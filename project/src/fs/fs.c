@@ -98,14 +98,20 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);
 
 	files = initDirFromExe(argv[0], "files", filesPath);
-	//List_t list = listFiles("test");
-	//ListIterator_t iterator = listIteratorCreate(list);
-	//while (!listIteratorEmpty(&iterator)) {
-	//	char *filename = (char*) listIteratorNext(&iterator);
-	//	printf("%s\n", filename);
-	//}
+	List_t list = listFiles(filesPath, "test");
 
-	//printf("%s\n", getFile(filesPath,  ))
+	/* 	[ TEST LIST ]
+	ListIterator_t iterator = listIteratorCreate(list);
+	while (!listIteratorEmpty(&iterator)) {
+		char *filename = (char*) listIteratorNext(&iterator);
+		printf("%s\n", filename);
+	} */
 
+	/* 	[ TEST FILE RETRIVE ]
+	char *contents;
+	printf("%lu\n", getFile(filesPath, "test", "test.txt", &contents));
+	printf("%s\n", contents);
+	*/
+	
 	return 0;
 }	
