@@ -5,9 +5,9 @@ static char msgBuffer[BUFFER_SIZE * 2];
 static int msgSize;
 
 // send server error
-bool_t req_serverError(int fd) {
+bool_t req_serverError(UDPConnection_t *asConnection) {
         msgSize = sprintf(msgBuffer, "%s\n", SERVER_ERR);
-        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);
+        int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the registration request!");
                 return FALSE;
@@ -15,8 +15,9 @@ bool_t req_serverError(int fd) {
         return TRUE;
 }
 
+
 // registers a user on the authentication system.
-bool_t req_registerUser(int fd, const connectionInfo_t *connectionInfo, const char *uid, 
+bool_t req_registerUser(UDPConnection_t *asConnection, const connectionInfo_t *connectionInfo, const char *uid, 
 const char *pass, userInfo_t *userInfo) {
         // check if the user is connected
         if (userInfo->connected) {
@@ -27,7 +28,7 @@ const char *pass, userInfo_t *userInfo) {
 
         msgSize = sprintf(msgBuffer, "%s %s %s %s %s\n", REQ_REG, uid, pass, 
         connectionInfo->pdip, connectionInfo->pdport);        
-        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+        int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);        
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the registration request!");
                 return FALSE;
@@ -42,7 +43,7 @@ const char *pass, userInfo_t *userInfo) {
 
 
 // unregisters a user from the authentication system
-bool_t req_unregisterUser(int fd, userInfo_t *userInfo) {
+bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo) {
         // check if the user is connected
         if (!userInfo->connected) {
                 WARN("No session is currently opened! Operation ignored.");
@@ -50,7 +51,7 @@ bool_t req_unregisterUser(int fd, userInfo_t *userInfo) {
         }
 
         msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_UNR, userInfo->uid, userInfo->pass);        
-        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+        int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);        
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the unregistration request!");
                 return FALSE;
@@ -69,9 +70,9 @@ bool_t req_unregisterUser(int fd, userInfo_t *userInfo) {
  * \param  status               the status of the request.
  * \return TRUE if the status is STATUS_OK, FALSE otherwise.
  */
-bool_t _req_valCode(int fd, const char *uid, const char *status) {
+bool_t _req_valCode(UDPConnection_t *asConnection, const char *uid, const char *status) {
         msgSize = sprintf(msgBuffer, "%s %s %s\n", RESP_VLC, uid, status);
-        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);
+        int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);
         
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the validation code response!");
@@ -83,25 +84,25 @@ bool_t _req_valCode(int fd, const char *uid, const char *status) {
 
 
 // processes the server's requests to display the 2FA validation code
-bool_t req_valCode(int fd, char *args, userInfo_t *userInfo) {
+bool_t req_valCode(UDPConnection_t *asConnection, char *args, userInfo_t *userInfo) {
         char uid[BUFFER_SIZE] = { 0 }, vc[BUFFER_SIZE] = { 0 }, 
         fname[BUFFER_SIZE] = { 0 }, fop;
         sscanf(args, "%s %s %c %s", uid, vc, &fop, fname);
 
         if (strcmp(uid, userInfo->uid))
-                return _req_valCode(fd, userInfo->uid, STATUS_NOK);
+                return _req_valCode(asConnection, userInfo->uid, STATUS_NOK);
 
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0') {
                 printf("VC=%s, %s: %s\n", vc, getFileOp(fop), fname);
-                return _req_valCode(fd, userInfo->uid, STATUS_OK);
+                return _req_valCode(asConnection, userInfo->uid, STATUS_OK);
         }
 
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
                 printf("VC=%s, %s\n", vc, getFileOp(fop));
-                return _req_valCode(fd, userInfo->uid, STATUS_OK);
+                return _req_valCode(asConnection, userInfo->uid, STATUS_OK);
         }
 
-        return  _req_valCode(fd, userInfo->uid, STATUS_NOK);
+        return  _req_valCode(asConnection, userInfo->uid, STATUS_NOK);
 }
 
 
@@ -143,14 +144,12 @@ bool_t resp_unregisterUser(char *status, userInfo_t *userInfo) {
 }
 
 
-
 // resends the last message sent
-bool_t req_resendLastMessage(int fd) {   
-        int sizeSent = udpSendMessage(fd, msgBuffer, msgSize);        
+bool_t req_resendLastMessage(UDPConnection_t *connection) {   
+        int sizeSent = udpSendMessage(connection, msgBuffer, msgSize);        
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while resending the previous message!");
                 return FALSE;
         }
-
         return TRUE;
 }

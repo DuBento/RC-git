@@ -1,6 +1,6 @@
 #include "as_aux.h"
 
-bool_t req_registerPD(int fd, char* buf, char* path) {
+bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
         // dir and file manipulation
@@ -27,20 +27,20 @@ bool_t req_registerPD(int fd, char* buf, char* path) {
                 _WARN("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
                         uid, pass);
                 msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_NOK);
-                udpSendMessage_specify(fd, answer, msgLen, pdip, pdport);
+                udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
                 return FALSE;
         }
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        dir = initDirFromExe(path, dirname, user_path);
+        dir = initDir(path, dirname, user_path);
         printf("old path:%s\n", user_path);
         // check if connection not already established (reg file)
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
         if (inDir(dir, reg_file)) { 
                 _WARN("User: %s tried to register twice. Sending server error...", uid);
                 msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_NOK);
-                udpSendMessage_specify(fd, answer, msgLen, pdip, pdport);
+                udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
                 return FALSE;
         }
 
@@ -52,7 +52,7 @@ bool_t req_registerPD(int fd, char* buf, char* path) {
 
         // reply to PD
         msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_OK);
-        udpSendMessage_specify(fd, answer, msgLen, pdip, pdport);
+        udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
 }
 
 
