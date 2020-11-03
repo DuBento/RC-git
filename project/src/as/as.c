@@ -1,3 +1,4 @@
+#include "as_aux.h"
 #include "../common.h"
 #include "../udp.h"
 #include "../tcp.h"
@@ -9,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <linux/limits.h>
 
 typedef struct connectionInfo_t {
 
@@ -18,6 +20,7 @@ typedef struct connectionInfo_t {
 
 /* ========== GLOBAL ============= */
 DIR *dir;
+char dir_path[PATH_MAX];
 int udpServerfd, tcpServerfd;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
@@ -25,63 +28,63 @@ char verbosity = FALSE;
 #define CHECK_VERBOSITY { return verbosity }
 
 
-/* ========================== */
-/* Linked list Implementation */
-/* ========================== */
-void pushHead(int key, struct addrinfo data) {
-	//create a new node
-	udpNode_t *new = (udpNode_t*) malloc(sizeof(udpNode_t));
+// /* ========================== */
+// /* Linked list Implementation */
+// /* ========================== */
+// void pushHead(int key, struct addrinfo data) {
+// 	//create a new node
+// 	udpNode_t *new = (udpNode_t*) malloc(sizeof(udpNode_t));
 
-	// fill in the values
-	new->id = key;
-	new->addr = data;
-	new->next = listHead;
+// 	// fill in the values
+// 	new->id = key;
+// 	new->addr = data;
+// 	new->next = listHead;
 	
-	// updates head	
-	listHead = new;
-}
+// 	// updates head	
+// 	listHead = new;
+// }
 
-udpNode_t* delete(int key) {
-	udpNode_t* current = listHead;
-	udpNode_t* previous = NULL;
+// udpNode_t* delete(int key) {
+// 	udpNode_t* current = listHead;
+// 	udpNode_t* previous = NULL;
 		
-	// If empty
-	if(listHead == NULL) return NULL;
+// 	// If empty
+// 	if(listHead == NULL) return NULL;
 
-	while(current->id != key) {
-		//if enf of list
-		if(current->next == NULL) return NULL;
-		else {
-			// move forward
-			previous = current;
-			current = current->next;
-		}
-	}
+// 	while(current->id != key) {
+// 		//if enf of list
+// 		if(current->next == NULL) return NULL;
+// 		else {
+// 			// move forward
+// 			previous = current;
+// 			current = current->next;
+// 		}
+// 	}
 
-	// if match is list head
-	if(current == listHead) 
-		listHead = listHead->next;
-	else 
-		previous->next = current->next; //update
+// 	// if match is list head
+// 	if(current == listHead) 
+// 		listHead = listHead->next;
+// 	else 
+// 		previous->next = current->next; //update
 		
-	return current;
-}
+// 	return current;
+// }
 
-udpNode_t* find(int key) {
-	// Start search from head
-	udpNode_t* current = listHead;
+// udpNode_t* find(int key) {
+// 	// Start search from head
+// 	udpNode_t* current = listHead;
 
-	// If empty
-	if(listHead == NULL) return NULL;
+// 	// If empty
+// 	if(listHead == NULL) return NULL;
 
-	// loop through queue until key match
-	while(current->id != key) {
-		if(current->next == NULL) return NULL;
-		current = current->next;
-	}      
+// 	// loop through queue until key match
+// 	while(current->id != key) {
+// 		if(current->next == NULL) return NULL;
+// 		current = current->next;
+// 	}      
 		
-	return current;
-}
+// 	return current;
+// }
 
 
 /* ======= */
@@ -113,23 +116,23 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 /* Handle UDP Responses (Incoming Messages) */
 bool_t handleUDP(int fd, char *msgBuf) {
 	int n;
-	char opcode[BUFFER_SIZE]; char args[BUFFER_SIZE];
+	char opcode[BUFFER_SIZE];
 	
         n = udpReceiveMessage(fd, msgBuf, BUFFER_SIZE);
         // TODO setClean();
 
-        sscanf(msgBuf, "%s %s", opcode, args);
+        sscanf(msgBuf, "%s", opcode);
 
         // Registration Request
         if (!strcmp(opcode, REQ_REG))
-                req_registerUser(args);
+                req_registerPD(fd, msgBuf, dir_path);
         // Unregistration Request
         else if (!strcmp(opcode, REQ_UNR))
                 ;// TODO unregisterUser(respEnd);                
         // Validation Code received "VLC"
         else if (!strcmp(opcode, RESP_VLC))
                 ;// TODO validationCode_Response();
-        else if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
+        else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
@@ -192,17 +195,24 @@ void waitMainEvent(int tcpServerFD, int udpFD, char *msgBuf) {
 void exitAS() {
         udpDestroySocket(udpServerfd);
         tcpDestroySocket(tcpServerfd);
-        exit(EXIT_SUCCESS);
+        closedir(dir);
+	exit(EXIT_SUCCESS);
 }
 
+void listDir(DIR* dir){
+	struct dirent *ent;
+    	while ((ent = readdir(dir)) != NULL) {
+		printf("%s\n", ent->d_name);
+	}
+}
 
 int main(int argc, char *argv[]) {
         /* AS makes available two server applications? Does it mean 2 process? */
         /* Default AS port. */        
         connectionInfo_t connectionInfo = {"58053\0"};
         parseArgs(argc, argv, &connectionInfo);
-        dir = initDirectory(argv[0], DIR_NAME);
-        // mount UDP server socket
+        dir = initDirFromExe(argv[0], DIR_NAME, dir_path);
+	// mount UDP server socket
         udpServerfd = udpCreateServer(NULL, connectionInfo.asport);
         // mount TCP server socket
         tcpServerfd = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);

@@ -5,6 +5,7 @@
 
 static connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
 static DIR *files;
+char filesPath[PATH_MAX];
 bool_t verbosity = FALSE;
 
 
@@ -42,6 +43,14 @@ void abortFS() {
 
 
 
+/*! \brief Parses the execution arguments.
+ *
+ * 	Validates the execution arguments and sets the connection settings.
+ *
+ * 	\param 	argc The number of execution arguments.
+ * 	\param 	argv An array with the execution arguments.
+ * 	\param 	info The instance that stores the connection settings.
+ */
 void parseArgs(int argc, char *argv[]) {
 	// checks the number of arguments   
 	if (argc < 1 || argc > 8 )
@@ -88,16 +97,21 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
-	files = initDirectory(argv[0], FILES_DIR);
+	files = initDirFromExe(argv[0], "files", filesPath);
+	List_t list = listFiles(filesPath, "test");
 
-	DIR *temp = initDirectory(argv[0], FILES_DIR "test");
-	List_t list = listFiles(temp);
-
+	/* 	[ TEST LIST ]
 	ListIterator_t iterator = listIteratorCreate(list);
 	while (!listIteratorEmpty(&iterator)) {
 		char *filename = (char*) listIteratorNext(&iterator);
 		printf("%s\n", filename);
-	}
+	} */
 
+	/* 	[ TEST FILE RETRIVE ]
+	char *contents;
+	printf("%lu\n", getFile(filesPath, "test", "test.txt", &contents));
+	printf("%s\n", contents);
+	*/
+	
 	return 0;
 }	

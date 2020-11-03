@@ -6,7 +6,7 @@
 
 
 /* The information to allow communication with the autentication server. */
-typedef struct connectionInfo_t {
+typedef struct connection_info_t {
 
 	char pdip[IP_SIZE + 1];		// the ip address of the program.
 	char pdport[PORT_SIZE + 1];		// the port of the program.
