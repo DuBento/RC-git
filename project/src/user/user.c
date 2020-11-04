@@ -3,7 +3,7 @@
 #include <string.h>
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-static connectionInfo_t connectionInfo = {"193.136.138.142", "58011\0", "193.136.138.142\0", "59000\0"};
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 static userInfo_t userInfo = { 0 };
 static TCPConnection_t *asConnection = NULL;
 static TCPConnection_t *fsConnection = NULL;
@@ -18,6 +18,11 @@ static TCPConnection_t *fsConnection = NULL;
 void cleanUser() {
 	if (asConnection != NULL)   tcpDestroySocket(asConnection);
 	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
+  
+  if (userInfo.uid != NULL)
+		free(userInfo.uid);
+	if (userInfo.pass != NULL)
+		free(userInfo.pass);
 }
 
 
@@ -87,6 +92,10 @@ void parseArgs(int argc, char *argv[]) {
  */
 bool_t handleUser() {
 	char buffer[BUFFER_SIZE];
+	int *rid;
+	
+	rid = NULL;
+	
 	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
 
@@ -129,7 +138,7 @@ bool_t handleUser() {
 
 	// exit command: exit
 	else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
-		;//return req_exit();
+		terminateUser();
 			 
 	else {
 		WARN("Invalid command! Operation ignored.");
@@ -158,6 +167,46 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Authentication response "RAU"
 	else if (!strcmp(opcode, RESP_AUT))
 		return resp_val(arg);
+
+	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
+bool_t handleFSServer() {
+	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
+	int size;
+	
+	/* Each user can have a maximum of 15 files stored in the FS server. */
+	/* All file Fsize fields can have at most 10 digits. */
+	/* the filename Fname, limited to a total of 24 alphanumerical characters */
+	
+	
+	size = tcpReceiveMessage(fsSockfd, buffer,BUFFER_SIZE);
+	sscanf(buffer, "%s %s", opcode, arg);
+
+	// List response RLS N[ Fname Fsize]*
+	if (!strcmp(opcode, RESP_LOG))
+		return resp_list(arg);
+
+	// Retrieve code response "RRT status [Fsize data]"	
+	else if (!strcmp(opcode, RESP_REQ))
+		return resp_retrieve(arg);
+
+	// Upload response " RUP status"
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_upload(fsSockfd, arg);
+
+	//	Delete response RDL status
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_delete(fsSockfd, arg);
+
+	//	Remove response RRM status
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_remove(fsSockfd, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		WARN("Invalid request! Operation ignored.");
@@ -254,7 +303,6 @@ int main(int argc, char *argv[]) {
 	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
 	tcpConnect(asConnection);	
 	runUser();
-
 
 	terminateUser();
 	return 0;

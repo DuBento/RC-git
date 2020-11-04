@@ -30,7 +30,8 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char
 
 bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname) {
 	/* User sends a message to the AS requesting a transaction ID code (TID). 
-	This request message includes the UID and the type of file operation desired (Fop), either list (L), retrieve (R),
+	This request message includes the UID and the type of file operation desired
+	 (Fop), either list (L), retrieve (R),
 upload (U), delete (D) or remove (X), and if appropriate (when Fop is R, U or D)
 also sends the Fname. */
 
@@ -40,18 +41,25 @@ on the FS server.
  Upon receipt of this message, the AS will send the VLC
 message to the PD.*/
 	_LOG("User request request, fop: %s fname %s", fop, fname);
-	int rid, mssgSize;
+	int mssgSize;
 
-	//A random natural number of 4 digits is added as a request identifier RID.
-	rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
+	// A random natural number of 4 digits is added as a request identifier RID.
+	rid = (int*) malloc(sizeof(int));
+	if (rid == NULL)
+		FATAL("Failed to malloc rid");
+	
+	*rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
 	
 	char mssgBuffer[2 * BUFFER_SIZE];
 	//If the operation is retrieve (R), upload (U) or delete (D) also the file name Fname is sent. 
-	if ((!strcmp(fop, FOP_STR_R))|| (!strcmp(fop, FOP_STR_U))|| (!strcmp(fop, FOP_STR_D)) ) {
+	if ((!strcmp(fop, FOP_STR_R))|| (!strcmp(fop, FOP_STR_U))|| 
+	(!strcmp(fop, FOP_STR_D)) ) {
 		// what if R is written without fname?
-		mssgSize = sprintf(mssgBuffer, "%s %s %d %s %s\n", REQ_REQ, userInfo->uid, rid, fop, fname);
+		mssgSize = sprintf(mssgBuffer, "%s %s %d %s %s\n", REQ_REQ, 
+		userInfo->uid, *rid, fop, fname);
 	} else {
-		mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_REQ, userInfo->uid, rid, fop);
+		mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_REQ, 
+		userInfo->uid, *rid, fop);
 	}
 		
 	// Send message = REQ UID RID Fop [Fname] to AS requesting TID.
@@ -75,6 +83,28 @@ After the user checking the VC on the PD, the User application sends this
 message to the AS with the UID and the VC, along with the request identifier
 RID, to complete the second factor authentication. A recently generated VC will
 be accepted by the AS only once.*/
+	int mssgSize;
+	mssgSize = 0;
+	char mssgBuffer[BUFFER_SIZE];
+
+	if (rid == NULL) {
+		WARN("No no no, rid is null! You try again with rid no NULL");
+		return FALSE;
+	}
+
+	mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_AUT, 
+	userInfo->uid, *(rid), vc);
+	printf("%d\n", mssgSize);
+	
+	if (mssgSize < 0)
+		WARN("Failed to write val message to buffer.");
+	
+	_LOG("Le buffer %s", mssgBuffer);
+	
+	/* If rid were NULL then we wouldn't have reached here... 
+	so be free to free! :) */
+	free(rid);
+	
 	return TRUE;
 }
 
@@ -172,13 +202,6 @@ requesting the AS to remove the user information.*/
 	// Send to FS: REM UID TID
 
 
-	return TRUE;
-}
-
-
-bool_t req_exit() {
-	/*The User application terminates after closing any open TCP connections
-	Does this really need a req function? */
 	return TRUE;
 }
 
@@ -338,7 +361,7 @@ for the user with UID %d, UID
 }
 
 
-bool_t resp_upload() {
+bool_t resp_upload(int fsSockfd, char *status) {
 /* RUP status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a UPL request consists in the FS server replying with the status of the
@@ -352,29 +375,26 @@ The upload success (or not) is displayed by the User application.
 After receiving the reply message, the User application closes the TCP
 connection with the FS.*/
 
-/* 
-	if status = OK
-		printf Upload successeful.
-	else if status = NOK
-		printf File dne
-	else if status = DUP
-		printf The file already existed.
-	else if status = FULL
-		printf You have already uploaded 15 files
-	else if status = INV
-		printf Failed authentication near AS
-	else if status = ERR
-		printf Request wrongly formulated.
-	*/
-
-	// Close down FS TCP connection.
-
-
+	if (!strcmp(status, STATUS_OK))
+		printf ("Upload successeful.");
+	else if (!strcmp(status, STATUS_NOK))
+		printf ("File dne");
+	else if (!strcmp(status, STATUS_DUP))
+		printf ("The file already existed.");
+	else if (!strcmp(status, STATUS_FULL))
+		printf("You have already uploaded 15 files");
+	else if (!strcmp(status, STATUS_INV))
+		printf("Failed authentication near AS");
+	else if (!strcmp(status, SERVER_ERR))
+		printf ("Request wrongly formulated.");
+	
+	// Close FS TCP connection
+	tcpDestroySocket(fsSockfd);
 	return TRUE;
 }
 
 
-bool_t resp_delete() {
+bool_t resp_delete(int fsSockfd, char *status) {
 /*RDL status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a DEL request consists in the FS server replying with the status of the
@@ -388,25 +408,25 @@ The delete success (or not) is displayed by the User application.
 After receiving the reply message, the User application closes the TCP
 connection with the FS.*/
 
-/*
-	if status = OK
-		printf Successefully deleted filename
-	else if status = NOK
-		printf UID %d UID dne
-	else if status = INV
-		printf AS failed to validate TID %d, TID
-	else if status = ERR
-		printf Delete request wrongly formulated
+/* This function and the remove one are one and the same. 
+Does it make sense to join them? */
+
+	if (!strcmp(status, STATUS_OK))
+		printf("Successefully deleted le file.");
+	else if (!strcmp(status, STATUS_NOK))
+		printf("UID dne");
+	else if (!strcmp(status, STATUS_INV))
+		printf("AS failed to validate le TID");
+	else if (!strcmp(status, SERVER_ERR))
+		WARN("Delete request wrongly formulated");
 
 	// Close FS TCP connection
-
-	
-*/
+	tcpDestroySocket(fsSockfd);
 	return TRUE;
 }
 
 
-bool_t resp_remove() {
+bool_t resp_remove(int fsSockfd, char *status) {
 /*After receiving a message from the AS (CNF) validating the transaction and
 confirming the user deletion in the AS, the FS removes all the user’s files and
 directories. 
@@ -419,25 +439,16 @@ The remove success (or not) is displayed by the User application.
 After receiving the reply message, the User application closes the TCP
 connection with the FS.*/
 
-/*
-	if status = OK
-		printf Remotion successeful
-	else if status = NOK
-		printf UID dne
-	else if status = INV
-		printf The Authentication Server failed to validate the TID
-	else if status = ERR
-		printf Remove request wrongly formulated
+	if (!strcmp(status, STATUS_OK))
+		printf("Remotion successeful! You're free!! :D");
+	else if (!strcmp(status, STATUS_NOK))
+		printf("UID dne");
+	else if (!strcmp(status, STATUS_INV))
+		printf("The Authentication Server failed to validate the TID");
+	else if (!strcmp(status, SERVER_ERR))
+		WARN("Remove request wrongly formulated...");
 	
 	// Close FS connection
-
-
-	return TRUE
-		 
-*/
-}
-
-
-bool_t resp_exit() {
-/* Am I necessary...? */
+	tcpDestroySocket(fsSockfd);
+	return TRUE;
 }
