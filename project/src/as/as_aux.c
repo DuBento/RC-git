@@ -1,6 +1,6 @@
 #include "as_aux.h"
 
-bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
+bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
         // dir and file manipulation
@@ -27,7 +27,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
                 _WARN("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
                         uid, pass);
                 msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
-                udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
+                udpSendMessage_specifyConn(udpConnec, receiver, answer, msgLen);
                 return FALSE;
         }
 
@@ -40,7 +40,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
         if (inDir(dir, reg_file)) { 
                 _WARN("User: %s tried to register twice. Sending server error...", uid);
                 msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
-                udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
+                udpSendMessage_specifyConn(udpConnec, receiver, answer, msgLen);
                 return FALSE;
         }
 
@@ -52,7 +52,8 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
 
         // reply to PD
         msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_OK, CHAR_END_MSG);
-        udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
+        udpSendMessage_specifyConn(udpConnec, receiver, answer, msgLen);
+        return TRUE;
 }
 
 
@@ -64,17 +65,19 @@ void registerPD(char* relative_path, char* filename, char* pdip, char* pdport) {
         fprintf(stderr, "registering");
 
         size = sprintf(data, "%s\n%s", pdip, pdport);
-        sprintf(file_path, "%s/%s", relative_path, filename);
+        sprintf(file_path, "%s%s", relative_path, filename);
         createFile(file_path, data, size);    // doesnt include nullbyte
 }
 
 void storePassPD(char* relative_path, char* filename, char* pass) {
         char file_path[BUFFER_SIZE+PATH_MAX];
         puts("storing pass...");
-        sprintf(file_path, "%s/%s", relative_path, filename);
+        sprintf(file_path, "%s%s", relative_path, filename);
         printf("File Path:%s", file_path);
         createFile(file_path, pass, strlen(pass));    // doesnt include nullbyte
 }
+
+
 
 
 

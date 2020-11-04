@@ -16,17 +16,12 @@
 #define CLIENT  'c'
 #define SERVER  's'
 
-typedef struct udp_node_t {
-    struct sockaddr *ai_addr;
-    socklen_t ai_addrlen;
-} udpNode_t;
-
 
 /* Structure that stores the information for the UDP connection. */
 typedef struct udp_connection {
     int fd;
-    struct addrinfo hints;
-    struct addrinfo *res;
+    struct sockaddr addr;
+    socklen_t addrlen;
 } UDPConnection_t;
 
 
@@ -69,11 +64,12 @@ UDPConnection_t* udpCreateClient(const char *addrIP, const char *port);
  *  Stores an UDP message in the specified buffer.
  *
  *  \param  udpConnection	the udp connection structure.
+ *  \param  newConn     	the udp connection structure filled with transmission info.
  *  \param  buffer	        a buffer where the message will be stored.
  *  \param  len		        the length of the specified buffer.
  *  \return the number of bytes read.
  */
-int udpReceiveMessage(UDPConnection_t *udpConnection, char *buffer, int len);
+int udpReceiveMessage(UDPConnection_t *udpConnection, UDPConnection_t *newConn, char *buffer, int len);
 
 
 /*! \brief Sends an UDP message.
@@ -100,6 +96,18 @@ int udpSendMessage(UDPConnection_t *udpConnection, const char *buffer, int len);
  *  \return the number of bytes sent.]
  */
 int udpSendMessage_specify(UDPConnection_t *udpConnection, const char *buffer, int len, char* ip, char* port);
+
+/*! \brief 
+ *
+ *  
+ *
+ *  \param  udpConnection	the udp connection structure.
+ *  \param  receiver        the udp connection structure with receiver info.
+ *  \param  buffer	        a buffer containing the message.
+ *  \param  len		        the length of the message.
+ *  \return the number of bytes sent.]
+ */
+int udpSendMessage_specifyConn(UDPConnection_t *udpConnection, UDPConnection_t *receiver, const char *buffer, int len);
 
 
 /*! \brief Terminates the UDP socket.

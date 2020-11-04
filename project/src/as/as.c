@@ -118,16 +118,17 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	int n;
 	char opcode[BUFFER_SIZE];
-	
-	n = udpReceiveMessage(udpConnec, msgBuf, BUFFER_SIZE);
+	UDPConnection_t recvConnoc;
+	n = udpReceiveMessage(udpConnec, &recvConnoc, msgBuf, BUFFER_SIZE);
 	// TODO setClean();
 
 	sscanf(msgBuf, "%s", opcode);
 
 	// Registration Request
-	if (!strcmp(opcode, REQ_REG))
-		req_registerPD(udpConnec, msgBuf, dir_path);
-	// Unregistration Request
+	if (!strcmp(opcode, REQ_REG)){
+		req_registerPD(udpConnec, &recvConnoc, msgBuf, dir_path);
+		return FALSE;	// not waiting replay
+	}// Unregistration Request
 	else if (!strcmp(opcode, REQ_UNR))
 		;// TODO unregisterUser(respEnd);                
 	// Validation Code received "VLC"
@@ -141,6 +142,7 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		// return req_serverError(fd);
 	}
+
 }
 
 

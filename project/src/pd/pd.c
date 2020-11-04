@@ -7,8 +7,8 @@
 
 
 static userInfo_t userInfo = {0};
-// static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
-static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
+static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
+// static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
 static UDPConnection_t *asConnection = NULL;
 
 // fd to the socket in which PD acts as an UDP server
@@ -137,7 +137,7 @@ bool_t handleUser() {
  */
 bool_t handleServer(UDPConnection_t *udpConnec) {
 	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE] = { 0 }, args[BUFFER_SIZE] = { 0 };	
-	int size = udpReceiveMessage(udpConnec, buffer, BUFFER_SIZE);
+	int size = udpReceiveMessage(udpConnec, NULL, buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s %s\n", opcode, args);
 
 	// Registration response "RRG"
@@ -196,13 +196,13 @@ void runPD() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle server responses
-		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
-			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleServer(asConnection);	
-			putStr(STR_INPUT, TRUE);		// string before the user input
-			waitingReply = FALSE;
-		}
+		// if (FD_ISSET(asConnection->fd, &fdsTemp)) {
+		// 	putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+		// 	putStr(STR_RESPONSE, TRUE);		// string before the server output
+		// 	handleServer(asConnection);	
+		// 	putStr(STR_INPUT, TRUE);		// string before the user input
+		// 	waitingReply = FALSE;
+		// }
 
 		// handle server responses
 		if (FD_ISSET(pdConnection->fd, &fdsTemp)) {
@@ -229,7 +229,7 @@ void runPD() {
 			}
 			else {
 				waitingReply = req_resendLastMessage(asConnection);
-				// nRequestTries++;
+				nRequestTries++;
 			}
 		}
 	}
@@ -243,13 +243,7 @@ int main(int argc, char *argv[]) {
 	asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
 	userInfo.connected = FALSE;
 
-	if(!strcmp(connectionInfo.pdip, "127.0.0.1")){
-		puts("DEBUG");
-		pdConnection = udpCreateServer(NULL, connectionInfo.pdport);
-
-	}
-	else
-		pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
+	pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 
 	runPD();
 	return 0;
