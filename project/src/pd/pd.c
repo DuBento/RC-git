@@ -219,7 +219,7 @@ void runPD() {
 			}
 			else {
 				waitingReply = req_resendLastMessage(asConnection);
-				nRequestTries++;
+				// nRequestTries++;
 			}
 		}
 	}

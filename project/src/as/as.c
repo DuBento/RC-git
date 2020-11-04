@@ -21,7 +21,7 @@ typedef struct connectionInfo_t {
 /* ========== GLOBAL ============= */
 DIR *dir;
 char dir_path[PATH_MAX];
-TCPConnection_t *userConnection;
+int tcpServerfd;
 UDPConnection_t *udpServer;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
@@ -144,7 +144,7 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 }
 
 
-void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, char *msgBuf) {
+void waitMainEvent(int tcpServerFD, UDPConnection_t *udpConnec, char *msgBuf) {
 	fd_set fds, ready_fds;
 	struct timeval tv, tmp_tv;
 	int selectRet, fds_size;
@@ -152,9 +152,9 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 	int waitingReply = FALSE;
 	/* SELECT */
 	FD_ZERO(&fds);
-	FD_SET(userConnection->fd, &fds);
+	FD_SET(tcpServerFD, &fds);
 	FD_SET(udpConnec->fd, &fds);
-	fds_size = (userConnection->fd > udpConnec->fd) ? userConnection->fd+1 : udpConnec->fd+1;
+	fds_size = (tcpServerFD > udpConnec->fd) ? tcpServerFD+1 : udpConnec->fd+1;
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 
@@ -173,7 +173,7 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 			// handle PD interaction
 			waitingReply = handleUDP(udpConnec, msgBuf);
 		}
-		if (FD_ISSET(userConnection->fd, &ready_fds)){
+		if (FD_ISSET(tcpServerFD, &ready_fds)){
 			// handle User new connection
 		}
 		if (selectRet == 0 && waitingReply) {// timeout expired
@@ -195,7 +195,7 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 
 void exitAS() {
 	udpDestroySocket(udpServer);
-	tcpDestroySocket(userConnection);
+	tcpDestroySocket(tcpServerfd);
 	closedir(dir);
 	exit(EXIT_SUCCESS);
 }
@@ -216,9 +216,9 @@ int main(int argc, char *argv[]) {
 	// mount UDP server socket
 	udpServer = udpCreateServer(NULL, connectionInfo.asport);
 	// mount TCP server socket
-	userConnection = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
+	tcpServerfd = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
 
-	waitMainEvent(userConnection, udpServer, msgBuffer);
+	waitMainEvent(tcpServerfd, udpServer, msgBuffer);
 
 	return 0; // Never used
 }
