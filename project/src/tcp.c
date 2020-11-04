@@ -17,7 +17,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port) {
 	tcpConnection->hints.ai_socktype = SOCK_STREAM;
 	tcpConnection->hints.ai_flags    = AI_PASSIVE;
 
-	int errCode = getaddrinfo(addrIP, port, &hints, &res);
+	int errCode = getaddrinfo(addrIP, port, &tcpConnection->hints, &tcpConnection->res);
 	if (errCode)
 		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
 		"\t - Error code: %d", errCode);
@@ -29,11 +29,11 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port) {
 // creates a TCP server
 TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
 	TCPConnection_t *tcpConnection = tcpCreateSocket(addrIP, port);	
-	if (bind(tcpConnection->fd, res->ai_addr, res->ai_addrlen))
-		_FATAL("[TCP] Unable to bind the server.\n\t - Error code: %d", errno);
+	if (bind(tcpConnection->fd, tcpConnection->res->ai_addr, tcpConnection->res->ai_addrlen))
+		_FATAL("[TCP] Unable to bind the server.\n\t - Error: %s", strerror(errno));
 
 	if (listen(tcpConnection->fd, nConnections))
-		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error: %s", strerror(errno));
 
 	return tcpConnection;
 }
@@ -47,7 +47,7 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port) {
 
 // connects the client with the server
 void tcpConnect(TCPConnection_t *tcpConnection) {
-	if (connect(tcpConnection->fd, res->ai_addr, res->ai_addrlen))
+	if (connect(tcpConnection->fd, tcpConnection->res->ai_addr, tcpConnection->res->ai_addrlen))
 		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
 }
 
