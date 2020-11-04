@@ -6,7 +6,7 @@ static int msgSize;
 
 // send server error
 bool_t req_serverError(UDPConnection_t *asConnection) {
-        msgSize = sprintf(msgBuffer, "%s\n", SERVER_ERR);
+        msgSize = sprintf(msgBuffer, "%s%c", SERVER_ERR, CHAR_END_MSG);
         int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the registration request!");
@@ -26,8 +26,8 @@ const char *pass, userInfo_t *userInfo) {
                 return FALSE;
         }
 
-        msgSize = sprintf(msgBuffer, "%s %s %s %s %s\n", REQ_REG, uid, pass, 
-        connectionInfo->pdip, connectionInfo->pdport);        
+        msgSize = sprintf(msgBuffer, "%s %s %s %s %s%c", REQ_REG, uid, pass, 
+        connectionInfo->pdip, connectionInfo->pdport, CHAR_END_MSG);        
         int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);        
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the registration request!");
@@ -50,7 +50,7 @@ bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo) {
                 return FALSE;
         }
 
-        msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_UNR, userInfo->uid, userInfo->pass);        
+        msgSize = sprintf(msgBuffer, "%s %s %s%c", REQ_UNR, userInfo->uid, userInfo->pass, CHAR_END_MSG);        
         int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);        
         if (msgSize != sizeSent) {
                 WARN("A problem may have occured while sending the unregistration request!");
@@ -72,7 +72,7 @@ bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo) {
  * \return TRUE if the status is STATUS_OK, FALSE otherwise.
  */
 bool_t _req_valCode(UDPConnection_t *asConnection, const char *uid, const char *status) {
-        msgSize = sprintf(msgBuffer, "%s %s %s\n", RESP_VLC, uid, status);
+        msgSize = sprintf(msgBuffer, "%s %s %s%c", RESP_VLC, uid, status, CHAR_END_MSG);
         int sizeSent = udpSendMessage(asConnection, msgBuffer, msgSize);
         
         if (msgSize != sizeSent) {
@@ -94,12 +94,12 @@ bool_t req_valCode(UDPConnection_t *asConnection, char *args, userInfo_t *userIn
                 return _req_valCode(asConnection, userInfo->uid, STATUS_NOK);
 
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0') {
-                printf("VC=%s, %s: %s\n", vc, getFileOp(fop), fname);
+                printf("VC=%s, %s: %s%c", vc, getFileOp(fop), fname, CHAR_END_MSG);
                 return _req_valCode(asConnection, userInfo->uid, STATUS_OK);
         }
 
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
-                printf("VC=%s, %s\n", vc, getFileOp(fop));
+                printf("VC=%s, %s%c", vc, getFileOp(fop), CHAR_END_MSG);
                 return _req_valCode(asConnection, userInfo->uid, STATUS_OK);
         }
 

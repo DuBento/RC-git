@@ -64,14 +64,14 @@ void registerPD(char* relative_path, char* filename, char* pdip, char* pdport) {
         fprintf(stderr, "registering");
 
         size = sprintf(data, "%s\n%s", pdip, pdport);
-        sprintf(file_path, "%s/%s", relative_path, filename);
+        sprintf(file_path, "%s%s", relative_path, filename);
         createFile(file_path, data, size);    // doesnt include nullbyte
 }
 
 void storePassPD(char* relative_path, char* filename, char* pass) {
         char file_path[BUFFER_SIZE+PATH_MAX];
         puts("storing pass...");
-        sprintf(file_path, "%s/%s", relative_path, filename);
+        sprintf(file_path, "%s%s", relative_path, filename);
         printf("File Path:%s", file_path);
         createFile(file_path, pass, strlen(pass));    // doesnt include nullbyte
 }
