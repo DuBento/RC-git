@@ -2,7 +2,7 @@
 
 
 // creates and initializes an UDP socket
-UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port) {
+UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode) {
 	UDPConnection_t *udpConnection = (UDPConnection_t*)malloc(sizeof(UDPConnection_t));
 	memset(&udpConnection->hints, '\0', sizeof(struct addrinfo));
 	udpConnection->fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -11,6 +11,7 @@ UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port) {
 
 	udpConnection->hints.ai_family   = AF_INET;
 	udpConnection->hints.ai_socktype = SOCK_DGRAM;    
+	if (mode == SERVER)	udpConnection->hints.ai_flags = AI_PASSIVE;
 
 	int errCode = getaddrinfo(addrIP, port, &udpConnection->hints, &udpConnection->res);
 	if (errCode)
@@ -23,10 +24,9 @@ UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port) {
 
 // creates an UDP server
 UDPConnection_t* udpCreateServer(const char *addrIP, const char *port) {
-	UDPConnection_t* udpConnection = udpCreateSocket(addrIP, port);
-	udpConnection->hints.ai_flags = AI_PASSIVE;    
+	UDPConnection_t* udpConnection = udpCreateSocket(addrIP, port, SERVER);
 	if (bind(udpConnection->fd, udpConnection->res->ai_addr, udpConnection->res->ai_addrlen)) {
-		_FATAL("[UDP] Unable to bind the server.\n\t - Error code: %d", errno);
+		_FATAL("[UDP] Unable to bind the server.\n\t - Error: %s", strerror(errno));
 	}
 	return udpConnection;
 }
@@ -34,7 +34,7 @@ UDPConnection_t* udpCreateServer(const char *addrIP, const char *port) {
 
 // creates an UDP client
 UDPConnection_t* udpCreateClient(const char *addrIP, const char *port) {
-	return udpCreateSocket(addrIP, port);
+	return udpCreateSocket(addrIP, port, CLIENT);
 }
 
 

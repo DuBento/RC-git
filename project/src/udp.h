@@ -1,13 +1,20 @@
 #ifndef UDP_H
 #define UDP_H
 
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 
 #include "common.h"
+
+
+#define CLIENT  'c'
+#define SERVER  's'
 
 typedef struct udp_node_t {
     struct sockaddr *ai_addr;
@@ -32,7 +39,7 @@ typedef struct udp_connection {
  *  \param  port		the service name (or the port number).
  *  \return the udp connection structure.
  */
-UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port);
+UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode);
 
 
 /*! \brief Creates an UDP server.
