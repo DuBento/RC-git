@@ -26,7 +26,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
                 }
                 _WARN("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
                         uid, pass);
-                msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_NOK);
+                msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
                 udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
                 return FALSE;
         }
@@ -39,7 +39,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
         if (inDir(dir, reg_file)) { 
                 _WARN("User: %s tried to register twice. Sending server error...", uid);
-                msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_NOK);
+                msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
                 udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
                 return FALSE;
         }
@@ -51,7 +51,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, char* buf, char* path) {
         registerPD(user_path, reg_file, pdip, pdport);
 
         // reply to PD
-        msgLen = sprintf(answer, "%s %s", RESP_REG, STATUS_OK);
+        msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_OK, CHAR_END_MSG);
         udpSendMessage_specify(udpConnec, answer, msgLen, pdip, pdport);
 }
 

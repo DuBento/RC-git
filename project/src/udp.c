@@ -69,7 +69,7 @@ int udpSendMessage_specify(UDPConnection_t *udpConnection, const char *buffer, i
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	inet_pton(AF_INET, ip, &(addr.sin_addr));
+	addr.sin_addr.s_addr = inet_addr(ip);
 	addr.sin_port = htons(atoi(port));
 
 	int n = sendto(udpConnection->fd, buffer, len, 0, (const struct sockaddr *) &addr, sizeof(addr));
