@@ -29,7 +29,7 @@ typedef struct udp_connection {
  *  and port number (after translating them into the appropriate formats).
  *
  *  \param  addrIP	the ip address (IPv4 or IPv6).
- *  \param  port		the service name (or the port number).
+ *  \param  port	the service name (or the port number).
  *  \return the udp connection structure.
  */
 UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port);
@@ -40,7 +40,7 @@ UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port);
  *  Creates an UDP server with the specified IP address and port number.
  *
  *  \param  addrIP	the ip address (IPv4 or IPv6).
- *  \param  port		the service name (or the port number).
+ *  \param  port	the service name (or the port number).
  *  \return the udp connection structure.
  */
 UDPConnection_t* udpCreateServer(const char *addrIP, const char *port);

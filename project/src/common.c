@@ -214,6 +214,7 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 		sprintf(formatedPath, "%s/", dirname);
         
         //try to open dir
+		_LOG("formatedPath: %s", formatedPath);
         d = opendir(formatedPath);
 
         if(d) {
@@ -221,7 +222,7 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 			return d;	// and path var updated
         } else if (errno == ENOENT || errno == ENOTDIR ) {
 			// dir does not exist, create new
-			if (mkdir(formatedPath, S_IRUSR|S_IWUSR) == -1) 
+			if (mkdir(formatedPath, S_IRUSR|S_IWUSR|S_IXUSR) == -1) 
 				_FATAL("Failed to create log directory.\n\t - Error: %s", strerror(errno));
 
 			// retry to open
