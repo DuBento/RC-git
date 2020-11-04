@@ -57,6 +57,7 @@ bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo) {
                 return FALSE;
         }
 
+        userInfo->connected = false;
         return TRUE;
 }
 
