@@ -8,6 +8,8 @@ static userInfo_t userInfo = { 0 };
 static TCPConnection_t *asConnection = NULL;
 static TCPConnection_t *fsConnection = NULL;
 
+static int rid;
+
 
 
 /*! \brief Cleans the program on termination
@@ -92,9 +94,6 @@ void parseArgs(int argc, char *argv[]) {
  */
 bool_t handleUser() {
 	char buffer[BUFFER_SIZE];
-	int *rid;
-	
-	rid = NULL;
 	
 	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
@@ -110,11 +109,11 @@ bool_t handleUser() {
 	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0')
-		return req_request(asConnection, &userInfo, input1, input2);
+		return req_request(asConnection, &userInfo, input1, input2, &rid);
 
 	// val command: val VC
 	else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
-		return req_val(asConnection, &userInfo, input1);
+		return req_val(asConnection, &userInfo, input1, &rid);
 
 	// list command: list or l
 	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
@@ -185,7 +184,7 @@ bool_t handleFSServer() {
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 	
 	
-	size = tcpReceiveMessage(fsSockfd, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(fsConnection, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 
 	// List response RLS N[ Fname Fsize]*
@@ -198,15 +197,15 @@ bool_t handleFSServer() {
 
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_AUT))
-		return resp_upload(fsSockfd, arg);
+		return resp_upload(fsConnection, arg);
 
 	//	Delete response RDL status
 	else if (!strcmp(opcode, RESP_AUT))
-		return resp_delete(fsSockfd, arg);
+		return resp_delete(fsConnection, arg);
 
 	//	Remove response RRM status
 	else if (!strcmp(opcode, RESP_AUT))
-		return resp_remove(fsSockfd, arg);
+		return resp_remove(fsConnection, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		WARN("Invalid request! Operation ignored.");

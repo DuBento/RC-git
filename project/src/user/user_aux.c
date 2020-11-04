@@ -28,7 +28,7 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char
 }
 
 
-bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname) {
+bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname, int *rid) {
 	/* User sends a message to the AS requesting a transaction ID code (TID). 
 	This request message includes the UID and the type of file operation desired
 	 (Fop), either list (L), retrieve (R),
@@ -44,12 +44,8 @@ message to the PD.*/
 	int mssgSize;
 
 	// A random natural number of 4 digits is added as a request identifier RID.
-	rid = (int*) malloc(sizeof(int));
-	if (rid == NULL)
-		FATAL("Failed to malloc rid");
-	
 	*rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
-	
+
 	char mssgBuffer[2 * BUFFER_SIZE];
 	//If the operation is retrieve (R), upload (U) or delete (D) also the file name Fname is sent. 
 	if ((!strcmp(fop, FOP_STR_R))|| (!strcmp(fop, FOP_STR_U))|| 
@@ -74,7 +70,7 @@ message to the PD.*/
 }
 
 
-bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc) {
+bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int *rid) {
 	/*User has checked the VC on the PD
 	User issues this command, sending a message to the AS with the VC. 
 	*/
@@ -361,7 +357,7 @@ for the user with UID %d, UID
 }
 
 
-bool_t resp_upload(int fsSockfd, char *status) {
+bool_t resp_upload(TCPConnection_t *fsConnection, char *status) {
 /* RUP status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a UPL request consists in the FS server replying with the status of the
@@ -389,12 +385,12 @@ connection with the FS.*/
 		printf ("Request wrongly formulated.");
 	
 	// Close FS TCP connection
-	tcpDestroySocket(fsSockfd);
+	tcpDestroySocket(fsConnection);
 	return TRUE;
 }
 
 
-bool_t resp_delete(int fsSockfd, char *status) {
+bool_t resp_delete(TCPConnection_t *fsConnection, char *status) {
 /*RDL status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a DEL request consists in the FS server replying with the status of the
@@ -421,12 +417,12 @@ Does it make sense to join them? */
 		WARN("Delete request wrongly formulated");
 
 	// Close FS TCP connection
-	tcpDestroySocket(fsSockfd);
+	tcpDestroySocket(fsConnection);
 	return TRUE;
 }
 
 
-bool_t resp_remove(int fsSockfd, char *status) {
+bool_t resp_remove(TCPConnection_t *fsConnection, char *status) {
 /*After receiving a message from the AS (CNF) validating the transaction and
 confirming the user deletion in the AS, the FS removes all the user’s files and
 directories. 
@@ -449,6 +445,6 @@ connection with the FS.*/
 		WARN("Remove request wrongly formulated...");
 	
 	// Close FS connection
-	tcpDestroySocket(fsSockfd);
+	tcpDestroySocket(fsConnection);
 	return TRUE;
 }
