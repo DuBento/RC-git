@@ -22,6 +22,14 @@ typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
 
+#define TEJO_IP "193.136.138.142\0"
+#define TEJO_FS_PORT	"59000\0"
+#define TEJO_AS_PORT	"58011\0"
+
+#define	DEFAULT_PD_PORT	"57053\0"
+#define DEFAULT_FS_PORT	"59053\0"
+#define	DEFAULT_AS_PORT	"58053\0"
+
 /* General implementation constants  */
 #define UID_SIZE	5
 
@@ -73,6 +81,7 @@ typedef char bool_t;
 #define REQ_LOG		"LOG"
 #define REQ_REQ		"REQ"
 #define REQ_RRQ		"RRQ"
+#define	REQ_AUT		"AUT"
 
 #define REQ_LST		"LST"
 #define REQ_RTV		"RTV"
@@ -103,6 +112,10 @@ typedef char bool_t;
 #define	STATUS_ELOG 	"ELOG"
 #define	STATUS_EUSER	"EUSER"
 #define	STATUS_EFOP	"EFOP"
+
+#define STATUS_DUP	"DUP"
+#define	STATUS_FULL	"FULL"
+#define STATUS_INV	"INV"
 
 /* file operations */
 #define FOP_L		'L'

@@ -3,10 +3,12 @@
 #include <string.h>
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-static connectionInfo_t connectionInfo = {"193.136.138.142", "58011\0", "193.136.138.142\0", "59000\0"};
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 static userInfo_t userInfo = { 0 };
-static int asSockfd = -1;
-static int fsSockfd = -1;
+static TCPConnection_t *asConnection = NULL;
+static TCPConnection_t *fsConnection = NULL;
+
+static int rid;
 
 
 
@@ -16,10 +18,13 @@ static int fsSockfd = -1;
  *	required modules.
  */
 void cleanUser() {
-		// if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
-	// close tcp conection
-	if (asSockfd != -1)     tcpDestroySocket(asSockfd);
-	if (fsSockfd != -1)	tcpDestroySocket(fsSockfd);
+	if (asConnection != NULL)   tcpDestroySocket(asConnection);
+	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
+  
+  if (userInfo.uid != NULL)
+		free(userInfo.uid);
+	if (userInfo.pass != NULL)
+		free(userInfo.pass);
 }
 
 
@@ -79,6 +84,7 @@ void parseArgs(int argc, char *argv[]) {
 }
 
 
+
 /*! \brief Handles the user input during the runtime.
  *
  *  Verifies which command was introduced by the user, validates its arguments and
@@ -88,6 +94,7 @@ void parseArgs(int argc, char *argv[]) {
  */
 bool_t handleUser() {
 	char buffer[BUFFER_SIZE];
+	
 	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
 
@@ -98,15 +105,15 @@ bool_t handleUser() {
 
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
-		req_login(asSockfd, &userInfo, input1, input2);
+		req_login(asConnection, &userInfo, input1, input2);
 	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0')
-		return req_request(asSockfd, &userInfo, input1, input2);
+		return req_request(asConnection, &userInfo, input1, input2, &rid);
 
 	// val command: val VC
 	else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
-		return req_val(asSockfd, &userInfo, input1);
+		return req_val(asConnection, &userInfo, input1, &rid);
 
 	// list command: list or l
 	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
@@ -130,7 +137,7 @@ bool_t handleUser() {
 
 	// exit command: exit
 	else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
-		;//return req_exit();
+		terminateUser();
 			 
 	else {
 		WARN("Invalid command! Operation ignored.");
@@ -145,7 +152,7 @@ bool_t handleASServer() {
 	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
 	int size;
 	
-	size = tcpReceiveMessage(asSockfd, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
@@ -168,6 +175,46 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 }
 
 
+bool_t handleFSServer() {
+	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
+	int size;
+	
+	/* Each user can have a maximum of 15 files stored in the FS server. */
+	/* All file Fsize fields can have at most 10 digits. */
+	/* the filename Fname, limited to a total of 24 alphanumerical characters */
+	
+	
+	size = tcpReceiveMessage(fsConnection, buffer,BUFFER_SIZE);
+	sscanf(buffer, "%s %s", opcode, arg);
+
+	// List response RLS N[ Fname Fsize]*
+	if (!strcmp(opcode, RESP_LOG))
+		return resp_list(arg);
+
+	// Retrieve code response "RRT status [Fsize data]"	
+	else if (!strcmp(opcode, RESP_REQ))
+		return resp_retrieve(arg);
+
+	// Upload response " RUP status"
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_upload(fsConnection, arg);
+
+	//	Delete response RDL status
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_delete(fsConnection, arg);
+
+	//	Remove response RRM status
+	else if (!strcmp(opcode, RESP_AUT))
+		return resp_remove(fsConnection, arg);
+
+	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
 /*! \brief Main loop for the FS application.
  *
  *  Waits for an interaction from the user/server and then handles them.
@@ -177,13 +224,13 @@ void runUser() {
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);		// only user input 
-	FD_SET(asSockfd, &fds);			// incoming messages from AS
+	FD_SET(asConnection->fd, &fds);			// incoming messages from AS
 	/* if (userInfo.fsConnected)
 	FD_SET(fsSockfd, &fds);
 	*/
 
 	// if userInfo.fsConnected: +2?
-	int fdsSize = asSockfd + 1;
+	int fdsSize = asConnection->fd + 1;
 	
 	// timeouts
 	struct timeval tv;
@@ -203,7 +250,7 @@ void runUser() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle AS server responses
-		if (FD_ISSET(asSockfd, &fdsTemp)) {
+		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			//LOG("Yey as contacted us!");
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
@@ -235,7 +282,7 @@ void runUser() {
 				waitingReply = FALSE;
 			}
 			else
-				waitingReply = req_resendLastMessage(asSockfd);
+				waitingReply = req_resendLastMessage(asConnection);
 		}
 			
 	}
@@ -252,11 +299,10 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);	
 
 	/* Establish TCP connection with AS. */
-	asSockfd = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
-	tcpConnect(asSockfd);	
+	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	tcpConnect(asConnection);	
 	runUser();
 
-
 	terminateUser();
-	return 0; //never used
+	return 0;
 }
