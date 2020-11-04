@@ -70,7 +70,7 @@ typedef struct user_info_t {
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass);
+bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char *uid, const char *pass);
 
 
 /*! \brief Brief function description here
@@ -80,7 +80,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname);
+bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname);
 
 
 /*! \brief Brief function description here
@@ -90,7 +90,7 @@ bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const ch
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc);
+bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc);
 
 
 /*! \brief Brief function description here

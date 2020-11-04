@@ -5,8 +5,8 @@
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
 static connectionInfo_t connectionInfo = {"193.136.138.142", "58011\0", "193.136.138.142\0", "59000\0"};
 static userInfo_t userInfo = { 0 };
-static int asSockfd = -1;
-static int fsSockfd = -1;
+static TCPConnection_t *asConnection = NULL;
+static TCPConnection_t *fsConnection = NULL;
 
 
 
@@ -16,10 +16,8 @@ static int fsSockfd = -1;
  *	required modules.
  */
 void cleanUser() {
-		// if(userInfo.connected)  req_unregisterUser(asSockfd, &userInfo);
-	// close tcp conection
-	if (asSockfd != -1)     tcpDestroySocket(asSockfd);
-	if (fsSockfd != -1)	tcpDestroySocket(fsSockfd);
+	if (asConnection != NULL)   tcpDestroySocket(asConnection);
+	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
 }
 
 
@@ -79,6 +77,7 @@ void parseArgs(int argc, char *argv[]) {
 }
 
 
+
 /*! \brief Handles the user input during the runtime.
  *
  *  Verifies which command was introduced by the user, validates its arguments and
@@ -98,15 +97,15 @@ bool_t handleUser() {
 
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
-		req_login(asSockfd, &userInfo, input1, input2);
+		req_login(asConnection, &userInfo, input1, input2);
 	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0')
-		return req_request(asSockfd, &userInfo, input1, input2);
+		return req_request(asConnection, &userInfo, input1, input2);
 
 	// val command: val VC
 	else if (!strcmp(cmd, CMD_VAL) && input1[0] != '\0')
-		return req_val(asSockfd, &userInfo, input1);
+		return req_val(asConnection, &userInfo, input1);
 
 	// list command: list or l
 	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) && input1[0] == '\0')
@@ -145,7 +144,7 @@ bool_t handleASServer() {
 	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
 	int size;
 	
-	size = tcpReceiveMessage(asSockfd, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
@@ -177,13 +176,13 @@ void runUser() {
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(STDIN_FILENO, &fds);		// only user input 
-	FD_SET(asSockfd, &fds);			// incoming messages from AS
+	FD_SET(asConnection->fd, &fds);			// incoming messages from AS
 	/* if (userInfo.fsConnected)
 	FD_SET(fsSockfd, &fds);
 	*/
 
 	// if userInfo.fsConnected: +2?
-	int fdsSize = asSockfd + 1;
+	int fdsSize = asConnection->fd + 1;
 	
 	// timeouts
 	struct timeval tv;
@@ -203,7 +202,7 @@ void runUser() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle AS server responses
-		if (FD_ISSET(asSockfd, &fdsTemp)) {
+		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			//LOG("Yey as contacted us!");
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
@@ -235,7 +234,7 @@ void runUser() {
 				waitingReply = FALSE;
 			}
 			else
-				waitingReply = req_resendLastMessage(asSockfd);
+				waitingReply = req_resendLastMessage(asConnection);
 		}
 			
 	}
@@ -252,11 +251,11 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);	
 
 	/* Establish TCP connection with AS. */
-	asSockfd = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
-	tcpConnect(asSockfd);	
+	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	tcpConnect(asConnection);	
 	runUser();
 
 
 	terminateUser();
-	return 0; //never used
+	return 0;
 }

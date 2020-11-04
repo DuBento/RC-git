@@ -2,7 +2,7 @@
 
 
 // logins a user on the authentication system.
-bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass) {
+bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char *uid, const char *pass) {
 	/* User application sends to the AS the user’s ID UID and a password */
 	if (userInfo->connected) {
 		_WARN("A session is already on! Operation ignored.\n\t - Current uid: %s\n\t"
@@ -13,7 +13,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
 	char msgBuffer[BUFFER_SIZE * 2];
 	int msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
 
-	int sizeSent = tcpSendMessage(fd, msgBuffer, msgSize);
+	int sizeSent = tcpSendMessage(asConnection, msgBuffer, msgSize);
 	if (msgSize != sizeSent) {
 		WARN("A problem may have occured while sending the registration request!");
 		return FALSE;
@@ -28,7 +28,7 @@ bool_t req_login(int fd, userInfo_t *userInfo, const char *uid, const char *pass
 }
 
 
-bool_t req_request(int fd, const userInfo_t *userInfo, const char *fop, const char *fname) {
+bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname) {
 	/* User sends a message to the AS requesting a transaction ID code (TID). 
 	This request message includes the UID and the type of file operation desired (Fop), either list (L), retrieve (R),
 upload (U), delete (D) or remove (X), and if appropriate (when Fop is R, U or D)
@@ -56,7 +56,7 @@ message to the PD.*/
 		
 	// Send message = REQ UID RID Fop [Fname] to AS requesting TID.
 	_LOG("Message to be sent: %s", mssgBuffer);
-	int sizeSent = tcpSendMessage(fd, mssgBuffer, mssgSize);
+	int sizeSent = tcpSendMessage(asConnection, mssgBuffer, mssgSize);
 
 	if (mssgSize != sizeSent) {
 		WARN("A problem may have occured while sending the request request!");
@@ -66,7 +66,7 @@ message to the PD.*/
 }
 
 
-bool_t req_val(int fd, const userInfo_t *userInfo, const char *vc) {
+bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc) {
 	/*User has checked the VC on the PD
 	User issues this command, sending a message to the AS with the VC. 
 	*/
