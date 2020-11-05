@@ -152,7 +152,7 @@ bool_t handleASServer() {
 	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
 	int size;
 	
-	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(asConnection->fd, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
@@ -184,7 +184,7 @@ bool_t handleFSServer() {
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 	
 	
-	size = tcpReceiveMessage(fsConnection, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(fsConnection->fd, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 
 	// List response RLS N[ Fname Fsize]*
@@ -220,6 +220,7 @@ bool_t handleFSServer() {
  *  Waits for an interaction from the user/server and then handles them.
  */
 void runUser() {
+	LOG("here");
 	// select
 	fd_set fds;
 	FD_ZERO(&fds);

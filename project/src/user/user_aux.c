@@ -16,7 +16,7 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char
 	msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
 _LOG("mssg size %d", msgSize);
 
-	sizeSent = tcpSendMessage(asConnection, msgBuffer, msgSize);
+	sizeSent = tcpSendMessage(asConnection->fd,  msgBuffer, msgSize);
 	if (msgSize != sizeSent) {
 		WARN("A problem may have occured while sending the registration request \
 		because the whole message was not sent!");
@@ -64,7 +64,7 @@ message to the PD.*/
 		
 	// Send message = REQ UID RID Fop [Fname] to AS requesting TID.
 	_LOG("Message to be sent: %s", mssgBuffer);
-	int sizeSent = tcpSendMessage(asConnection, mssgBuffer, mssgSize);
+	int sizeSent = tcpSendMessage(asConnection->fd, mssgBuffer, mssgSize);
 
 	if (mssgSize != sizeSent) {
 		WARN("A problem may have occured while sending the request request!");
@@ -248,7 +248,7 @@ otherwise (e.g. incorrectly formatted REQ message) the status is ERR.*/
 			printf("A successeful login hasn't been made before. \
 			Please login successefully before making requests.");
 		else if (!strcmp(status, STATUS_EPD))
-			printf("Authentication server (AS) failed to contact your \
+			printf("Authentication server (AS) has failed to contact your \
 			personal device (PD)\n");
 		else if (!strcmp(status, STATUS_EUSER))
 			printf("Incorrect UID, moron.\n");

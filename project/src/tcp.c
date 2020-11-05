@@ -8,7 +8,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 	memset(&hints, '\0', sizeof(struct addrinfo));	
 	tcpConnection->fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (tcpConnection->fd == -1)
-		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d", errno);
+		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d %s", errno, strerror(errno));
 	
 	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;    
@@ -17,7 +17,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 	int errCode = getaddrinfo(addrIP, port, &hints, &res);
 	if (errCode)
 		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
-		"\t - Error code: %d", errCode);
+		"\t - Error code: %d %s", errCode, strerror(errCode));
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
@@ -47,7 +47,7 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port) {
 // connects the client with the server
 void tcpConnect(TCPConnection_t *tcpConnection) {
 	if (connect(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
-		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code : %d %s", errno, strerror(errno));
 }
 
 
@@ -58,7 +58,7 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection) {
 
 	int newfd = accept(tcpConnection->fd, (struct sockaddr*)&addr, &addrlen);
 	if (newfd == -1)
-		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d: %s", errno, strerror(errno));
 
 	return newfd;
 }
@@ -72,7 +72,7 @@ int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
 		int n = read(sockfd, buffer, len);
 		if (n == -1)
-			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
+			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d: %s", errno, strerror(errno));	
 		
 		sizeRead += n;
 		
@@ -80,22 +80,26 @@ int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
-	_LOG("[UDP] Mesaage received (%d bytes) - '%s'", sizeRead, buffer);
+	_LOG("[TCP] Mesaage received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
 
 // sends a TCP message
 int tcpSendMessage(int sockfd, const char *buffer, int len) {
-	int sizeWritten;
+	
+	_LOG("fdd %d", sockfd);
+	int sizeWritten, n;
+	
 	
 	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
 		On error, -1 is returned, and errno is set appropriately.*/
-		int n = write(sockfd, buffer + sizeWritten, len - sizeWritten);
-		if (n == -1)
-			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
+		n = write(sockfd, buffer + sizeWritten, len - sizeWritten);
+		if (n == -1) {
+			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d: %s", errno, strerror(errno));
+		}
 		sizeWritten += n;
 	} while (sizeWritten != len);
 
@@ -107,7 +111,7 @@ int tcpSendMessage(int sockfd, const char *buffer, int len) {
 // closes the tcp connection
 void tcpCloseConnection(TCPConnection_t *tcpConnection) {	
 	if (close(tcpConnection->fd))
-		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d: %s", errno, strerror(errno));
 	free(tcpConnection);
 }
 
@@ -115,5 +119,5 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 // terminates the tcp socket
 void tcpDestroySocket(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
-		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d: %s", errno, strerror(errno));
 }
