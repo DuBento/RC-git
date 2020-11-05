@@ -19,9 +19,9 @@
 
 /* Structure that stores the information for the UDP connection. */
 typedef struct udp_connection {
-    int fd;
-    struct sockaddr addr;
-    socklen_t addrlen;
+	int fd;
+	struct sockaddr addr;
+	socklen_t addrlen;
 } UDPConnection_t;
 
 

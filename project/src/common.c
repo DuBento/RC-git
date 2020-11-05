@@ -117,13 +117,13 @@ bool_t isPortValid(const char *buffer) {
 
 // checks if the UID is valid
 bool_t isUIDValid(const char *buffer) {
-	    return isStringValid(buffer, STR_DIGIT, UID_SIZE);
+		return isStringValid(buffer, STR_DIGIT, UID_SIZE);
 }
 
 
 // checks if the password is valid
 bool_t isPassValid(const char *buffer) {
-    return isStringValid(buffer, STR_ALPHANUM, PASS_SIZE);
+	return isStringValid(buffer, STR_ALPHANUM, PASS_SIZE);
 }
 
 
@@ -158,14 +158,14 @@ void putStr(const char *buffer, bool_t flush) {
 
 // return te operation string correspondent to the file op
 const char* getFileOp(const char op) {
-    switch (op) {
+	switch (op) {
 	case FOP_L: return "list";
 	case FOP_U: return "upload";
 	case FOP_R: return "retrieve";
 	case FOP_D: return "delete";
 	case FOP_X: return "remove";
 	default: return "\0";
-    }
+	}
 }
 
 
@@ -196,12 +196,12 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 	}
 	else
 		sprintf(formatedPath, "%s/", dirname);
-        d = opendir(formatedPath);
+		d = opendir(formatedPath);
 
-        if(d) {
+		if(d) {
 			// dir opened
 			return d;	// and path var updated
-        } else if (errno == ENOENT || errno == ENOTDIR ) {
+		} else if (errno == ENOENT || errno == ENOTDIR ) {
 			// dir does not exist, create new
 			if (mkdir(formatedPath, S_IRUSR|S_IWUSR|S_IXUSR) == -1) 
 				_FATAL("Failed to create log directory.\n\t - Error: %s", strerror(errno));
@@ -209,17 +209,17 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 			// retry to open
 			d = opendir(formatedPath);
 			if (d) return d;
-        }
+		}
 
-        // else
-        _FATAL("Failed to open log directory.\n\t - Error: %s", strerror(errno));
+		// else
+		_FATAL("Failed to open log directory.\n\t - Error: %s", strerror(errno));
 }
 
 
 // checks if the specified file is whitin the given directory.
 bool_t inDir(DIR* dir, char* filename){
 	struct dirent *ent;
-    	while ((ent = readdir(dir)) != NULL)
+		while ((ent = readdir(dir)) != NULL)
 			if (!strcmp(ent->d_name, filename)) 
 				return TRUE;
 

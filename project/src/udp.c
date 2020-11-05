@@ -5,7 +5,7 @@
 UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode) {
 	UDPConnection_t *udpConnection = (UDPConnection_t*)malloc(sizeof(UDPConnection_t));
 	struct addrinfo hints;
-	struct addrinfo *res = {0};
+	struct addrinfo *res = { 0 };
 	memset(&hints, '\0', sizeof(struct addrinfo));
 	udpConnection->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (udpConnection->fd == -1)

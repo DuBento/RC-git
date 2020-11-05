@@ -202,7 +202,7 @@ void exitAS() {
 
 void listDir(DIR* dir){
 	struct dirent *ent;
-    	while ((ent = readdir(dir)) != NULL) {
+		while ((ent = readdir(dir)) != NULL) {
 		printf("%s\n", ent->d_name);
 	}
 }
