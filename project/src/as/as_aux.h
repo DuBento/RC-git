@@ -23,5 +23,5 @@
 bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
 void registerPD(char* relative_path, char* filename, char* pdip, char* pdport);
 void storePassPD(char* relative_path, char* filename, char* pass);
-
+bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
 #endif /* AS_AUX_H */

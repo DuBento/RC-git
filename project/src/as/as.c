@@ -26,8 +26,6 @@ UDPConnection_t *udpServer;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
 
-#define CHECK_VERBOSITY { return verbosity }
-
 
 // /* ========================== */
 // /* Linked list Implementation */
@@ -129,8 +127,10 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 		req_registerPD(udpConnec, &recvConnoc, msgBuf, dir_path);
 		return FALSE;	// not waiting replay
 	}// Unregistration Request
-	else if (!strcmp(opcode, REQ_UNR))
-		;// TODO unregisterUser(respEnd);                
+	else if (!strcmp(opcode, REQ_UNR)){
+		req_unregisterPD(udpConnec, &recvConnoc, msgBuf, dir_path);                
+		return FALSE;	// not waiting replay
+	}
 	// Validation Code received "VLC"
 	else if (!strcmp(opcode, RESP_VLC))
 		;// TODO validationCode_Response();

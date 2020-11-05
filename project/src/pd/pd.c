@@ -196,13 +196,13 @@ void runPD() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle server responses
-		// if (FD_ISSET(asConnection->fd, &fdsTemp)) {
-		// 	putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-		// 	putStr(STR_RESPONSE, TRUE);		// string before the server output
-		// 	handleServer(asConnection);	
-		// 	putStr(STR_INPUT, TRUE);		// string before the user input
-		// 	waitingReply = FALSE;
-		// }
+		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
+			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+			putStr(STR_RESPONSE, TRUE);		// string before the server output
+			handleServer(asConnection);	
+			putStr(STR_INPUT, TRUE);		// string before the user input
+			waitingReply = FALSE;
+		}
 
 		// handle server responses
 		if (FD_ISSET(pdConnection->fd, &fdsTemp)) {
