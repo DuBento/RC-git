@@ -196,9 +196,6 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 	}
 	else
 		sprintf(formatedPath, "%s/", dirname);
-        
-        //try to open dir
-		_LOG("formatedPath: %s", formatedPath);
         d = opendir(formatedPath);
 
         if(d) {
