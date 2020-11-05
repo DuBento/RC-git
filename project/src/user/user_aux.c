@@ -4,18 +4,22 @@
 // logins a user on the authentication system.
 bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char *uid, const char *pass) {
 	/* User application sends to the AS the user’s ID UID and a password */
+	int sizeSent, msgSize;
+	char msgBuffer[BUFFER_SIZE * 2];
+	
 	if (userInfo->connected) {
 		_WARN("A session is already on! Operation ignored.\n\t - Current uid: %s\n\t"
 		"Unregister first if you wish to use another user.\n", userInfo->uid);
 		return FALSE;
 	}
 
-	char msgBuffer[BUFFER_SIZE * 2];
-	int msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
+	msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
+_LOG("mssg size %d", msgSize);
 
-	int sizeSent = tcpSendMessage(asConnection, msgBuffer, msgSize);
+	sizeSent = tcpSendMessage(asConnection, msgBuffer, msgSize);
 	if (msgSize != sizeSent) {
-		WARN("A problem may have occured while sending the registration request!");
+		WARN("A problem may have occured while sending the registration request \
+		because the whole message was not sent!");
 		return FALSE;
 	}
 

@@ -1,14 +1,26 @@
 #ifndef TCP_H
 #define TCP_H
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #include "common.h"
 
+#define CLIENT  'c'
+#define SERVER  's'
 
-/* Structure that stores the information for the UDP connection. */
+
+/* Structure that stores the information for the TCP connection. */
 typedef struct tcp_connection {
     int fd;
-    struct addrinfo hints;
-    struct addrinfo *res;
+    struct sockaddr addr;
+    socklen_t addrlen;
 } TCPConnection_t;
 
 
@@ -20,9 +32,10 @@ typedef struct tcp_connection {
  *
  *  \param  addrIP  	the ip address (IPv4 or IPv6).
  *  \param  port	    the service name (or the port number).
+ *  \param  mode        CLIENT or SERVER (different specifications - check def)
  *  \return the tcp connection structure.
  */
-TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port);
+TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode);
 
 
 /*! \brief Creates an TCP server.
@@ -72,24 +85,24 @@ int tcpAcceptConnection(TCPConnection_t *udpConnection);
  *
  *  Stores a TCP message in the specified buffer.
  *
- *  \param  tcpConnection	the tcp connection structure.
+ *  \param  sockfd          socket from which the message will be received.
  *  \param  buffer	        a buffer where the message will be stored.
  *  \param  len		        the length of the specified buffer.
  *  \return the number of bytes read.
  */
-int tcpReceiveMessage(TCPConnection_t *udpConnection, char *buffer, int len);
+int tcpReceiveMessage(int sockfd, char *buffer, int len);
 
 
 /*! \brief Sends a TCP message.
  *
  *  Sends the specified TCP message.
  *
- *  \param  tcpConnection	the tcp connection structure.
+ *  \param  sockfd          socket to which the message will be sent.
  *  \param  buffer	        a buffer containing the message.
  *  \param  len		        the length of the message.
  *  \return the number of bytes sent.
  */
-int tcpSendMessage(TCPConnection_t *udpConnection, const char *buffer, int len);
+int tcpSendMessage(int sockfd, const char *buffer, int len);
 
 
 /*! \brief Closes a TCP connection.
