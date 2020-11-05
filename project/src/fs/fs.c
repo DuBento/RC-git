@@ -82,17 +82,21 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
+void runFS() {
+	while (bRunning) {
+
+	}
+}
+
+
 
 int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
-
-	List_t list = listFiles(filesPath, "test");
-	ListIterator_t iterator = listIteratorCreate(list);
-	while (!listIteratorEmpty(&iterator))
-		printf("%s\n", (char*)listIteratorNext(&iterator));
+	runFS();
+	
 
 	closedir(files);
 	return 0;
