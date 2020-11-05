@@ -89,6 +89,11 @@ int main(int argc, char *argv[]) {
 
 	files = initDir(argv[0], "files", filesPath);
 
+	List_t list = listFiles(filesPath, "test");
+	ListIterator_t iterator = listIteratorCreate(list);
+	while (!listIteratorEmpty(&iterator))
+		printf("%s\n", (char*)listIteratorNext(&iterator));
+
 	closedir(files);
 	return 0;
 }	

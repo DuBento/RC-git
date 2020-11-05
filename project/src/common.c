@@ -175,6 +175,15 @@ int randomNumber(int min, int max) {
 }
 
 
+// finds the number of digits of a given number
+size_t nDigits(int number) {
+	size_t nDigits = 0;
+	while ((number /= 10) != 0)
+		nDigits++;
+	return nDigits;
+}
+
+
 
 // initialize a directory on the specified path
 DIR* initDir(const char* exePath, const char* dirname, char* outPath) {

@@ -277,6 +277,17 @@ const char *getFileOp(const char op);
 int randomNumber(int min, int max);
 
 
+/*! \brief Finds the number of digits of a given number.
+ *
+ * 	Divides the number by 10 until if reaches 0 and then returns the number of divisions.
+ * 
+ * 	\param number		the given number.
+ * 	\return the number of digit of number. 
+ */
+size_t nDigits(int number);
+
+
+
 /*! \brief Initialize a directory on the specified path.
  *
  *  Opens a directory on the specified path. The directory is created if it does not exist.
