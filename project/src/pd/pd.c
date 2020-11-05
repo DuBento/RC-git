@@ -137,7 +137,7 @@ bool_t handleUser() {
  */
 bool_t handleServer(UDPConnection_t *udpConnec) {
 	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE] = { 0 }, args[BUFFER_SIZE] = { 0 };	
-	int size = udpReceiveMessage(udpConnec, buffer, BUFFER_SIZE);
+	int size = udpReceiveMessage(udpConnec, NULL, buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s %s\n", opcode, args);
 
 	// Registration response "RRG"
