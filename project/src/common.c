@@ -115,22 +115,6 @@ bool_t isPortValid(const char *buffer) {
 }
 
 
-// finds the ip address of the current machine
-char* findLocalIP() {
-	char host[256];
-	struct hostent *host_entry;
-	int hostname = gethostname(host, sizeof(host)); //find the host name
-	if (hostname == -1)
-		FATAL("Unable to find the ip address of the local machine!");
-
-	host_entry = gethostbyname(host); //find host information
-	if (host_entry == NULL)
-		FATAL("Unable to find the ip address of the local machine!");
-
-	return inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0])); //Convert into IP string
-}
-
-
 // checks if the UID is valid
 bool_t isUIDValid(const char *buffer) {
 	    return isStringValid(buffer, STR_DIGIT, UID_SIZE);
@@ -212,9 +196,6 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 	}
 	else
 		sprintf(formatedPath, "%s/", dirname);
-        
-        //try to open dir
-		_LOG("formatedPath: %s", formatedPath);
         d = opendir(formatedPath);
 
         if(d) {

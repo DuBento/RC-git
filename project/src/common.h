@@ -55,6 +55,7 @@ typedef char bool_t;
 #define IP_BLOCK_MAX	255	// the minimum value of each block of the IPv4
 #define PORT_MIN	1000	// the minumum value of the port allowed
 #define PORT_MAX	65535	// the maximum value of the port allowed
+#define LOCAL_IP	"127.0.0.1"
 
 /* Protocol constants. */
 #define CMD_SIZE	4	// the size of command
@@ -206,14 +207,6 @@ bool_t isIPValid(const char *buffer);
  */
 bool_t isPortValid(const char *buffer);
 
-
-/*! \brief Find the ip address of the local machine.
- *
- * 	Finds the ip address of the local machine and returns a pointer to him.
- * 
- * 	\return ip		a pointer with the ip address of the machine.
- */
-char* findLocalIP();
 
 
 /*! \brief Checks if the UID is valid.

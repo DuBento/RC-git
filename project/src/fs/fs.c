@@ -6,20 +6,11 @@
 static connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
 static DIR *files;
 char filesPath[PATH_MAX];
+
 bool_t verbosity = FALSE;
+bool_t bRunning = TRUE;
+int exitCode = 0;
 
-
-
-
-
-/*! \brief Cleans the program on termination
- *
- *	Frees all the memory alocated by the program and cleans terminates all the 
- *	required modules.
- */
-void cleanFS() {
-	;
-}
 
 
 /*! \brief Terminates the program on success.
@@ -27,8 +18,8 @@ void cleanFS() {
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
 void terminateFS() {
-	cleanFS();
-	exit(EXIT_SUCCESS);
+	bRunning = FALSE;
+	exitCode = 0;
 }
 
 
@@ -37,8 +28,8 @@ void terminateFS() {
  *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
  */
 void abortFS() {
-	cleanFS();
-	exit(EXIT_FAILURE);
+	bRunning = FALSE;
+	exitCode = 1;
 }
 
 
@@ -79,10 +70,9 @@ void parseArgs(int argc, char *argv[]) {
 	}
 
 	// fills the ip's if they were not specified
-	char *localIP = findLocalIP();
-	strcpy(connectionInfo.fsip, localIP);
+	strcpy(connectionInfo.fsip, LOCAL_IP);
 	if (connectionInfo.asip[0] == '\0')
-		strcpy(connectionInfo.asip, localIP);
+		strcpy(connectionInfo.asip, LOCAL_IP);
 
 	// logs the server information (on debug mod only)
 	_LOG("Runtime settings:\nFSIP\t: %s\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
