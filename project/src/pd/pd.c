@@ -194,6 +194,7 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 			if (pdConnection == NULL) {
 				pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 				addSocket(pdConnection, fds, fdsSize);
+				_LOG("server fd: %d, fdssize: %d", pdConnection->fd, fdsSize);
 			}
 		}
 	}
@@ -237,7 +238,7 @@ void runPD() {
 	int nRequestTries = 0;
 	
 	putStr(STR_INPUT, TRUE);		// string before the user input
-	while (exitCode != EXIT_FAILURE || exitCode != EXIT_SUCCESS) {
+	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
@@ -245,20 +246,25 @@ void runPD() {
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 
 		// handle server responses
-		if (asConnection != NULL && FD_ISSET(asConnection->fd, &fdsTemp)) {
-			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleClient(asConnection, &fds, &fdsSize);	
-			putStr(STR_INPUT, TRUE);		// string before the user input
-			waitingReply = FALSE;
-		}
-
-		// handle server responses
 		if (pdConnection != NULL && FD_ISSET(pdConnection->fd, &fdsTemp)) {
+			putStr("SERVER",TRUE);
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
 			handleServer(pdConnection,  &fds, &fdsSize);	
 			putStr(STR_INPUT, TRUE);		// string before the user input
+			putStr("ENDSERVER",TRUE);
+			waitingReply = FALSE;
+		}
+
+		// handle server responses
+		if (asConnection != NULL && FD_ISSET(asConnection->fd, &fdsTemp)) {
+			putStr("CLIENT",TRUE);
+			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+			putStr(STR_RESPONSE, TRUE);		// string before the server output
+			handleClient(asConnection, &fds, &fdsSize);	
+			putStr(STR_INPUT, TRUE);		// string before the user input
+			putStr("ENDCLIENT",TRUE);
+
 			waitingReply = FALSE;
 		}
 
