@@ -74,7 +74,7 @@ bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo);
  * 	\param  userInfo		the structure to store the user information (if the authentication succeds).
  * 	\return TRUE if the validation code was received and displayed correctly, FALSE otherwise.
  */
-bool_t req_valCode(UDPConnection_t *asConnection, char *args, userInfo_t *userInfo);
+bool_t resp_valCode(UDPConnection_t *udpConnec, UDPConnection_t *res, char *buf, userInfo_t *userInfo);
 
 
 /*! \brief Checks the response from the server to the register request.
