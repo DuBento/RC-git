@@ -247,12 +247,13 @@ void runPD() {
 	
 	putStr(STR_INPUT, TRUE);		// string before the user input
 	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
-		fprintf(stderr, "%d", exitCode);
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
-		if (selRetv  == -1)
+		if (selRetv  == -1){
+			if (errno == EINTR) break;	// return from signal
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+		}
 
 		// handle server responses
 		if (pdConnection != NULL && FD_ISSET(pdConnection->fd, &fdsTemp)) {
