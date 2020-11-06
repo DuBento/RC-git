@@ -88,10 +88,7 @@ int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 // sends a TCP message
 int tcpSendMessage(int sockfd, const char *buffer, int len) {
 	
-	_LOG("fdd %d", sockfd);
 	int sizeWritten, n;
-	
-	
 	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 

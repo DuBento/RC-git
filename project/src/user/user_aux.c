@@ -1,5 +1,14 @@
 #include "user_aux.h"
 
+bool_t 	fsStartTransaction() {
+
+}
+
+
+bool_t	fsEndTransaction() {
+
+}
+
 
 // logins a user on the authentication system.
 bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char *uid, const char *pass) {
@@ -7,14 +16,14 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char
 	int sizeSent, msgSize;
 	char msgBuffer[BUFFER_SIZE * 2];
 	
-	if (userInfo->connected) {
+	if (userInfo->asConnected) {
 		_WARN("A session is already on! Operation ignored.\n\t - Current uid: %s\n\t"
 		"Unregister first if you wish to use another user.\n", userInfo->uid);
 		return FALSE;
 	}
 
 	msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
-_LOG("mssg size %d", msgSize);
+//_LOG("mssg size %d", msgSize);
 
 	sizeSent = tcpSendMessage(asConnection->fd,  msgBuffer, msgSize);
 	if (msgSize != sizeSent) {
@@ -26,13 +35,14 @@ _LOG("mssg size %d", msgSize);
 	// Adjust size.
 	userInfo->uid = (char*)(malloc((strlen(uid) + 1) * sizeof(char)));
 	userInfo->pass = (char*)(malloc((strlen(pass) + 1) * sizeof(char)));
+	
 	strcpy(userInfo->uid, uid);
 	strcpy(userInfo->pass, pass);
 	return TRUE;
 }
 
 
-bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname, int *rid) {
+int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname) {
 	/* User sends a message to the AS requesting a transaction ID code (TID). 
 	This request message includes the UID and the type of file operation desired
 	 (Fop), either list (L), retrieve (R),
@@ -45,10 +55,10 @@ on the FS server.
  Upon receipt of this message, the AS will send the VLC
 message to the PD.*/
 	_LOG("User request request, fop: %s fname %s", fop, fname);
-	int mssgSize;
+	int mssgSize, rid;
 
 	// A random natural number of 4 digits is added as a request identifier RID.
-	*rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
+	rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
 
 	char mssgBuffer[2 * BUFFER_SIZE];
 	//If the operation is retrieve (R), upload (U) or delete (D) also the file name Fname is sent. 
@@ -56,10 +66,10 @@ message to the PD.*/
 	(!strcmp(fop, FOP_STR_D)) ) {
 		// what if R is written without fname?
 		mssgSize = sprintf(mssgBuffer, "%s %s %d %s %s\n", REQ_REQ, 
-		userInfo->uid, *rid, fop, fname);
+		userInfo->uid, rid, fop, fname);
 	} else {
 		mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_REQ, 
-		userInfo->uid, *rid, fop);
+		userInfo->uid, rid, fop);
 	}
 		
 	// Send message = REQ UID RID Fop [Fname] to AS requesting TID.
@@ -70,11 +80,11 @@ message to the PD.*/
 		WARN("A problem may have occured while sending the request request!");
 		return FALSE;
 	}
-	return TRUE;
+	return rid;
 }
 
 
-bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int *rid) {
+bool_t req_val(const TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int rid) {
 	/*User has checked the VC on the PD
 	User issues this command, sending a message to the AS with the VC. 
 	*/
@@ -83,49 +93,67 @@ After the user checking the VC on the PD, the User application sends this
 message to the AS with the UID and the VC, along with the request identifier
 RID, to complete the second factor authentication. A recently generated VC will
 be accepted by the AS only once.*/
-	int mssgSize;
-	mssgSize = 0;
+	int mssgSize, sizeSent;
+	mssgSize = sizeSent = 0;
 	char mssgBuffer[BUFFER_SIZE];
 
-	if (rid == NULL) {
-		WARN("No no no, rid is null! You try again with rid no NULL");
+//_LOG("At req val user %s %s", userInfo->uid, userInfo->pass);
+
+
+	if (rid == RID_INVALID) {
+		printf("No no no, rid is invalid! You try again with rid no invalid\n");
 		return FALSE;
 	}
 
 	mssgSize = sprintf(mssgBuffer, "%s %s %d %s\n", REQ_AUT, 
-	userInfo->uid, *(rid), vc);
-	printf("%d\n", mssgSize);
+	userInfo->uid, rid, vc);
 	
 	if (mssgSize < 0)
 		WARN("Failed to write val message to buffer.");
 	
-	_LOG("Le buffer %s", mssgBuffer);
-	
-	/* If rid were NULL then we wouldn't have reached here... 
-	so be free to free! :) */
-	free(rid);
-	
+	//_LOG("Le buffer %s", mssgBuffer);
+	sizeSent = tcpSendMessage(asConnection->fd, mssgBuffer, mssgSize);
+
+	if (mssgSize != sizeSent) {
+		WARN("A problem may have occured while sending the request request!");
+		return FALSE;
+	}
 	return TRUE;
 }
 
 
-bool_t req_list() {
+bool_t req_list(const userInfo_t *userInfo, const int tid) {
 	/* User establishes TCP session with FS
 	asking for the list of files this user has previously
 uploaded to the server. 
 The message includes the UID, the TID and the type of file operation desired (Fop). 
 The reply should be displayed as a numbered list of filenames and the respective sizes.*/
-	
+	char msgBuffer[BUFFER_SIZE];
+	int msgSize, sizeSent;
+
+	msgSize = sizeSent = 0;	
 	// Establish TCP connection with FS
-
+	fsConnection = tcpCreateClient(connectionInfo.fsip, 
+	connectionInfo.fsport);
+	tcpConnect(fsConnection);	
 	// Send message to FS: LST UID TID 
+	msgSize = sprintf(msgBuffer, "%s %s %d\n", REQ_LST, userInfo->uid, 
+	tid);
 
-
+	if (msgSize == SSCANF_FAILURE) {
+		printf("Failed to prepare list message to FS.");
+	}
+	sizeSent = tcpSendMessage(fsConnection->fd,  msgBuffer, msgSize);
+	if (msgSize != sizeSent) {
+		printf("A problem may have occured while sending the list " 
+		"request because the whole message was not sent!");
+		return FALSE;
+	}
 	return TRUE;
 }
 
 
-bool_t req_retrieve() {
+bool_t req_retrieve(const userInfo_t *userInfo, const int tid, const char *fname) {
 	/* User application establishes a TCP session with the FS server, 
 	to retrieve the selected file filename. 
 	The message includes the UID, the TID, the Fop and
@@ -138,11 +166,34 @@ Fname from the FS server. The user ID (UID) and transaction ID (TID) are
 also provided. Before replying, the FS sends a message to the AS to validate the
 transaction (VLD).*/
 /*) RTV UID TID Fname*/
+
+	char msgBuffer[BUFFER_SIZE];
+	int msgSize, sizeSent;
+	msgSize = sizeSent = 0;	
+
+	// Establish TCP connection with FS
+	fsConnection = tcpCreateClient(connectionInfo.fsip, 
+	connectionInfo.fsport);
+	tcpConnect(fsConnection);	
+
+	// Send message to FS: RTV UID TID Fname
+	msgSize = sprintf(msgBuffer, "%s %s %d\n", REQ_RTV, userInfo->uid, 
+	tid, fname);
+
+	if (msgSize == SSCANF_FAILURE) {
+		printf("Failed to prepare list message to FS.");
+	}
+	sizeSent = tcpSendMessage(fsConnection->fd,  msgBuffer, msgSize);
+	if (msgSize != sizeSent) {
+		printf("A problem may have occured while sending the list " 
+		"request because the whole message was not sent!");
+		return FALSE;
+	}
 	return TRUE;
 }
 
 
-bool_t req_upload() {
+bool_t req_upload(const userInfo_t *userInfo, const int tid, const char *filename) {
 	/*  User application establishes a TCP session with the FS server, 
 	to upload the file filename. The message includes the UID, the TID, the 
 	Fop, Fname and the file size. 
@@ -154,16 +205,34 @@ with name Fname and size Fsize bytes. The user ID (UID) and transaction ID
 (TID) are also provided. Before replying, the FS sends a message to the AS to
 validate the transaction (VLD).*/
 
-	// Open TCP connection with FS
+	//retreiveFile();
+	char msgBuffer[BUFFER_SIZE];
+	int msgSize, sizeSent;
+	msgSize = sizeSent = 0;
 
-	// Send to FS: UPL UID TID Fname Fsize data
+	// Establish TCP connection with FS
+	fsConnection = tcpCreateClient(connectionInfo.fsip, 
+	connectionInfo.fsport);
+	tcpConnect(fsConnection);	
 
+	// Send message to FS: UPL UID TID Fname Fsize data
+	/*msgSize = sprintf(msgBuffer, "%s %s %d\n", REQ_UPL, userInfo->uid, 
+	tid, fname, fsize, fdata);
 
+	if (msgSize == SSCANF_FAILURE) {
+		printf("Failed to prepare list message to FS.");
+	}
+	sizeSent = tcpSendMessage(fsConnection->fd,  msgBuffer, msgSize);
+	if (msgSize != sizeSent) {
+		printf("A problem may have occured while sending the upload " 
+		"request because the whole message was not sent!");
+		return FALSE;
+	}*/
 	return TRUE;
 }
 
 
-bool_t req_delete() {
+bool_t req_delete(const userInfo_t *userInfo, const int tid, const char *filename) {
 	/*following this command the User application establishes a TCP session 
 	with the FS server, to delete the file
 	filename. The message includes the UID, the TID, the Fop and Fname.
@@ -174,15 +243,33 @@ with the FS server and requests the deletion of the file with name Fname. The
 user ID (UID) and transaction ID (TID) are also provided. Before replying, the
 FS sends a message to the AS to validate the transaction (VLD).*/
 
-	// Open TCP connection with FS.
+	char msgBuffer[BUFFER_SIZE];
+	int msgSize, sizeSent;
+	msgSize = sizeSent = 0;
 	
-	// Send to FS: DEL UID TID Fname
+	// Establish TCP connection with FS
+	fsConnection = tcpCreateClient(connectionInfo.fsip, 
+	connectionInfo.fsport);
+	tcpConnect(fsConnection);	
 
+	// Send message to FS: DEL UID TID Fname
+	msgSize = sprintf(msgBuffer, "%s %s %d\n", REQ_DEL, userInfo->uid, 
+	tid, filename);
+
+	if (msgSize == SSCANF_FAILURE) {
+		printf("Failed to prepare list message to FS.");
+	}
+	sizeSent = tcpSendMessage(fsConnection->fd,  msgBuffer, msgSize);
+	if (msgSize != sizeSent) {
+		printf("A problem may have occured while sending the upload " 
+		"request because the whole message was not sent!");
+		return FALSE;
+	}
 	return TRUE;
 }
 
 
-bool_t req_remove() {
+bool_t req_remove(const userInfo_t *userInfo, const int tid) {
 	/*this command is used to request the FS to remove all files and
 directories of this User, as well as to request the FS to instruct the AS to delete 
 22/10/2020
@@ -197,11 +284,29 @@ The user ID (UID) and transaction ID (TID) are also provided. Before replying,
 the FS sends a message to the AS to validate the transaction (VLD) and
 requesting the AS to remove the user information.*/
 
-	// Open TCP connection with FS
+	char msgBuffer[BUFFER_SIZE];
+	int msgSize, sizeSent;
+	msgSize = sizeSent = 0;
+	
+	// Establish TCP connection with FS
+	fsConnection = tcpCreateClient(connectionInfo.fsip, 
+	connectionInfo.fsport);
+	tcpConnect(fsConnection);	
 
 	// Send to FS: REM UID TID
+	msgSize = sprintf(msgBuffer, "%s %s %d\n", REQ_REM, userInfo->uid, 
+	tid);
 
+	if (msgSize == SSCANF_FAILURE) {
+		printf("Failed to prepare list message to FS.");
+	}
 
+	sizeSent = tcpSendMessage(fsConnection->fd,  msgBuffer, msgSize);
+	if (msgSize != sizeSent) {
+		printf("A problem may have occured while sending the upload " 
+		"request because the whole message was not sent!");
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -263,28 +368,36 @@ otherwise (e.g. incorrectly formatted REQ message) the status is ERR.*/
 }
 
 
-bool_t resp_val(char *tid) {
+int resp_val(char *tidStr) {
 /*In reply the AS should confirm (or not) the success of the two-factor authentication, 
 	which should be displayed. The AS also sends the transaction ID TID.*/
 	/*RAU TID
 The AS confirms (or not) the success of the two-factor authentication, sending
 the transaction identifier TID to use in the file operation with the FS. The TID
 takes value 0 if the authentication failed.*/
+//_LOG("At resp val user %s %s", userInfo.uid, userInfo.pass);
+	int tid;
+	if (sscanf(tidStr, "%d", &tid) == SSCANF_FAILURE) {
+		printf("Failed to receive the transaction identifier (TID) from"
+		" the Authentication Server (AS). Please try again.\n");
+		return FALSE;
+	}
+	//todo check is digit?
 
-	//
-	/*
-	if TID = 0
-		printf Authentication near Authentication Server (AS) failed.
-		return FALSE
-	else
-		printf Authentication successeful. The TID for the request you 
-		asked for is %d, TID
-		return TRUE
-	*/
+	if (tid == RID_INVALID) {
+		printf("Authentication near Authentication Server (AS) failed.\n"
+		"\t-> Did you insert the correct VC?\n"
+		"\t-> Have you already inserted this VC?");
+		return FALSE;
+	} else {
+		printf("Authentication successeful. The TID for the request you"
+		" asked for is %4d\n.", tid);
+		return tid;
+	}
 }
 
 
-bool_t resp_list() {
+bool_t resp_list(char *buffer) {
 	/* 
 After receiving a message from the AS validating the transaction (CNF), the FS
 reply to a User application LST request contains the number N of available files,
@@ -302,9 +415,9 @@ RLS status:
  - status = ERR if the LST request is not correctly formulated*/
 	//Close TCP connection with FS.
 
-	/*
-		if is integer (status)
-			printf name \t\t\t size		like a table header?
+
+	/*if is integer (status)
+		printf name \t\t\t size		like a table header?
 			for i from 1 to status
 				printf name size
 		else if status = EOF
@@ -318,10 +431,11 @@ RLS status:
 
 
 	*/
+	return TRUE;
 }
 
 
-bool_t resp_retrieve() {
+bool_t resp_retrieve(char *status/*, data*/) {
 /*RRT status [Fsize data]
 After receiving a message from the AS validating the transaction (CNF), and in
 reply to a RTV request, the FS server transfers to the User application the
@@ -338,30 +452,29 @@ The name and path where the file is stored are displayed by the User application
 After receiving the reply message, the User application closes the TCP
 connection with the FS.*/
 
-/*
-	if status = OK
-		printf Retrieve request successeful
-		printf filename, path
-		printf fsize, data
-	else if status = EOF
-		printf File not available
-	else if status = NOK
-		printf here is no content available in the FS
-for the user with UID %d, UID
-	else if status = INV
-		printf AS failed to validate the retrieve request 
-		[maybe present TID?]
-	else if status = ERR
-		printf Retreive command wrongly formulated
-
+	int size;
+	if (!strcmp(status, STATUS_OK)) {
+		/*todo download file*/
+		printf("Retrieve request of file successeful [Size: %d].", size);
+		
+	} else if (!strcmp(status, FILE_NOT_AVAILABLE)) {
+		printf("File not available.");
+	} else if (!strcmp(status, STATUS_NOK)) {
+		printf("here is no content available in the FS"
+			" for the user with your UID.");
+	} else if (!strcmp(status, STATUS_INV)) {
+		printf("Authentication Server (AS) failed to validate the "
+		"retrieve request.");
+	} else if (!strcmp(status, SERVER_ERR)) {
+		printf("Retreive command wrongly formulated.");
+	}
 	// Close down FS TCP connection.
-
-*/
+	tcpDestroySocket(fsConnection);
 	return TRUE;
 }
 
 
-bool_t resp_upload(TCPConnection_t *fsConnection, char *status) {
+bool_t resp_upload(char *status) {
 /* RUP status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a UPL request consists in the FS server replying with the status of the
@@ -394,7 +507,7 @@ connection with the FS.*/
 }
 
 
-bool_t resp_delete(TCPConnection_t *fsConnection, char *status) {
+bool_t resp_delete(char *status) {
 /*RDL status
 After receiving a message from the AS (CNF) validating the transaction, the
 answer to a DEL request consists in the FS server replying with the status of the
@@ -418,7 +531,7 @@ Does it make sense to join them? */
 	else if (!strcmp(status, STATUS_INV))
 		printf("AS failed to validate le TID");
 	else if (!strcmp(status, SERVER_ERR))
-		WARN("Delete request wrongly formulated");
+		printf("Delete request wrongly formulated");
 
 	// Close FS TCP connection
 	tcpDestroySocket(fsConnection);
@@ -426,7 +539,7 @@ Does it make sense to join them? */
 }
 
 
-bool_t resp_remove(TCPConnection_t *fsConnection, char *status) {
+bool_t resp_remove(char *status) {
 /*After receiving a message from the AS (CNF) validating the transaction and
 confirming the user deletion in the AS, the FS removes all the user’s files and
 directories. 

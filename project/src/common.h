@@ -129,6 +129,12 @@ typedef char bool_t;
 #define FILE_NAME_SIZE 24
 
 
+
+#define FILE_NOT_AVAILABLE	"EOF"
+
+
+
+
 /* Macro for logging debug messages. */
 #ifdef DEBUG
 	#define LOG(MSG)	printf("\033[1;36m[LOG]: \33[0m" MSG "\n")

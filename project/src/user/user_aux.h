@@ -4,6 +4,7 @@
 #include "../common.h"
 #include "../tcp.h"
 #include <sys/select.h>
+#include "../fs/files.h"
 
 
 /* the information to allow communication with the servers */
@@ -23,14 +24,27 @@ typedef struct user_info_t {
 
 	char *uid;				// the user's ID.
 	char *pass;				// the user's password.
-	bool_t connected;		// the connection flag.
-	bool_t fsConnected;		// TRUE if User is connected to FS
+	bool_t asConnected;		// TRUE if User is connected to AS.
+	bool_t fsConnected;		// TRUE if User is connected to FS.
 
 } userInfo_t;
+
+// tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+static userInfo_t userInfo = { 0 };
+
+static TCPConnection_t *asConnection = NULL;
+static TCPConnection_t *fsConnection = NULL;
+
+
 
 #define RAND_NUM_MIN 1000
 #define RAND_NUM_MAX 9999
 
+#define RID_INVALID	0
+#define	TID_INVALID	0
+
+#define SSCANF_FAILURE	EOF
 
 /* User commands */
 #define CMD_LOGIN	"login"
@@ -63,6 +77,9 @@ typedef struct user_info_t {
 #define FOP_STR_D	"D"
 #define FOP_STR_X	"X"
 
+
+
+
 /*! \brief Brief function description here
  *
  *  Detailed description of the function
@@ -80,7 +97,7 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname, int *rid);
+int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname);
 
 
 
@@ -91,7 +108,7 @@ bool_t req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, co
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int *rid);
+bool_t req_val(const TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int rid);
 
 
 
@@ -102,7 +119,7 @@ bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const 
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_list();
+bool_t req_list(const userInfo_t *userInfo, const int tid);
 
 
 /*! \brief Brief function description here
@@ -192,7 +209,7 @@ bool_t resp_request(char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_val(char *tid);
+int resp_val(char *tid);
 
 
 /*! \brief Brief function description here
@@ -222,7 +239,7 @@ bool_t resp_retrieve();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_upload(TCPConnection_t *fsConnection, char *status);
+bool_t resp_upload(char *status);
 
 
 /*! \brief Brief function description here
@@ -232,7 +249,7 @@ bool_t resp_upload(TCPConnection_t *fsConnection, char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_delete(TCPConnection_t *fsConnection, char *status);
+bool_t resp_delete(char *status);
 
 
 /*! \brief Brief function description here
@@ -242,7 +259,7 @@ bool_t resp_delete(TCPConnection_t *fsConnection, char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_remove(TCPConnection_t *fsConnection, char *status);
+bool_t resp_remove(char *status);
 
 
 /*! \brief Brief function description here
