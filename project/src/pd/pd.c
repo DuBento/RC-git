@@ -19,25 +19,6 @@ static UDPConnection_t *pdConnection = NULL;
 #define CMD_EXIT	"exit"		// exit command
 
 
-/*! \brief Cleans the program on termination
- *
- *	Frees all the memory alocated by the program and cleans terminates all the 
- *	required modules.
- */
-void cleanPD() {
-	if (asConnection == NULL)
-			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
-			
-	if(userInfo.connected) {
-		req_unregisterUser(asConnection, &userInfo);
-		handleClient(asConnection, NULL, NULL);
-	}
-	if (asConnection != NULL)   udpDestroySocket(asConnection);
-	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
-	free(userInfo.uid);
-	free(userInfo.pass);
-}
-
 
 /*! \brief Set program to terminate on success.
  *
@@ -222,6 +203,25 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	}
 }
 
+
+/*! \brief Cleans the program on termination
+ *
+ *	Frees all the memory alocated by the program and cleans terminates all the 
+ *	required modules.
+ */
+void cleanPD() {
+	if (asConnection == NULL)
+			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			
+	if(userInfo.connected) {
+		req_unregisterUser(asConnection, &userInfo);
+		handleClient(asConnection, NULL, NULL);
+	}
+	if (asConnection != NULL)   udpDestroySocket(asConnection);
+	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
+	free(userInfo.uid);
+	free(userInfo.pass);
+}
 
 
 
