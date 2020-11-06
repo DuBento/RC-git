@@ -133,6 +133,7 @@ bool_t resp_unregisterUser(char *status, userInfo_t *userInfo) {
         if (!strcmp(status, STATUS_OK)) {
                 printf("Unregistration successful.\n");
                 raise(SIGTERM); // unconditional stop execution
+                return TRUE;
         }               
 
         if (!strcmp(status, STATUS_NOK)) {

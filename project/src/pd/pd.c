@@ -19,19 +19,6 @@ static UDPConnection_t *pdConnection = NULL;
 #define CMD_EXIT	"exit"		// exit command
 
 
-/*! \brief Cleans the program on termination
- *
- *	Frees all the memory alocated by the program and cleans terminates all the 
- *	required modules.
- */
-void cleanPD() {
-	if(userInfo.connected)  	req_unregisterUser(asConnection, &userInfo);
-	if (asConnection != NULL)   udpDestroySocket(asConnection);
-	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
-	free(userInfo.uid);
-	free(userInfo.pass);
-}
-
 
 /*! \brief Set program to terminate on success.
  *
@@ -99,11 +86,13 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
-void removeSocket(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
-	if (*fdsSize == udpConnec->fd+1)	*fdsSize--;
-	FD_CLR(udpConnec->fd, fds);
-	udpDestroySocket(udpConnec);
-	udpConnec = NULL;
+void removeSocketClient(fd_set *fds, int *fdsSize) {
+	if (fds == NULL || fdsSize == NULL)	return;
+	int fd = asConnection->fd;
+	if (*fdsSize == (fd + 1))	*fdsSize--;
+	FD_CLR(fd, fds);
+	udpDestroySocket(asConnection);
+	asConnection = NULL;
 }
 
 void addSocket(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
@@ -190,11 +179,11 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	// Registration response "RRG"
 	if (!strcmp(opcode, RESP_REG)) {
 		if (resp_registerUser(args, &userInfo)) { // hable to register
-			removeSocket(udpConnec, fds, fdsSize);	// removes client socket
+			removeSocketClient(fds, fdsSize);	// removes client socket
 			if (pdConnection == NULL) {
 				pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 				addSocket(pdConnection, fds, fdsSize);
-				_LOG("server fd: %d, fdssize: %d", pdConnection->fd, fdsSize);
+				_LOG("server fd: %d, fdssize: %d", pdConnection->fd, *fdsSize);
 			}
 		}
 	}
@@ -214,6 +203,25 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	}
 }
 
+
+/*! \brief Cleans the program on termination
+ *
+ *	Frees all the memory alocated by the program and cleans terminates all the 
+ *	required modules.
+ */
+void cleanPD() {
+	if (asConnection == NULL)
+			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			
+	if(userInfo.connected) {
+		req_unregisterUser(asConnection, &userInfo);
+		handleClient(asConnection, NULL, NULL);
+	}
+	if (asConnection != NULL)   udpDestroySocket(asConnection);
+	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
+	free(userInfo.uid);
+	free(userInfo.pass);
+}
 
 
 
@@ -242,29 +250,26 @@ void runPD() {
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
-		if (selRetv  == -1)
+		if (selRetv  == -1){
+			if (errno == EINTR) break;	// return from signal
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+		}
 
 		// handle server responses
 		if (pdConnection != NULL && FD_ISSET(pdConnection->fd, &fdsTemp)) {
-			putStr("SERVER",TRUE);
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
 			handleServer(pdConnection,  &fds, &fdsSize);	
 			putStr(STR_INPUT, TRUE);		// string before the user input
-			putStr("ENDSERVER",TRUE);
 			waitingReply = FALSE;
 		}
 
 		// handle server responses
 		if (asConnection != NULL && FD_ISSET(asConnection->fd, &fdsTemp)) {
-			putStr("CLIENT",TRUE);
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
 			handleClient(asConnection, &fds, &fdsSize);	
 			putStr(STR_INPUT, TRUE);		// string before the user input
-			putStr("ENDCLIENT",TRUE);
-
 			waitingReply = FALSE;
 		}
 
@@ -289,6 +294,7 @@ void runPD() {
 		}
 	}
 
+	putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 	// terminate
 	cleanPD();
 	exit(exitCode);
