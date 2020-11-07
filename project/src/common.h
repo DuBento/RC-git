@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <linux/limits.h>
@@ -31,8 +32,6 @@ typedef char bool_t;
 #define DEFAULT_FS_PORT	"59053\0"
 #define	DEFAULT_AS_PORT	"58053\0"
 
-/* General implementation constants  */
-#define UID_SIZE	5
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
@@ -60,6 +59,7 @@ typedef char bool_t;
 /* Protocol constants. */
 #define CMD_SIZE	4	// the size of command
 #define UID_SIZE	5	// the size of the UID
+#define TID_SIZE	4	// the size of the TID
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
 

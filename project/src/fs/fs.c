@@ -1,4 +1,5 @@
 #include "fs_aux.h"
+#include "../list.h"
 #include "../files.h"
 
 
@@ -9,7 +10,7 @@ char filesPath[PATH_MAX];
 
 bool_t verbosity = FALSE;
 bool_t bRunning = TRUE;
-int exitCode = 0;
+int errCode;
 
 
 
@@ -19,7 +20,7 @@ int exitCode = 0;
  */
 void terminateFS() {
 	bRunning = FALSE;
-	exitCode = 0;
+	errCode = 0;
 }
 
 
@@ -29,7 +30,7 @@ void terminateFS() {
  */
 void abortFS() {
 	bRunning = FALSE;
-	exitCode = 1;
+	errCode = 1;
 }
 
 
@@ -81,10 +82,97 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
+void handleUserConnection(List_t userConnections) {
+	
+}
 
+
+
+
+
+void processUserRequests(const struct timeval *oldTime, List_t userRequests) {
+		struct timeval newTime;
+		gettimeofday(&newTime, NULL);
+		float timeExpired = newTime.tv_sec - oldTime->tv_sec;
+
+		ListIterator_t iterator = listIteratorCreate(userRequests);
+		while (!listIteratorEmpty(&iterator)) {
+			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
+			if (userRequest->nTries != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
+				if (userRequest->nTries == NREQUEST_TRIES) {
+					_LOG("Maximum number of requsts reached on request %s. Aborting...", userRequest->tid);
+					// send message back to the user
+				}
+
+				userRequest->exeRequest(userRequest);
+			}
+		}
+}
+
+
+
+/*! \brief Handles the server messages during the runtime.
+ *
+ *  Verifies which message was sent by the server and updates the server accordingly
+ */
 void runFS() {
-	while (bRunning) {
+	TCPConnection_t *tcpConnection = tcpCreateServer(connectionInfo.fsip, connectionInfo.fsport, SOMAXCONN);
+	UDPConnection_t *udpConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	List_t userConnections = listCreate();
+	List_t userRequests = listCreate();
 
+	while (bRunning) {
+		struct timeval tv, currentTime;
+		gettimeofday(&currentTime, NULL);
+		tv.tv_sec = TIMEOUT;
+		tv.tv_usec = 0;
+
+		fd_set fds;
+		FD_ZERO(&fds);
+		FD_SET(tcpConnection->fd, &fds);
+		int fdsSize = tcpConnection->fd + 1;	
+
+		if (udpConnection != NULL) {
+			FD_SET(udpConnection->fd, &fds);
+			fdsSize = (fdsSize > udpConnection->fd ? fdsSize : udpConnection->fd + 1);
+		}
+
+		ListIterator_t iterator = listIteratorCreate(userConnections);
+		while (!listIteratorEmpty(&iterator)) {
+			int fd = ((TCPConnection_t*)listIteratorNext(&iterator))->fd;
+			FD_SET(fd, &fds);
+			fdsSize = (fdsSize > fd ? fdsSize : fd + 1);
+		}
+		
+
+
+		int selRetv = select(fdsSize, &fds, NULL, NULL, &tv);
+		if (selRetv == -1) {
+			if (errno == EINTR)		break;	// return from signal
+			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+		}
+
+		// handle the new users's connections
+		if (FD_ISSET(tcpConnection->fd, &fds))
+			handleUserConnection(userConnections);
+
+		// handle the as reply
+		if (udpConnection != NULL && FD_ISSET(udpConnection->fd, &fds)) {
+			// handle as reply
+		}
+
+		// handles the user's new requests
+		iterator = listIteratorCreate(userConnections);
+		while (!listIteratorEmpty(&iterator)) {
+			ListNode_t node = listIteratorNextNode(&iterator);
+			TCPConnection_t *userConnection = (TCPConnection_t *)listValue(node);
+			if (FD_ISSET(userConnection->fd, &fds)) {
+				;	// handle userRequest	
+			}
+		}
+
+		// processes the user's current requests
+		processUserRequests(&currentTime, userRequests);
 	}
 }
 
@@ -96,8 +184,8 @@ int main(int argc, char *argv[]) {
 
 	files = initDir(argv[0], "files", filesPath);
 	runFS();
-	
 
+	// cleans the file system and exits
 	closedir(files);
-	return 0;
+	return errCode;
 }	

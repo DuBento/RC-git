@@ -126,8 +126,16 @@ int listIteratorEmpty(ListIterator_t *iterator)
 		return 0; 
 }
 
+// returns the current node of the iteration and jumps on to the next
+ListNode_t listIteratorNextNode(ListIterator_t *iterator)
+{
+	ListNode_t node = (*iterator)->current;
+	(*iterator)->current = node->_next;
+	return node;
+}
 
-// jumps on to the next element of the list and returns its value
+
+// returns the current element of the iteration and jumps on to the next
 void* listIteratorNext(ListIterator_t *iterator)
 {
 	ListNode_t node = (*iterator)->current;
