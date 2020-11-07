@@ -121,7 +121,7 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection);
  *
  *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpDestroySocket(TCPConnection_t *tcpConnection);
+TCPConnection_t *tcpDestroySocket(TCPConnection_t *tcpConnection);
 
 
 

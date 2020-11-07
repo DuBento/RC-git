@@ -1,6 +1,6 @@
 #include "tcp.h"
 
-// creates an initializes a TCP socket
+// creates and initialises a TCP socket
 TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode) {
 	TCPConnection_t *tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
 	struct addrinfo hints;
@@ -21,6 +21,9 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
+
+free(res);
+
 	return tcpConnection;
 }
 
@@ -80,7 +83,7 @@ int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
-	_LOG("[TCP] Mesaage received (%d bytes) - '%s'", sizeRead, buffer);
+	_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
@@ -114,7 +117,9 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 
 
 // terminates the tcp socket
-void tcpDestroySocket(TCPConnection_t *tcpConnection) {
+TCPConnection_t *tcpDestroySocket(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d: %s", errno, strerror(errno));
+	free(tcpConnection);
+	return NULL;
 }

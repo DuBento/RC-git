@@ -33,8 +33,7 @@ typedef struct user_info_t {
 static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 static userInfo_t userInfo = { 0 };
 
-static TCPConnection_t *asConnection = NULL;
-static TCPConnection_t *fsConnection = NULL;
+
 
 
 
@@ -119,7 +118,7 @@ bool_t req_val(const TCPConnection_t *asConnection, const userInfo_t *userInfo, 
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_list(const userInfo_t *userInfo, const int tid);
+bool_t req_list(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid);
 
 
 /*! \brief Brief function description here
@@ -129,7 +128,7 @@ bool_t req_list(const userInfo_t *userInfo, const int tid);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_retrieve();
+bool_t req_retrieve(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *fname);
 
 
 /*! \brief Brief function description here
@@ -139,7 +138,7 @@ bool_t req_retrieve();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_upload();
+bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *filename);
 
 
 /*! \brief Brief function description here
@@ -149,7 +148,7 @@ bool_t req_upload();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_delete();
+bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *filename);
 
 
 /*! \brief Brief function description here
@@ -159,17 +158,7 @@ bool_t req_delete();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_remove();
-
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-bool_t req_exit();
+bool_t req_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid);
 
 
 /*! \brief Brief function description here
@@ -219,7 +208,7 @@ int resp_val(char *tid);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_list();
+bool_t resp_list(TCPConnection_t **fsConnection, char *data);
 
 
 /*! \brief Brief function description here
@@ -229,7 +218,7 @@ bool_t resp_list();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_retrieve();
+bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status);
 
 
 /*! \brief Brief function description here
@@ -239,7 +228,7 @@ bool_t resp_retrieve();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_upload(char *status);
+bool_t resp_upload(TCPConnection_t **fsConnection, char *status);
 
 
 /*! \brief Brief function description here
@@ -249,7 +238,7 @@ bool_t resp_upload(char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_delete(char *status);
+bool_t resp_delete(TCPConnection_t **fsConnection, char *status);
 
 
 /*! \brief Brief function description here
@@ -259,16 +248,7 @@ bool_t resp_delete(char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_remove(char *status);
+bool_t resp_remove(TCPConnection_t **fsConnection, char *status);
 
-
-/*! \brief Brief function description here
- *
- *  Detailed description of the function
- *
- * \param  Parameter description
- * \return Return parameter description
- */
-bool_t resp_exit();
 
 #endif 	/* USER_AUX */

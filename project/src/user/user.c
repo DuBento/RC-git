@@ -3,7 +3,8 @@
 #include <string.h>
 
 
-
+static TCPConnection_t *asConnection = NULL;
+static TCPConnection_t *fsConnection = NULL;
 
 static int rid = RID_INVALID;
 static int tid = TID_INVALID;
@@ -16,13 +17,13 @@ static int tid = TID_INVALID;
  *	required modules.
  */
 void cleanUser() {
-	if (asConnection != NULL)   tcpDestroySocket(asConnection);
-	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
-  
-  if (userInfo.uid != NULL)
-		free(userInfo.uid);
-	if (userInfo.pass != NULL)
-		free(userInfo.pass);
+	if (asConnection != NULL)  {	LOG("as not null");tcpDestroySocket(asConnection); }
+	if (fsConnection != NULL)	{LOG("fs not null"); tcpDestroySocket(fsConnection);}
+
+	if (userInfo.uid != NULL) {
+		free(userInfo.uid);}
+	if (userInfo.pass != NULL) {
+		free(userInfo.pass);}
 }
 
 
@@ -118,34 +119,34 @@ bool_t handleUser() {
 	// list command: list or l
 	else if ((!strcmp(cmd, CMD_LIST) || !strcmp(cmd, CMD_LIST_S)) 
 	&& input1[0] == '\0')
-		userInfo.fsConnected = req_list(&userInfo, tid);
+		userInfo.fsConnected = req_list(&fsConnection, &userInfo, tid);
 
 	// retrieve command: retrieve filename or r filename
 	else if ((!strcmp(cmd, CMD_RETRIEVE) || !strcmp(cmd, CMD_RETRIEVE_S)) 
 	&& input1[0] != '\0' && input2[0] == '\0')
-		;//return req_retrieve(fsConnection);
+		userInfo.fsConnected = req_retrieve(&fsConnection, &userInfo, tid, input1);
 
 	// upload command: upload filename or u filename
 	else if ((!strcmp(cmd, CMD_UPLOAD) || !strcmp(cmd, CMD_UPLOAD_S)) 
 	&& input1[0] != '\0' && input2[0] == '\0')
-		return req_upload(&userInfo, tid, input1);
+		userInfo.fsConnected = req_upload(&fsConnection, &userInfo, tid, input1);
 			
 	// delete command: delete filename or d filename
 	else if ((!strcmp(cmd, CMD_DELETE) || !strcmp(cmd, CMD_DELETE_S)) 
 	&& input1[0] != '\0' && input2[0] == '\0')
-		;//return req_delete();
+		userInfo.fsConnected = req_delete(&fsConnection, &userInfo, tid, input1);
 
 	//remove command: remove or x 
 	else if ((!strcmp(cmd, CMD_REMOVE) || !strcmp((cmd), CMD_REMOVE_S)) 
 	&& input1[0] == '\0')
-		;//return req_remove();
+		userInfo.fsConnected = req_remove(&fsConnection, &userInfo, tid);
 
 	// exit command: exit
 	else if (!strcmp(cmd, CMD_EXIT) && input1[0] == '\0')
 		terminateUser();
 			 
 	else {
-		WARN("Invalid command! Operation ignored.");
+		WARN("Invalid command! Operation ignored.\n");
 		return FALSE;
 	}
 	return FALSE;
@@ -182,42 +183,41 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 
 
 bool_t handleFSServer() {
-	char buffer[BUFFER_SIZE] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFFER_SIZE] = {0};
+	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFSIZ] = {0};
 	int size;
 	
 	/* Each user can have a maximum of 15 files stored in the FS server. */
 	/* All file Fsize fields can have at most 10 digits. */
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 	
-	
-	size = tcpReceiveMessage(fsConnection->fd, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(fsConnection->fd, buffer,BUFSIZ);
 	_LOG("Le fs buffer %s", buffer);
-	/*sscanf(buffer, "%s %s", opcode, arg);
+	sscanf(buffer, "%s %s", opcode, arg);
 
 	// List response RLS N[ Fname Fsize]*
-	if (!strcmp(opcode, RESP_LOG))
-		return resp_list(arg);
+	if (!strcmp(opcode, RESP_LST))
+		userInfo.fsConnected = !resp_list(&fsConnection, arg);
 
 	// Retrieve code response "RRT status [Fsize data]"	
-	else if (!strcmp(opcode, RESP_REQ))
-		return resp_retrieve(arg);
+/*	else if (!strcmp(opcode, RESP_REQ))
+		userInfo.fsConnected = !resp_retrieve(arg);
 
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_AUT))
-		return resp_upload(fsConnection, arg);
+		userInfo.fsConnected = !resp_upload(fsConnection, arg);*/
 
 	//	Delete response RDL status
-	else if (!strcmp(opcode, RESP_AUT))
-		return resp_delete(fsConnection, arg);
+	else if (!strcmp(opcode, RESP_DEL))
+		userInfo.fsConnected = !resp_delete(&fsConnection, arg);
 
 	//	Remove response RRM status
-	else if (!strcmp(opcode, RESP_AUT))
-		return resp_remove(fsConnection, arg);
+	else if (!strcmp(opcode, RESP_REM))
+		userInfo.fsConnected = !resp_remove(&fsConnection, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
-		WARN("Invalid request! Operation ignored.");
+		WARN("Invalid request! Operation ignored\n.");
 		return FALSE;
-	}*/
+	}
 	return TRUE;
 }
 
@@ -248,13 +248,15 @@ void runUser() {
 	
 	/*putStr(STR_INPUT, TRUE);*/		// string before the user input
 	while (TRUE) {
-		if (userInfo.fsConnected) {
-			FD_SET(fsConnection->fd, &fds);
-			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
-		}
-
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
+		fdsSize = asConnection->fd + 1;
+
+		if (userInfo.fsConnected) {
+			FD_SET(fsConnection->fd, &fdsTemp);
+			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
+		}
+LOG("Yey reached select!");
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
 		if (selRetv  == -1)
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
@@ -271,12 +273,12 @@ void runUser() {
 
 		if (userInfo.fsConnected && FD_ISSET(fsConnection->fd, &fdsTemp)) {
 		// handle FS server responses
-				//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-				//putStr(STR_RESPONSE, TRUE);		// string before the server output
-				LOG("Yey fs contacted us!");
-				handleFSServer();	
-				//putStr(STR_INPUT, TRUE);		// string before the user input
-				waitingReply = FALSE;
+			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+			//putStr(STR_RESPONSE, TRUE);		// string before the server output
+			LOG("Yey fs contacted us!");
+			handleFSServer();	
+			//putStr(STR_INPUT, TRUE);		// string before the user input
+			waitingReply = FALSE;
 		}
 
 		// handle stdin
@@ -290,15 +292,33 @@ void runUser() {
 				// Exceeded max resends
 				WARN("The server is not responding! Operation ignored");
 				waitingReply = FALSE;
-			}
-			else
-				waitingReply = req_resendLastMessage(asConnection);
+
+			} else if (userInfo.asConnected) {
+				WARN("Authentication server (AS) not responding "
+				"Trying to recontact...\n");
+				waitingReply = req_resendLastMessage(asConnection);	// todo to change to fs also
 				++nRequestTries;
+
+			} else if (userInfo.fsConnected) {
+				WARN("File server (FS) not responding "
+				"Trying to recontact...\n");
+				waitingReply = req_resendLastMessage(fsConnection);	// todo to change to fs also
+				++nRequestTries;
+			}
 		}
 	}
 }
 
 
+bool_t initUser() {
+	/* Establish TCP connection with AS. */
+	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	tcpConnect(asConnection);
+
+	/* Initialise user info structure. */
+	userInfo.fsConnected = FALSE;
+	return TRUE;
+}
 
 
 
@@ -308,9 +328,7 @@ int main(int argc, char *argv[]) {
 	initSignal(&terminateUser, &abortUser);
 	parseArgs(argc, argv);	
 
-	/* Establish TCP connection with AS. */
-	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
-	tcpConnect(asConnection);	
+	initUser();
 	runUser();
 
 	terminateUser();
