@@ -159,12 +159,12 @@ void putStr(const char *buffer, bool_t flush) {
 // return te operation string correspondent to the file op
 const char* getFileOp(const char op) {
 	switch (op) {
-	case FOP_L: return "list";
-	case FOP_U: return "upload";
-	case FOP_R: return "retrieve";
-	case FOP_D: return "delete";
-	case FOP_X: return "remove";
-	default: return "\0";
+		case FOP_L: return "list";
+		case FOP_U: return "upload";
+		case FOP_R: return "retrieve";
+		case FOP_D: return "delete";
+		case FOP_X: return "remove";
+		default: return "\0";
 	}
 }
 
@@ -219,9 +219,9 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 // checks if the specified file is whitin the given directory.
 bool_t inDir(DIR* dir, char* filename){
 	struct dirent *ent;
-		while ((ent = readdir(dir)) != NULL)
-			if (!strcmp(ent->d_name, filename)) 
-				return TRUE;
+	while ((ent = readdir(dir)) != NULL)
+		if (!strcmp(ent->d_name, filename)) 
+			return TRUE;
 
 	return FALSE;	
 }
