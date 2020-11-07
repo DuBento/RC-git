@@ -22,6 +22,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
+	freeaddrinfo(res);
 	return tcpConnection;
 }
 
