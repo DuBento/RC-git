@@ -9,9 +9,15 @@ static DIR *files;
 char filesPath[PATH_MAX];
 
 bool_t verbosity = FALSE;
-bool_t bRunning = TRUE;
-int errCode;
 
+
+/*! \brief Cleans the server and frees all the memory allocated.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void cleanFS() {
+	closedir(files);
+}
 
 
 /*! \brief Terminates the program on success.
@@ -19,8 +25,8 @@ int errCode;
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
 void terminateFS() {
-	bRunning = FALSE;
-	errCode = 0;
+	cleanFS();
+	exit(EXIT_SUCCESS);
 }
 
 
@@ -29,8 +35,8 @@ void terminateFS() {
  *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
  */
 void abortFS() {
-	bRunning = FALSE;
-	errCode = 1;
+	cleanFS();
+	exit(EXIT_FAILURE);
 }
 
 
@@ -79,7 +85,6 @@ void parseArgs(int argc, char *argv[]) {
 	_LOG("Runtime settings:\nFSIP\t: %s\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
 			connectionInfo.fsip, connectionInfo.fsport, connectionInfo.asip, connectionInfo.asport, verbosity);
 }
-
 
 
 
@@ -153,7 +158,7 @@ void runFS() {
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 
-	while (bRunning) {
+	while (TRUE) {
 		fd_set fdsTemp = fds;
 		struct timeval tvTemp, currentTime;
 		gettimeofday(&currentTime, NULL);
@@ -196,10 +201,9 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
-	VERBOSE("Starting FS server...");
-	runFS();
-
-	// cleans the file system and exits
-	closedir(files);
-	return errCode;
+	//VERBOSE("Starting FS server...");
+	//runFS();
+	
+	cleanFS();
+	return 0;
 }	
