@@ -285,41 +285,7 @@ const char *getFileOp(const char op);
 int randomNumber(int min, int max);
 
 
-/*! \brief Initialize a directory on the specified path.
- *
- *  Opens a directory on the specified path. The directory is created if it does not exist.
- *  Returns a pointer to the directory and stores its path on the 'path' variable
- * 
- * 	\param  path			the path to the main directory.
- * 	\param  dirname			the name of the directory (relative to the path).
- * 	\param  outPath			buffer to hold directory path (can be set to NULL).
- * 	\return the directory pointer.
- */ 
-DIR* initDir(const char* path, const char* dirname, char* outPath);
 
-
-/*! \brief Initialize a directory near the executable.
- *
- *  Opens a directory near the specified executable file.
- * 
- * 	\param  exePath			the path of the executable (will act as a relative path).
- * 	\param  dirname			the name of the directory.
- * 	\param  outPath			buffer to hold relative path (can be set to NULL).
- * 	\return the directory pointer.
- */ 
-DIR* initDirFromExe(char* exePath, const char* dirname, char* outPath);
-
-
-/*! \brief Checks if the specified file is whitin the given directory.
- *
- *  Iterates through the directory and checks in any file matches the specified filename.
- *  If so, returns TRUE, otherwise returns FALSE.
- * 
- * 	\param  dir			the directory where to search.
- * 	\param  filename		the name of the file.
- * 	\return TRUE if the file is whitin the directory, FALSE otherwise.
- */ 
-bool_t inDir(DIR* dir, char* filename);
 
 
 /*! \brief Creates a new file in a directory.
