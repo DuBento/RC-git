@@ -24,6 +24,9 @@ typedef struct tcp_connection {
 } TCPConnection_t;
 
 
+char* tcpConnIp(TCPConnection_t *conn);
+int tcpConnPort(TCPConnection_t *conn);
+
 
 /*! \brief Creates and initializes a TCP socket.
  *
@@ -78,7 +81,7 @@ void tcpConnect(TCPConnection_t *udpConnection);
  *  \param  tcpConnection	the tcp connection structure.
  *  \return the file descriptor for communicating with the client.
  */
-int tcpAcceptConnection(TCPConnection_t *udpConnection);
+int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon);
 
 
 /*! \brief Receives a TCP message.

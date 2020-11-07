@@ -1,5 +1,17 @@
 #include "tcp.h"
 
+
+char* tcpConnIp(TCPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return inet_ntoa(addr_in->sin_addr);
+}
+
+int tcpConnPort(TCPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return ntohs(addr_in->sin_port);
+}
+
+
 // creates an initializes a TCP socket
 TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode) {
 	TCPConnection_t *tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
@@ -52,11 +64,16 @@ void tcpConnect(TCPConnection_t *tcpConnection) {
 
 
 // accepts the connections from the clients
-int tcpAcceptConnection(TCPConnection_t *tcpConnection) {	
-	struct sockaddr_in addr;
-	int addrlen = sizeof(addr);
+int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon) {	
+	int newfd;
+	if (newCon == NULL)
+		newfd = accept(tcpConnection->fd, NULL, NULL);
+	else {
+		newCon->addrlen = sizeof(newCon->addr);
+		newfd = accept(tcpConnection->fd, &newCon->addr, &newCon->addrlen);
+		newCon->fd = newfd;	
+	} 
 
-	int newfd = accept(tcpConnection->fd, (struct sockaddr*)&addr, &addrlen);
 	if (newfd == -1)
 		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
 
