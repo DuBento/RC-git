@@ -1,11 +1,20 @@
 #include "udp.h"
 
+char* udpConnIp(UDPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return inet_ntoa(addr_in->sin_addr);
+}
+
+int udpConnPort(UDPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return ntohs(addr_in->sin_port);
+}
 
 // creates and initializes an UDP socket
 UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode) {
 	UDPConnection_t *udpConnection = (UDPConnection_t*)malloc(sizeof(UDPConnection_t));
 	struct addrinfo hints;
-	struct addrinfo *res = { 0 };
+	struct addrinfo *res = {0};
 	memset(&hints, '\0', sizeof(struct addrinfo));
 	udpConnection->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (udpConnection->fd == -1)

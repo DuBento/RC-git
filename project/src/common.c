@@ -228,8 +228,7 @@ bool_t inDir(DIR* dir, char* filename){
 
 // creates a new file in a directory
 bool_t createFile(char* pathname, const char* data, int len) {
-	int ret;
-	int fd = open(pathname, S_IRUSR|S_IWUSR|O_CREAT|O_WRONLY);
+	int fd = open(pathname, O_CREAT|O_WRONLY, 700);
 	if (fd < 0) {
 		_WARN("Failed to create file.\n\t - Error code: %d", errno);
 		return FALSE;
@@ -239,7 +238,28 @@ bool_t createFile(char* pathname, const char* data, int len) {
 		_WARN("Unable to write to file.\n\t - Error code: %d", errno);
 		return FALSE;
 	}
+
+	_LOG("[createFile] File Path:%s\n", pathname);
 		
 	close(fd);
 	return TRUE;
+}
+
+bool_t readFile(char* pathname, char* buf, int size) {
+	return FALSE;
+	// int fd = open(pathname, O_RDONLY);
+	// if (fd < 0) {
+	// 	if(errno == ENOENT)
+	// 		return FALSE;
+	// 	else
+	// 		_WARN("[readFile] Failed to open file.\n\t - Error code: %d", errno);
+	// 		return FALSE;
+	// }
+
+	// if(read(fd, buf, size) < 0)
+	// 	_WARN("[readFile] Failed to read file.\n\t - Error code: %d", errno);
+	
+	// buf[size+1] = '\0';		// for string manipulaiton
+	// return TRUE;
+
 }

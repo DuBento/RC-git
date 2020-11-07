@@ -21,12 +21,10 @@ typedef struct connectionInfo_t {
 /* ========== GLOBAL ============= */
 DIR *dir;
 char dir_path[PATH_MAX];
-TCPConnection_t *userConnection;
+TCPConnection_t *tcpServer;
 UDPConnection_t *udpServer;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
-
-#define CHECK_VERBOSITY { return verbosity }
 
 
 // /* ========================== */
@@ -118,18 +116,21 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	int n;
 	char opcode[BUFFER_SIZE];
-	
-	n = udpReceiveMessage(udpConnec, msgBuf, BUFFER_SIZE);
+	UDPConnection_t recvConnoc;
+	n = udpReceiveMessage(udpConnec, &recvConnoc, msgBuf, BUFFER_SIZE);
 	// TODO setClean();
 
 	sscanf(msgBuf, "%s", opcode);
 
 	// Registration Request
-	if (!strcmp(opcode, REQ_REG))
-		req_registerPD(udpConnec, msgBuf, dir_path);
-	// Unregistration Request
-	else if (!strcmp(opcode, REQ_UNR))
-		;// TODO unregisterUser(respEnd);                
+	if (!strcmp(opcode, REQ_REG)){
+		req_registerPD(udpConnec, &recvConnoc, msgBuf, dir_path);
+		return FALSE;	// not waiting replay
+	}// Unregistration Request
+	else if (!strcmp(opcode, REQ_UNR)){
+		req_unregisterPD(udpConnec, &recvConnoc, msgBuf, dir_path);                
+		return FALSE;	// not waiting replay
+	}
 	// Validation Code received "VLC"
 	else if (!strcmp(opcode, RESP_VLC))
 		;// TODO validationCode_Response();
@@ -141,10 +142,11 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		// return req_serverError(fd);
 	}
+
 }
 
 
-void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, char *msgBuf) {
+void waitMainEvent(TCPConnection_t *tcpConnect, UDPConnection_t *udpConnec, char *msgBuf) {
 	fd_set fds, ready_fds;
 	struct timeval tv, tmp_tv;
 	int selectRet, fds_size;
@@ -152,9 +154,9 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 	int waitingReply = FALSE;
 	/* SELECT */
 	FD_ZERO(&fds);
-	FD_SET(userConnection->fd, &fds);
+	FD_SET(tcpConnect->fd, &fds);
 	FD_SET(udpConnec->fd, &fds);
-	fds_size = (userConnection->fd > udpConnec->fd) ? userConnection->fd+1 : udpConnec->fd+1;
+	fds_size = (tcpConnect->fd > udpConnec->fd) ? tcpConnect->fd+1 : udpConnec->fd+1;
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 
@@ -173,7 +175,7 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 			// handle PD interaction
 			waitingReply = handleUDP(udpConnec, msgBuf);
 		}
-		if (FD_ISSET(userConnection->fd, &ready_fds)){
+		if (FD_ISSET(tcpConnect->fd, &ready_fds)){
 			// handle User new connection
 		}
 		if (selectRet == 0 && waitingReply) {// timeout expired
@@ -195,14 +197,14 @@ void waitMainEvent(TCPConnection_t *userConnection, UDPConnection_t *udpConnec, 
 
 void exitAS() {
 	udpDestroySocket(udpServer);
-	tcpDestroySocket(userConnection);
+	tcpDestroySocket(tcpServer);
 	closedir(dir);
 	exit(EXIT_SUCCESS);
 }
 
 void listDir(DIR* dir){
 	struct dirent *ent;
-		while ((ent = readdir(dir)) != NULL) {
+    	while ((ent = readdir(dir)) != NULL) {
 		printf("%s\n", ent->d_name);
 	}
 }
@@ -216,9 +218,9 @@ int main(int argc, char *argv[]) {
 	// mount UDP server socket
 	udpServer = udpCreateServer(NULL, connectionInfo.asport);
 	// mount TCP server socket
-	userConnection = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
+	tcpServer = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
 
-	waitMainEvent(userConnection, udpServer, msgBuffer);
+	waitMainEvent(tcpServer, udpServer, msgBuffer);
 
 	return 0; // Never used
 }
