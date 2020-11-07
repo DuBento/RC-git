@@ -112,7 +112,7 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len);
  *  \param  tcpConnection	the tcp connection structure.
  *  \return the file descriptor for communicating with the client.
  */
-void tcpCloseConnection(TCPConnection_t *udpConnection);
+void tcpCloseConnection(TCPConnection_t *tcpConnection);
 
 
 /*! \brief Terminates the TCP socket.
@@ -121,7 +121,7 @@ void tcpCloseConnection(TCPConnection_t *udpConnection);
  *
  *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpDestroySocket(TCPConnection_t *udpConnection);
+void tcpDestroySocket(TCPConnection_t *tcpConnection);
 
 
 /*! \brief Returns the IP address associated with a TCP connection.

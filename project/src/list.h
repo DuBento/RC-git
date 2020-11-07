@@ -28,10 +28,10 @@ List_t listCreate();
  * 
  * @param list
  *          The list that is going to be destroyed.
- * @param free
- *          The function to free the memory associated with the stored data.
+ * @param clean
+ *          The function to clean the memory associated with the stored data.
  */
-void listDestroy(List_t list, void (*free)(void*));
+void listDestroy(List_t list, void (*clean)(void*));
 
 
 /**

@@ -22,7 +22,7 @@ UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&udpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&udpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
-
+	freeaddrinfo(res);
 	return udpConnection;
 }
 

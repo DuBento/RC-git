@@ -4,11 +4,29 @@
 
 
 
-static connectionInfo_t connectionInfo = {"\0", "59053\0", "\0", "58053\0"};
+static connectionInfo_t connectionInfo = {"59053\0", "\0", "58053\0"};
 static DIR *files;
 char filesPath[PATH_MAX];
 
+TCPConnection_t *tcpConnection = NULL;
+UDPConnection_t *udpConnection = NULL;
+List_t userConnections = NULL;
+List_t userRequests = NULL;
+
 bool_t verbosity = FALSE;
+
+
+
+/*! \brief Cleans a connection socket
+ *
+ *	Casts the socket to the correct type and calls the tcpDestroySocket() function.
+ * 	This is used to clean the userConnections list.
+ * 
+ * 	\param
+ */
+void cleanSocket(void* socket) {
+	tcpDestroySocket((TCPConnection_t*)socket);
+}
 
 
 /*! \brief Cleans the server and frees all the memory allocated.
@@ -16,6 +34,10 @@ bool_t verbosity = FALSE;
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
 void cleanFS() {
+	if (tcpConnection != NULL)		tcpDestroySocket(tcpConnection);
+	if (udpConnection != NULL)		udpDestroySocket(udpConnection);
+	if (userConnections != NULL)	listDestroy(userConnections, cleanSocket);
+	if (userRequests != NULL)		listDestroy(userRequests, free);
 	closedir(files);
 }
 
@@ -76,14 +98,12 @@ void parseArgs(int argc, char *argv[]) {
 		}
 	}
 
-	// fills the ip's if they were not specified
-	strcpy(connectionInfo.fsip, LOCAL_IP);
 	if (connectionInfo.asip[0] == '\0')
 		strcpy(connectionInfo.asip, LOCAL_IP);
 
 	// logs the server information (on debug mod only)
-	_LOG("Runtime settings:\nFSIP\t: %s\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
-			connectionInfo.fsip, connectionInfo.fsport, connectionInfo.asip, connectionInfo.asport, verbosity);
+	_LOG("Runtime settings:\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
+			 connectionInfo.fsport, connectionInfo.asip, connectionInfo.asport, verbosity);
 }
 
 
@@ -97,7 +117,7 @@ void parseArgs(int argc, char *argv[]) {
  *  \param fds					a pointer to the fds.
  *  \param fdsSize				a pointer to the size of the fds.
  */
-void handleUserConnection(List_t userConnections, TCPConnection_t *tcpConnection, fd_set *fds, int *fdsSize) {
+void handleUserConnection(fd_set *fds, int *fdsSize) {
 	TCPConnection_t *userConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
 	tcpAcceptConnection(tcpConnection, userConnection);
 	listInsert(userConnections, userConnection);
@@ -105,6 +125,11 @@ void handleUserConnection(List_t userConnections, TCPConnection_t *tcpConnection
 	*fdsSize = (*fdsSize > userConnection->fd ? *fdsSize : userConnection->fd +  1);
 	_LOG("Connection accepted!\n\t - IP\t: %s\n\t - PORT\t: %d\n\t - FD\t: %d", 
 		tcpConnIp(userConnection), tcpConnPort(userConnection), userConnection->fd);
+}
+
+
+void handleUserRequest() {
+
 }
 
 
@@ -118,7 +143,7 @@ void handleUserConnection(List_t userConnections, TCPConnection_t *tcpConnection
  *  \param fds					a pointer to the fds.
  *  \param fdsSize				a pointer to the size of the fds.
  */
-void processUserRequests(const struct timeval *oldTime, List_t userRequests) {
+void processUserRequests(const struct timeval *oldTime) {
 		struct timeval newTime;
 		gettimeofday(&newTime, NULL);
 		float timeExpired = newTime.tv_sec - oldTime->tv_sec;
@@ -144,11 +169,6 @@ void processUserRequests(const struct timeval *oldTime, List_t userRequests) {
  *  Verifies which message was sent by the server and updates the server accordingly
  */
 void runFS() {
-	TCPConnection_t *tcpConnection = tcpCreateServer(connectionInfo.fsip, connectionInfo.fsport, SOMAXCONN);
-	UDPConnection_t *udpConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
-	List_t userConnections = listCreate();
-	List_t userRequests = listCreate();
-
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(tcpConnection->fd, &fds);
@@ -172,7 +192,7 @@ void runFS() {
 
 		// handle the new users's connections
 		if (FD_ISSET(tcpConnection->fd, &fdsTemp))
-			handleUserConnection(userConnections, tcpConnection, &fds, &fdsSize);
+			handleUserConnection(&fds, &fdsSize);
 
 		// handle the as reply
 		if (FD_ISSET(udpConnection->fd, &fdsTemp)) {
@@ -185,12 +205,12 @@ void runFS() {
 			ListNode_t node = listIteratorNextNode(&iterator);
 			TCPConnection_t *userConnection = (TCPConnection_t *)listValue(node);
 			if (FD_ISSET(userConnection->fd, &fdsTemp)) {
-				;	// handle userRequest	
+				handleUserRequest();
 			}
 		}
 
 		// processes the user's current requests
-		processUserRequests(&currentTime, userRequests);
+		processUserRequests(&currentTime);
 	}
 }
 
@@ -201,8 +221,13 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
-	//VERBOSE("Starting FS server...");
-	//runFS();
+	VERBOSE("Starting FS server...");
+
+	tcpConnection = tcpCreateServer(NULL, connectionInfo.fsport, SOMAXCONN);
+	udpConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	userConnections = listCreate();
+	userRequests = listCreate();
+	runFS();
 	
 	cleanFS();
 	return 0;

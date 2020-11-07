@@ -33,11 +33,12 @@ List_t listCreate()
 
 
 // destroys a list instance
-void listDestroy(List_t list, void (*free)(void*))
+void listDestroy(List_t list, void (*clean)(void*))
 {
 	ListNode_t temp;
 	while((temp = list->_head) != NULL)
-		listRemove(list, temp, free);
+		listRemove(list, temp, clean);
+		
 	free(list);
 }
 
