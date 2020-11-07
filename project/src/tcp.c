@@ -1,17 +1,6 @@
 #include "tcp.h"
 
 
-char* tcpConnIp(TCPConnection_t *conn) {
-	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
-	return inet_ntoa(addr_in->sin_addr);
-}
-
-int tcpConnPort(TCPConnection_t *conn) {
-	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
-	return ntohs(addr_in->sin_port);
-}
-
-
 // creates an initializes a TCP socket
 TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode) {
 	TCPConnection_t *tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
@@ -75,7 +64,7 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 	} 
 
 	if (newfd == -1)
-		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
+		_WARN("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
 
 	return newfd;
 }
@@ -135,4 +124,18 @@ void tcpDestroySocket(TCPConnection_t *tcpConnection) {
 		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
 	free(tcpConnection);
 	tcpConnection = NULL;
+}
+
+
+// returns the IP address associated with a TCP connection
+char* tcpConnIp(TCPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return inet_ntoa(addr_in->sin_addr);
+}
+
+
+// returns the port associated with a TCP connection
+int tcpConnPort(TCPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return ntohs(addr_in->sin_port);
 }
