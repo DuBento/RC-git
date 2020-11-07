@@ -22,6 +22,7 @@ typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
 
+#define LOCAL_IP       "127.0.0.1"
 #define TEJO_IP "193.136.138.142\0"
 #define TEJO_FS_PORT	"59000\0"
 #define TEJO_AS_PORT	"58011\0"
