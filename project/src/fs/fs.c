@@ -82,12 +82,21 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
+void runFS() {
+	while (bRunning) {
+
+	}
+}
+
+
 
 int main(int argc, char *argv[]) {
 	initSignal(&terminateFS, &abortFS);
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
+	runFS();
+	
 
 	closedir(files);
 	return 0;

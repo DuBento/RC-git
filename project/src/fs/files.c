@@ -10,17 +10,28 @@ List_t listFiles(const char *filesPath, const char *dirname) {
 
 	while ((ent = readdir(directory)) != NULL) {
 		if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")) {
-			char *filename = (char*)malloc((FILE_NAME_SIZE + 1) * sizeof(char));
-			memset(filename, FILE_NAME_SIZE + 1, '\0');
+			char filePath[PATH_MAX];
+			sprintf(filePath, "%s/%s/%s", filesPath, dirname, ent->d_name);
+			FILE *file = fopen(filePath, "r");
+			fseek(file, 0L, SEEK_END);
+			size_t fileSize = ftell(file);
+			size_t fileSizeDigits = nDigits(fileSize);
+
+			char *fileInfo = (char*)malloc((FILE_NAME_SIZE + fileSizeDigits +  2) * sizeof(char));
+			memset(fileInfo, FILE_NAME_SIZE + 1, '\0');
+
+			char fileName[FILE_NAME_SIZE + 1];
 			char *extension = strchr(ent->d_name, '.');
 			size_t len = strlen(ent->d_name);
-
-			strncpy(filename, ent->d_name, FILE_NAME_SIZE);
+			strncpy(fileName, ent->d_name, FILE_NAME_SIZE);
 			if (len > FILE_NAME_SIZE)
-				strncpy(filename + FILE_NAME_SIZE - 4, extension, 4);
+				strncpy(fileName + FILE_NAME_SIZE - 4, extension, 4);
+			fileInfo[FILE_NAME_SIZE] = '\0';
 
-			filename[FILE_NAME_SIZE] = '\0';
-			listInsert(list, filename);
+			sprintf(fileInfo, "%s %lub", fileName, fileSize);
+
+			fileInfo[FILE_NAME_SIZE + fileSizeDigits] = '\0';
+			listInsert(list, fileInfo);
 		}
 	}
 	
