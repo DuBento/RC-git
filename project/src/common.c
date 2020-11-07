@@ -26,9 +26,9 @@ void initSignal(void *handlerSucc, void *handlerUn){
 	if (sigaddset(&actUn.sa_mask, SIGSEGV))         // segementation fault
 		_FATAL("Unable to add the SIGSEGV signal to the unsucess termination set!\n\t - Error code: %d", errno);
 
-	actSucc.sa_flags     = SA_SIGINFO;
+	actSucc.sa_flags     = SA_SIGINFO|SA_RESTART;
 	actSucc.sa_sigaction = handlerSucc;
-	actUn.sa_flags       = SA_SIGINFO;
+	actUn.sa_flags       = SA_SIGINFO|SA_RESTART;
 	actUn.sa_sigaction   = handlerUn;
 
 	// change the actions of the signals to the one specified by the sets
