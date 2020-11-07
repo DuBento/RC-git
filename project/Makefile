@@ -38,10 +38,10 @@ EXE_NAMES := pd/pd user/user as/as fs/fs
 # Executable dependencies 
 # ==============================================================================
 # (paths relative to the [DIR_SRC] folder to the executable's required .c files)
-$(DIR_EXE)/pd/pd.deps = pd/pd.c pd/pd_aux.c common.c udp.c
-$(DIR_EXE)/as/as.deps = as/as.c as/as_aux.c files.c common.c udp.c tcp.c
-$(DIR_EXE)/user/user.deps = user/user.c user/user_aux.c files.c common.c tcp.c
-$(DIR_EXE)/fs/fs.deps = fs/fs.c fs/fs_aux.c files.c common.c list.c udp.c tcp.c
+$(DIR_EXE)/pd/pd.deps = pd/pd.c pd/pd_aux.c udp.c common.c 
+$(DIR_EXE)/as/as.deps = as/as.c as/as_aux.c files.c list.c udp.c tcp.c common.c 
+$(DIR_EXE)/user/user.deps = user/user.c user/user_aux.c files.c list.c tcp.c common.c 
+$(DIR_EXE)/fs/fs.deps = fs/fs.c fs/fs_aux.c files.c list.c udp.c tcp.c common.c
 # ==============================================================================
 
 
@@ -53,16 +53,20 @@ $(DIR_OBJ)/common.deps 	= common.h
 $(DIR_OBJ)/upd.deps		= udp.h common.h
 $(DIR_OBJ)/tcp.deps		= tcp.h common.h
 $(DIR_OBJ)/list.deps	= list.h common.h
-$(DIR_OBJ)/files.deps 	= files.h common.h list.h 
+$(DIR_OBJ)/files.deps	= files.h list.h common.h
 
-$(DIR_OBJ)/pd/pd.deps 	  = common.h udp.h pd/pd_aux.h
-$(DIR_OBJ)/pd/pd_aux.deps = common.h udp.h pd/pd_aux.h
 
-$(DIR_OBJ)/user/user.deps 	  = common.h tcp.h user/user_aux.h
-$(DIR_OBJ)/user/user_aux.deps = common.h tcp.h user/user_aux.h
+$(DIR_OBJ)/pd/pd.deps 	  = pd/pd_aux.h udp.h common.h  
+$(DIR_OBJ)/pd/pd_aux.deps = pd/pd_aux.h udp.h common.h 
 
-$(DIR_OBJ)/fs/fs.deps = fs/fs_aux.h files.h common.h list.h udp.h tcp.h
-$(DIR_OBJ)/fs/fs_aux.deps = fs/fs_aux.h files.h common.h list.h udp.h tcp.h
+$(DIR_OBJ)/as/as.deps 	  = as/as_aux.h files.h list.h udp.h tcp.h common.h 
+$(DIR_OBJ)/as/as_aux.deps = as/as_aux.h files.h list.h udp.h tcp.h common.h 
+
+$(DIR_OBJ)/user/user.deps 	  = user/user_aux.h files.h tcp.h common.h  
+$(DIR_OBJ)/user/user_aux.deps = user/user_aux.h files.h tcp.h common.h  
+
+$(DIR_OBJ)/fs/fs.deps     = fs/fs_aux.h files.h list.h udp.h tcp.h common.h 
+$(DIR_OBJ)/fs/fs_aux.deps = fs/fs_aux.h files.h list.h udp.h tcp.h common.h
 # ==============================================================================
 
 

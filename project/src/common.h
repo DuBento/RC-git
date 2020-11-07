@@ -295,7 +295,6 @@ int randomNumber(int min, int max);
 size_t nDigits(int number);
 
 
-
 /*! \brief Creates a new file in a directory.
  *
  *  Creates a new file with the specified filename and copies the data buffer on to him.
