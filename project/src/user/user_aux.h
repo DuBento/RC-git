@@ -4,7 +4,7 @@
 #include "../common.h"
 #include "../tcp.h"
 #include <sys/select.h>
-#include "../fs/files.h"
+#include "../files.h"
 
 
 /* the information to allow communication with the servers */
@@ -79,22 +79,28 @@ static userInfo_t userInfo = { 0 };
 
 
 
-/*! \brief Brief function description here
+/*! \brief Request user login.
  *
- *  Detailed description of the function
+ *  Attempts to login user in Authentication Server (AS).
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  asConnection pointer to TCP AS connection structure.
+ * \param  userInfo 	pointer to store the user's information.
+ * \param  uid 		the user's UID.
+ * \param  pass 	the user's password.
+ * \return TRUE if login request is successeful; FALSE otherwise.
  */
 bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo, const char *uid, const char *pass);
 
 
-/*! \brief Brief function description here
+/*! \brief Request user request.
  *
- *  Detailed description of the function
+ *  Attempts to make a user request near Authentication Server (AS).
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  asConnection pointer to TCP AS connection structure.
+ * \param  userInfo 	pointer to store the user's information.
+ * \param  fop		the file operation
+ * \param  fname	the file name
+ * \return request ID (RID).
  */
 int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *fop, const char *fname);
 
@@ -107,7 +113,7 @@ int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo, const
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t req_val(const TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int rid);
+bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int rid);
 
 
 

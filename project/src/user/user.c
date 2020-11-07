@@ -55,31 +55,31 @@ void parseArgs(int argc, char *argv[]) {
 		"[-d ASport] [-n FSIP] [-p FSport]\n", argv[0]);
 	}
 
-		for (int i = 1; i < argc; i++) {
-				int ipPortSwitch = 0;
-				if (!strcmp(ARG_ASIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1])) 
-						strncpy(connectionInfo.asip, argv[++i], IP_SIZE);
-				else if (!strcmp(ARG_ASPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
-						strncpy(connectionInfo.asip, argv[++i], PORT_SIZE);
-				else if (!strcmp(ARG_FSIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1]))
-					   strncpy(connectionInfo.asport, argv[++i], IP_SIZE); 
-				else if (!strcmp(ARG_FSPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
-					   strncpy(connectionInfo.asport, argv[++i], PORT_SIZE);
-				else {
-					if (ipPortSwitch == ARG_IP)
-						_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
-						ARG_USAGE_IP " (x -> digit)", argv[i + 1])
-					else if (ipPortSwitch == ARG_PORT)
-						_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
-						ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
-					else
-						FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
-				}
+	for (int i = 1; i < argc; i++) {
+		int ipPortSwitch = 0;
+		if (!strcmp(ARG_ASIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1])) 
+			strncpy(connectionInfo.asip, argv[++i], IP_SIZE);
+		else if (!strcmp(ARG_ASPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
+			strncpy(connectionInfo.asip, argv[++i], PORT_SIZE);
+		else if (!strcmp(ARG_FSIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1]))
+		   strncpy(connectionInfo.asport, argv[++i], IP_SIZE); 
+		else if (!strcmp(ARG_FSPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
+		   strncpy(connectionInfo.asport, argv[++i], PORT_SIZE);
+		else {
+			if (ipPortSwitch == ARG_IP)
+				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
+				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
+			else if (ipPortSwitch == ARG_PORT)
+				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
+				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
+			else
+				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
 		}
+	}
 
 		/* logs the server information (on debug mod only) */
-		_LOG("connectionInfo settings:\nASIP\t: %s\nASport\t: %s\nFSIP\t: %s\nFSport\t: %s\n", 
-				connectionInfo.asip, connectionInfo.asport, connectionInfo.fsip, connectionInfo.fsport);
+	_LOG("connectionInfo settings:\nASIP\t: %s\nASport\t: %s\nFSIP\t: %s\nFSport\t: %s\n", 
+		connectionInfo.asip, connectionInfo.asport, connectionInfo.fsip, connectionInfo.fsport);
 }
 
 
@@ -159,7 +159,7 @@ bool_t handleASServer() {
 	arg[BUFFER_SIZE] = {0};
 	int size;
 	
-	size = tcpReceiveMessage(asConnection->fd, buffer,BUFFER_SIZE);
+	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
 	sscanf(buffer, "%s %s", opcode, arg);
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
@@ -175,7 +175,11 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 		tid = resp_val(arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
-		printf("Invalid request! Operation ignored.");
+		printf("Invalid request! Operation ignored\n.");
+		return FALSE;
+	} else {
+		printf("Error in communication with the Authentication "
+			"Server (AS).\n");
 		return FALSE;
 	}
 	return TRUE;
@@ -190,7 +194,7 @@ bool_t handleFSServer() {
 	/* All file Fsize fields can have at most 10 digits. */
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 	
-	size = tcpReceiveMessage(fsConnection->fd, buffer,BUFSIZ);
+	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
 	_LOG("Le fs buffer %s", buffer);
 	sscanf(buffer, "%s %s", opcode, arg);
 
@@ -200,11 +204,11 @@ bool_t handleFSServer() {
 
 	// Retrieve code response "RRT status [Fsize data]"	
 /*	else if (!strcmp(opcode, RESP_REQ))
-		userInfo.fsConnected = !resp_retrieve(arg);
+		userInfo.fsConnected = !resp_retrieve(arg);*/
 
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_AUT))
-		userInfo.fsConnected = !resp_upload(fsConnection, arg);*/
+		userInfo.fsConnected = !resp_upload(&fsConnection, arg);
 
 	//	Delete response RDL status
 	else if (!strcmp(opcode, RESP_DEL))

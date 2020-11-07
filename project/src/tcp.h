@@ -24,6 +24,9 @@ typedef struct tcp_connection {
 } TCPConnection_t;
 
 
+char* tcpConnIp(TCPConnection_t *conn);
+int tcpConnPort(TCPConnection_t *conn);
+
 
 /*! \brief Creates and initializes a TCP socket.
  *
@@ -78,31 +81,31 @@ void tcpConnect(TCPConnection_t *tcpConnection);
  *  \param  tcpConnection	the tcp connection structure.
  *  \return the file descriptor for communicating with the client.
  */
-int tcpAcceptConnection(TCPConnection_t *tcpConnection);
+int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon);
 
 
 /*! \brief Receives a TCP message.
  *
  *  Stores a TCP message in the specified buffer.
  *
- *  \param  sockfd          socket from which the message will be received.
+ *  \param  tcpConnection   socket from which the message will be received.
  *  \param  buffer	        a buffer where the message will be stored.
  *  \param  len		        the length of the specified buffer.
  *  \return the number of bytes read.
  */
-int tcpReceiveMessage(int sockfd, char *buffer, int len);
+int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len);
 
 
 /*! \brief Sends a TCP message.
  *
  *  Sends the specified TCP message.
  *
- *  \param  sockfd          socket to which the message will be sent.
+ *  \param  tcpConnection   socket to which the message will be sent.
  *  \param  buffer	        a buffer containing the message.
  *  \param  len		        the length of the message.
  *  \return the number of bytes sent.
  */
-int tcpSendMessage(int sockfd, const char *buffer, int len);
+int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len);
 
 
 /*! \brief Closes a TCP connection.
