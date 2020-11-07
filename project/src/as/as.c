@@ -167,7 +167,7 @@ bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
 
 	// Login Request
 	if (!strcmp(opcode, REQ_LOG))
-		req_loginUser(tcpConn, msgBuf, dir_path);
+		req_loginUser(tcpConn, msgBuf+strlen(REQ_LOG), dir_path);
 	// File manipulation Request
 	else if (!strcmp(opcode, REQ_REQ))
 		;// req_fileOP()
