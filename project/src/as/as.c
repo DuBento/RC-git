@@ -2,6 +2,7 @@
 #include "../common.h"
 #include "../udp.h"
 #include "../tcp.h"
+#include "../list.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -19,13 +20,14 @@ typedef struct connectionInfo_t {
 } connectionInfo_t;
 
 /* ========== GLOBAL ============= */
+int exitCode = -1;
 DIR *dir;
 char dir_path[PATH_MAX];
 TCPConnection_t *tcpServer;
 UDPConnection_t *udpServer;
+List_t tcpList;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
-
 
 // /* ========================== */
 // /* Linked list Implementation */
@@ -112,6 +114,16 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 }
 
 
+
+void exitAS(int flag) {
+	udpDestroySocket(udpServer);
+	tcpDestroySocket(tcpServer);
+	listDestroy(tcpList, &free);
+	closedir(dir);
+	exit(flag);
+}
+
+
 /* Handle UDP Responses (Incoming Messages) */
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	int n;
@@ -124,29 +136,65 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 
 	// Registration Request
 	if (!strcmp(opcode, REQ_REG)){
-		req_registerPD(udpConnec, &recvConnoc, msgBuf, dir_path);
+		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG), dir_path);
 		return FALSE;	// not waiting replay
 	}// Unregistration Request
 	else if (!strcmp(opcode, REQ_UNR)){
-		req_unregisterPD(udpConnec, &recvConnoc, msgBuf, dir_path);                
+		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR), dir_path);                
 		return FALSE;	// not waiting replay
 	}
-	// Validation Code received "VLC"
+	// Validation Code received "RVC"
 	else if (!strcmp(opcode, RESP_VLC))
-		;// TODO validationCode_Response();
+		return FALSE;// TODO ? validationCode_Response();
+	else if (!strcmp(opcode, SERVER_ERR)) {
+		WARN("Invalid request! Operation ignored.");
+		return FALSE;
+	}
+	else{
+		_WARN("Invalid opcode on the server response! Sending error... Got: %s", opcode);
+		req_serverErrorUDP(udpConnec, &recvConnoc, msgBuf);
+		return FALSE;
+	}
+}
+
+bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
+	int n;
+	char opcode[BUFFER_SIZE];
+
+	n = tcpReceiveMessage(tcpConn, msgBuf, BUFFER_SIZE);
+
+	sscanf(msgBuf, "%s", opcode);
+
+	// Login Request
+	if (!strcmp(opcode, REQ_LOG))
+		req_loginUser(tcpConn, msgBuf, dir_path);
+	// File manipulation Request
+	else if (!strcmp(opcode, REQ_REQ))
+		;// req_fileOP()
+	// Authorize Op
+	else if (!strcmp(opcode, REQ_AUT))
+		;// req_Auth()
+	// Error
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
 	else{
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
-		// return req_serverError(fd);
+		req_serverErrorTCP(tcpConn, msgBuf);
+		return FALSE;
 	}
-
 }
 
 
-void waitMainEvent(TCPConnection_t *tcpConnect, UDPConnection_t *udpConnec, char *msgBuf) {
+
+
+void addSocket(TCPConnection_t *tcpConnec, fd_set *fds, int *fdsSize) {
+	if (*fdsSize < tcpConnec->fd+1)	*fdsSize = tcpConnec->fd+1;
+	FD_SET(tcpConnec->fd, fds);
+}
+
+void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, char *msgBuf) {
 	fd_set fds, ready_fds;
 	struct timeval tv, tmp_tv;
 	int selectRet, fds_size;
@@ -154,31 +202,41 @@ void waitMainEvent(TCPConnection_t *tcpConnect, UDPConnection_t *udpConnec, char
 	int waitingReply = FALSE;
 	/* SELECT */
 	FD_ZERO(&fds);
-	FD_SET(tcpConnect->fd, &fds);
-	FD_SET(udpConnec->fd, &fds);
-	fds_size = (tcpConnect->fd > udpConnec->fd) ? tcpConnect->fd+1 : udpConnec->fd+1;
+	FD_SET(tcp_server->fd, &fds);
+	FD_SET(udp_server->fd, &fds);
+	fds_size = (tcp_server->fd > udp_server->fd) ? tcp_server->fd+1 : udp_server->fd+1;
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
-
-	putStr(STR_INPUT, TRUE);		// string before the user input
 	
-	while (TRUE) {
+	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
 		// because select is destructive
 		ready_fds = fds;
 		tmp_tv = tv;
 
 		selectRet = select(fds_size, &ready_fds, NULL, NULL, &tmp_tv);
 
-		if (selectRet == -1)
-			FATAL("Failed System Call Select");
-		if (FD_ISSET(udpConnec->fd , &ready_fds)){
-			// handle PD interaction
-			waitingReply = handleUDP(udpConnec, msgBuf);
+		if (selectRet  == -1){
+			if (errno == EINTR) break;	// return from signal
+			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 		}
-		if (FD_ISSET(tcpConnect->fd, &ready_fds)){
-			// handle User new connection
+
+		// handle PD interaction
+		if (FD_ISSET(udp_server->fd , &ready_fds)){
+			waitingReply = handleUDP(udp_server, msgBuf);
 		}
-		if (selectRet == 0 && waitingReply) {// timeout expired
+
+		// handle User new connection
+		if (FD_ISSET(tcp_server->fd, &ready_fds)){
+			TCPConnection_t *newCon = (TCPConnection_t*) malloc(sizeof(TCPConnection_t));
+			tcpAcceptConnection(tcp_server, newCon);
+			// add to list pf tcp connections
+			listInsert(tcpList, newCon);	
+			// add to select fd set
+			addSocket(newCon, &fds, &fds_size);
+		}
+
+		// timeout expired
+		if (selectRet == 0 && waitingReply) {
 			// act as previous message didn't reach the target
 			// try to resend NTRIES_NORESP times
 			if (nTry < NREQUEST_TRIES)
@@ -189,25 +247,28 @@ void waitMainEvent(TCPConnection_t *tcpConnect, UDPConnection_t *udpConnec, char
 			}
 		}       
 		
+		// Handle all tcp cliente connections
+		ListIterator_t iter = listIteratorCreate(tcpList);
+		while (!listIteratorEmpty(&iter)){
+			TCPConnection_t *conn = listIteratorNext(&iter);
+			if (FD_ISSET(conn->fd, &ready_fds))
+				handleTCP(conn, msgBuf);
+		}
+
 	}
+
+	// after signal event, termiate
+	exitAS(exitCode);
 }
 
 
 
-
-void exitAS() {
-	udpDestroySocket(udpServer);
-	tcpDestroySocket(tcpServer);
-	closedir(dir);
-	exit(EXIT_SUCCESS);
-}
-
-void listDir(DIR* dir){
-	struct dirent *ent;
-    	while ((ent = readdir(dir)) != NULL) {
-		printf("%s\n", ent->d_name);
-	}
-}
+// void listDir(DIR* dir){
+// 	struct dirent *ent;
+//     	while ((ent = readdir(dir)) != NULL) {
+// 		printf("%s\n", ent->d_name);
+// 	}
+// }
 
 int main(int argc, char *argv[]) {
 	/* AS makes available two server applications? Does it mean 2 process? */
@@ -219,7 +280,7 @@ int main(int argc, char *argv[]) {
 	udpServer = udpCreateServer(NULL, connectionInfo.asport);
 	// mount TCP server socket
 	tcpServer = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
-
+	tcpList = listCreate();
 	waitMainEvent(tcpServer, udpServer, msgBuffer);
 
 	return 0; // Never used
