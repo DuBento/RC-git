@@ -1,60 +1,62 @@
 #include "tcp.h"
 
-static struct addrinfo hints = { 0 }, *res = NULL;
-
-
-
 // creates an initializes a TCP socket
-int tcpCreateSocket(const char *addrIP, const char *port) {
-	int fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd == -1)
+TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode) {
+	TCPConnection_t *tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
+	struct addrinfo hints;
+	struct addrinfo *res = { 0 };
+	memset(&hints, '\0', sizeof(struct addrinfo));	
+	tcpConnection->fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (tcpConnection->fd == -1)
 		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d", errno);
 	
 	hints.ai_family   = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags    = AI_PASSIVE;
+	hints.ai_socktype = SOCK_STREAM;    
+	if (mode == SERVER)	hints.ai_flags = AI_PASSIVE;
 
 	int errCode = getaddrinfo(addrIP, port, &hints, &res);
 	if (errCode)
 		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
 		"\t - Error code: %d", errCode);
 
-	return fd;
+	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
+	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
+	return tcpConnection;
 }
 
 
 // creates a TCP server
-int tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
-	int fd = tcpCreateSocket(addrIP, port);	
-	if (bind(fd, res->ai_addr, res->ai_addrlen))
-		_FATAL("[TCP] Unable to bind the server.\n\t - Error code: %d", errno);
+TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
+	TCPConnection_t *tcpConnection = tcpCreateSocket(addrIP, port, SERVER);	
+	if (bind(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
+		_FATAL("[TCP] Unable to bind the server.\n\t - Error: %s", strerror(errno));
 
-	if (listen(fd, nConnections))
-		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d", errno);
+	if (listen(tcpConnection->fd, nConnections))
+		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error: %s", strerror(errno));
 
-	return fd;
+	return tcpConnection;
 }
 
 
 // creates a TCP client
-int tcpCreateClient(const char *addrIP, const char *port) {
-	return tcpCreateSocket(addrIP, port);
+TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port) {
+	return tcpCreateSocket(addrIP, port, CLIENT);
 }
 
 
 // connects the client with the server
-void tcpConnect(int fd) {
-	if (connect(fd, res->ai_addr, res->ai_addrlen))
+void tcpConnect(TCPConnection_t *tcpConnection) {
+	if (connect(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
 		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
 }
 
 
 // accepts the connections from the clients
-int tcpAcceptConnection(int fd) {	
+int tcpAcceptConnection(TCPConnection_t *tcpConnection) {	
 	struct sockaddr_in addr;
 	int addrlen = sizeof(addr);
 
-	int newfd = accept(fd, (struct sockaddr*)&addr, &addrlen);
+	int newfd = accept(tcpConnection->fd, (struct sockaddr*)&addr, &addrlen);
 	if (newfd == -1)
 		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
 
@@ -63,12 +65,12 @@ int tcpAcceptConnection(int fd) {
 
 
 // receives a TCP message
-int tcpReceiveMessage(int fd, char *buffer, int len) {
+int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 	int sizeRead = 0;
 	do {
 		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(fd, buffer, len);
+		int n = read(sockfd, buffer, len);
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
 		
@@ -78,37 +80,40 @@ int tcpReceiveMessage(int fd, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
+	_LOG("[UDP] Mesaage received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
 
 // sends a TCP message
-int tcpSendMessage(int fd, const char *buffer, int len) {
+int tcpSendMessage(int sockfd, const char *buffer, int len) {
 	int sizeWritten;
-
+	
 	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
 		On error, -1 is returned, and errno is set appropriately.*/
-		int n = write(fd, buffer, len);
+		int n = write(sockfd, buffer + sizeWritten, len - sizeWritten);
 		if (n == -1)
 			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
 		sizeWritten += n;
 	} while (sizeWritten != len);
+
+	_LOG("[TCP] Message sent (%d bytes) - '%s'", sizeWritten, buffer);
 	return sizeWritten;
 }
 
 
 // closes the tcp connection
-void tcpCloseConnection(int fd) {	
-	if (close(fd))
+void tcpCloseConnection(TCPConnection_t *tcpConnection) {	
+	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
+	free(tcpConnection);
 }
 
 
 // terminates the tcp socket
-void tcpDestroySocket(int fd) {
-	freeaddrinfo(res);
-	if (close(fd))
+void tcpDestroySocket(TCPConnection_t *tcpConnection) {
+	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
 }

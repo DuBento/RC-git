@@ -3,6 +3,7 @@
 
 #include "../common.h"
 #include "../udp.h"
+#include "../files.h"
 
 #define DIR_NAME	"USERS"
 #define USERDIR_PREFIX 	"UID"
@@ -21,7 +22,7 @@
 } asNodeUDP_t; */
 
 bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
-void registerPD(char* relative_path, char* filename, char* pdip, char* pdport);
-void storePassPD(char* relative_path, char* filename, char* pass);
+void registerPD(char* relative_path, char* dirname, char* filename, char* pdip, char* pdport);
+void storePassPD(char* relative_path, char* dirname, char* filename, char* pass);
 bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
 #endif /* AS_AUX_H */

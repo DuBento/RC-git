@@ -7,8 +7,8 @@
 
 
 static userInfo_t userInfo = {0};
-static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
-// static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
+// static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
+static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
 static UDPConnection_t *asConnection = NULL;
 
 // fd to the socket in which PD acts as an UDP server

@@ -1,8 +1,8 @@
 #ifndef FILES_H
 #define FILES_H
 
-#include "../common.h"
-#include "../list.h"
+#include "common.h"
+#include "list.h"
 
 
 /*! Lists all the files in the specified directory.

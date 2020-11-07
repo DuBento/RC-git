@@ -1,12 +1,27 @@
 #ifndef TCP_H
 #define TCP_H
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 
 #include "common.h"
+
+#define CLIENT  'c'
+#define SERVER  's'
+
+
+/* Structure that stores the information for the TCP connection. */
+typedef struct tcp_connection {
+    int fd;
+    struct sockaddr addr;
+    socklen_t addrlen;
+} TCPConnection_t;
 
 
 
@@ -15,43 +30,44 @@
  *  Creates a new socket for a TCP connection with the specified IP address
  *  and port number (after translating them into the appropriate formats).
  *
- * \param  addrIP	the ip address (IPv4 or IPv6).
- * \param  port		the service name (or the port number).
- * \return the socket's file descriptor.
+ *  \param  addrIP  	the ip address (IPv4 or IPv6).
+ *  \param  port	    the service name (or the port number).
+ *  \param  mode        CLIENT or SERVER (different specifications - check def)
+ *  \return the tcp connection structure.
  */
-int tcpCreateSocket(const char *addrIP, const char *port);
+TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode);
 
 
 /*! \brief Creates an TCP server.
  *
  *  Creates an TCP server with the specified IP address and port number.
  *
- * \param  addrIP	the ip address (IPv4 or IPv6).
- * \param  port		the service name (or the port number).
- * \param  nConnections	the maximum number of connections in queue.
- * \return the server's file descriptor.
+ *  \param  addrIP	        the ip address (IPv4 or IPv6).
+ *  \param  port		    the service name (or the port number).
+ *  \param  nConnections	the maximum number of connections in queue.
+ *  \return the tcp connection structure.
  */
-int tcpCreateServer(const char *addrIP, const char *port, int nConnections);
+TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConnections);
 
 
 /*! \brief Creates an TCP client.
  *
  *  Creates an TCP client with the specified IP address and port number.
  *
- * \param  addrIP	the ip address (IPv4 or IPv6).
- * \param  port		the service name (or the port number).
- * \return the server's file descriptor.
+ *  \param  addrIP	the ip address (IPv4 or IPv6).
+ *  \param  port		the service name (or the port number).
+ *  \return the tcp connection structure.
  */
-int tcpCreateClient(const char *addrIP, const char *port);
+TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port);
 
 
 /*! \brief Connects the client with the server.
  *
  *  Tries to connect to the server.
  *
- * \param  fd		the TCP connection file descriptor.
+ *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpConnect(int fd);
+void tcpConnect(TCPConnection_t *udpConnection);
 
 
 /*! \brief Accepts the connections from the clients.
@@ -59,53 +75,53 @@ void tcpConnect(int fd);
  *  Accepts a new connection from a clients and returns a new file descriptor
  *  for communicating with it.
  *
- * \param  fd		the TCP connection file descriptor.
- * \return the file descriptor for communicating with the client.
+ *  \param  tcpConnection	the tcp connection structure.
+ *  \return the file descriptor for communicating with the client.
  */
-int tcpAcceptConnection(int fd);
+int tcpAcceptConnection(TCPConnection_t *udpConnection);
 
 
 /*! \brief Receives a TCP message.
  *
  *  Stores a TCP message in the specified buffer.
  *
- * \param  fd		the TCP connection file description.
- * \param  buffer	a buffer where the message will be stored.
- * \param  len		the length of the specified buffer.
- * \return the number of bytes read.
+ *  \param  sockfd          socket from which the message will be received.
+ *  \param  buffer	        a buffer where the message will be stored.
+ *  \param  len		        the length of the specified buffer.
+ *  \return the number of bytes read.
  */
-int tcpReceiveMessage(int fd, char *buffer, int len);
+int tcpReceiveMessage(int sockfd, char *buffer, int len);
 
 
 /*! \brief Sends a TCP message.
  *
  *  Sends the specified TCP message.
  *
- * \param  fd		the TCP connection file description.
- * \param  buffer	a buffer containing the message.
- * \param  len		the length of the message.
- * \return the number of bytes sent.
+ *  \param  sockfd          socket to which the message will be sent.
+ *  \param  buffer	        a buffer containing the message.
+ *  \param  len		        the length of the message.
+ *  \return the number of bytes sent.
  */
-int tcpSendMessage(int fd, const char *buffer, int len);
+int tcpSendMessage(int sockfd, const char *buffer, int len);
 
 
 /*! \brief Closes a TCP connection.
  *
  *  Closes the specified TCP connection.
  *
- * \param  fd		the TCP connection file descriptor.
- * \return the file descriptor for communicating with the client.
+ *  \param  tcpConnection	the tcp connection structure.
+ *  \return the file descriptor for communicating with the client.
  */
-void tcpCloseConnection(int fd);
+void tcpCloseConnection(TCPConnection_t *udpConnection);
 
 
 /*! \brief Terminates the TCP socket.
  *
  *  Frees the information associated with an TCP socket and closes it.
  *
- * \param fd		the TCP connection file description.
+ *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpDestroySocket(int fd);
+void tcpDestroySocket(TCPConnection_t *udpConnection);
 
 
 

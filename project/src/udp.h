@@ -25,6 +25,10 @@ typedef struct udp_connection {
 } UDPConnection_t;
 
 
+char* udpConnIp(UDPConnection_t *conn);
+int udpConnPort(UDPConnection_t *conn);
+
+
 /*! \brief Creates and initializes an UDP socket.
  *
  *  Creates a new socket for an UDP connection with the specified IP address

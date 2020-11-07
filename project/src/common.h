@@ -332,5 +332,6 @@ bool_t inDir(DIR* dir, char* filename);
  */ 
 bool_t createFile(char* pathname, const char* data, int len);
 
+bool_t readFile(char* pathname, char* buf, int size);
 
 #endif 	/* COMMON_H */

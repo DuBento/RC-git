@@ -6,6 +6,7 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, cha
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
         // dir and file manipulation
+        char *stored_pass;
         char user_path[BUFFER_SIZE+PATH_MAX];
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char reg_file[2*FILE_SIZE+BUFFER_SIZE], pass_file[2*FILE_SIZE+BUFFER_SIZE];
@@ -16,9 +17,6 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, cha
         
         // parse buf
         sscanf(buf+strlen(REQ_REG) , "%s %s %s %s", uid, pass, pdip, pdport);
-        _VERBOSE("Arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\n",
-                                uid, pass, pdip, pdport);
-        
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass) || !isIPValid(pdip) || !isPortValid(pdport)) {
                 _WARN("Invalid arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nUnable to send error.",
@@ -31,7 +29,6 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, cha
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
         dir = initDir(path, dirname, user_path);
-        printf("old path:%s\n", user_path);
         // check if connection not already established (reg file)
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
         if (inDir(dir, reg_file)) { 
@@ -41,11 +38,27 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, cha
                 return FALSE;
         }
 
+        _VERBOSE("Regestring Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nFrom IP:%s\tPORT:%d",
+                                uid, pass, pdip, pdport, udpConnIp(receiver), udpConnPort(receiver));
+        
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
-        if (!inDir(dir, pass_file))
-                storePassPD(user_path, pass_file, pass); // create file
-        registerPD(user_path, reg_file, pdip, pdport);
+
+        if (retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
+                if (strcmp(stored_pass, pass) != 0){        // check given password dont match
+                        _WARN("Regestring: Passwords don't match:\nuid: %s\npass: %s\tstored pass:%s\nSending error...",
+                                uid, pass, stored_pass);
+                        msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
+                        udpSendMessage_specifyConn(udpConnec, receiver, answer, msgLen);
+                        return FALSE;
+                }
+                free(stored_pass);
+        }       
+        else {  // no file to be read, first time connection
+                storePassPD(path, dirname, pass_file, pass); // create file
+        }
+        
+        registerPD(path, dirname, reg_file, pdip, pdport);
 
         // reply to PD
         msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_OK, CHAR_END_MSG);
@@ -55,23 +68,16 @@ bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, cha
 
 
 
-void registerPD(char* relative_path, char* filename, char* pdip, char* pdport) {
-        char file_path[BUFFER_SIZE+PATH_MAX];
+void registerPD(char* relative_path, char* dirname, char* filename, char* pdip, char* pdport) {
         char data[BUFFER_SIZE];
         int size;
-        fprintf(stderr, "registering");
 
         size = sprintf(data, "%s\n%s", pdip, pdport);
-        sprintf(file_path, "%s%s", relative_path, filename);
-        createFile(file_path, data, size);    // doesnt include nullbyte
+        storeFile(relative_path, dirname, filename, data, size);
 }
 
-void storePassPD(char* relative_path, char* filename, char* pass) {
-        char file_path[BUFFER_SIZE+PATH_MAX];
-        puts("storing pass...");
-        sprintf(file_path, "%s%s", relative_path, filename);
-        printf("File Path:%s", file_path);
-        createFile(file_path, pass, strlen(pass));    // doesnt include nullbyte
+void storePassPD(char* relative_path, char* dirname, char* filename, char* pass) {
+        storeFile(relative_path, dirname, filename, pass, strlen(pass));
 }
 
 
@@ -82,7 +88,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, c
         // dir and file manipulation
         char user_path[BUFFER_SIZE+PATH_MAX];
         char dirname[FILE_SIZE+BUFFER_SIZE];
-        char reg_file[2*FILE_SIZE+BUFFER_SIZE], pass_path[2*FILE_SIZE+BUFFER_SIZE];
+        char reg_path[2*FILE_SIZE+BUFFER_SIZE];
         DIR *dir;
         // response
         char answer[BUFFER_SIZE];
@@ -90,7 +96,9 @@ bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, c
         
         // parse buf
         sscanf(buf+strlen(REQ_UNR) , "%s %s", uid, pass);
-        _VERBOSE("Arguments received from Personal Device:\nuid: %s\npass: %s\n", uid, pass);
+        
+        _VERBOSE("Unregestring Personal Device:\nuid: %s\npass: %s\nFrom IP:%s\tPORT:%d",
+                uid, pass, udpConnIp(receiver), udpConnPort(receiver));
         
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
@@ -102,13 +110,12 @@ bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, c
         }
 
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        sprintf(pass_path, "%s%s/%s%s", path, dirname, dirname, PASSFILE_SUFIX);
+        sprintf(reg_path, "%s%s/%s%s", path, dirname, dirname, REGFILE_SUFIX);
 
         // tries to delete password file
-        printf("\n%s\n", pass_path);
-        if (remove(pass_path) == -1)
+        if (remove(reg_path) == -1)
                 if(errno == ENOENT){
-                        _WARN("PD: %s has no password file. Sending server error...", uid);
+                        _WARN("PD: %s was not registered. Sending server error...", uid);
                         msgLen = sprintf(answer, "%s %s%c", RESP_UNR, STATUS_NOK, CHAR_END_MSG);
                         udpSendMessage_specifyConn(udpConnec, receiver, answer, msgLen);
                         return FALSE;
