@@ -26,9 +26,9 @@ void initSignal(void *handlerSucc, void *handlerUn){
 	if (sigaddset(&actUn.sa_mask, SIGSEGV))         // segementation fault
 		_FATAL("Unable to add the SIGSEGV signal to the unsucess termination set!\n\t - Error code: %d", errno);
 
-	actSucc.sa_flags     = SA_SIGINFO;
+	actSucc.sa_flags     = SA_SIGINFO|SA_RESTART;
 	actSucc.sa_sigaction = handlerSucc;
-	actUn.sa_flags       = SA_SIGINFO;
+	actUn.sa_flags       = SA_SIGINFO|SA_RESTART;
 	actUn.sa_sigaction   = handlerUn;
 
 	// change the actions of the signals to the one specified by the sets
@@ -159,12 +159,12 @@ void putStr(const char *buffer, bool_t flush) {
 // return te operation string correspondent to the file op
 const char* getFileOp(const char op) {
 	switch (op) {
-	case FOP_L: return "list";
-	case FOP_U: return "upload";
-	case FOP_R: return "retrieve";
-	case FOP_D: return "delete";
-	case FOP_X: return "remove";
-	default: return "\0";
+		case FOP_L: return "list";
+		case FOP_U: return "upload";
+		case FOP_R: return "retrieve";
+		case FOP_D: return "delete";
+		case FOP_X: return "remove";
+		default: return "\0";
 	}
 }
 
@@ -219,17 +219,16 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 // checks if the specified file is whitin the given directory.
 bool_t inDir(DIR* dir, char* filename){
 	struct dirent *ent;
-		while ((ent = readdir(dir)) != NULL)
-			if (!strcmp(ent->d_name, filename)) 
-				return TRUE;
+	while ((ent = readdir(dir)) != NULL)
+		if (!strcmp(ent->d_name, filename)) 
+			return TRUE;
 
 	return FALSE;	
 }
 
 // creates a new file in a directory
 bool_t createFile(char* pathname, const char* data, int len) {
-	int ret;
-	int fd = open(pathname, S_IRUSR|S_IWUSR|O_CREAT|O_WRONLY);
+	int fd = open(pathname, O_CREAT|O_WRONLY, 700);
 	if (fd < 0) {
 		_WARN("Failed to create file.\n\t - Error code: %d", errno);
 		return FALSE;
@@ -239,7 +238,28 @@ bool_t createFile(char* pathname, const char* data, int len) {
 		_WARN("Unable to write to file.\n\t - Error code: %d", errno);
 		return FALSE;
 	}
+
+	_LOG("[createFile] File Path:%s\n", pathname);
 		
 	close(fd);
 	return TRUE;
+}
+
+bool_t readFile(char* pathname, char* buf, int size) {
+	return FALSE;
+	// int fd = open(pathname, O_RDONLY);
+	// if (fd < 0) {
+	// 	if(errno == ENOENT)
+	// 		return FALSE;
+	// 	else
+	// 		_WARN("[readFile] Failed to open file.\n\t - Error code: %d", errno);
+	// 		return FALSE;
+	// }
+
+	// if(read(fd, buf, size) < 0)
+	// 	_WARN("[readFile] Failed to read file.\n\t - Error code: %d", errno);
+	
+	// buf[size+1] = '\0';		// for string manipulaiton
+	// return TRUE;
+
 }
