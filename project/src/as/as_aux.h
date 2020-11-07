@@ -3,6 +3,7 @@
 
 #include "../common.h"
 #include "../udp.h"
+#include "../tcp.h"
 #include "../files.h"
 
 #define DIR_NAME	"USERS"
@@ -13,6 +14,11 @@
 #define TIDFILE_SUFIX   "_tid.txt"
 #define FILE_SIZE       32
 
+typedef struct as_node_tcp {
+	TCPConnection_t tcpConn;
+}asNodeTCP_t;
+
+
 /* typedef struct as_node_udp {
 	struct as_node_udp *next;
 	char uid[UID_SIZE+1];
@@ -21,8 +27,18 @@
 	UDPConnection_t udp_node;
 } asNodeUDP_t; */
 
+// UDP
 bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
-void registerPD(char* relative_path, char* dirname, char* filename, char* pdip, char* pdport);
-void storePassPD(char* relative_path, char* dirname, char* filename, char* pass);
 bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
+bool_t req_serverErrorUDP(UDPConnection_t *udpConnec, UDPConnection_t *recvConnoc, char *msgBuffer);
+
+// TCP
+bool_t req_loginUser(TCPConnection_t *tcpConnect, char* buf, char* path);
+bool_t req_serverErrorTCP(TCPConnection_t *tcpConnect, char *msgBuffer);
+
+
+void _loginUser(char* relative_path, char* dirname, char* filename, char* ip, int port);
+void _registerPD(char* relative_path, char* dirname, char* filename, char* pdip, char* pdport);
+void _storePassPD(char* relative_path, char* dirname, char* filename, char* pass);
+
 #endif /* AS_AUX_H */

@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <linux/limits.h>
@@ -31,8 +32,6 @@ typedef char bool_t;
 #define DEFAULT_FS_PORT	"59053\0"
 #define	DEFAULT_AS_PORT	"58053\0"
 
-/* General implementation constants  */
-#define UID_SIZE	5
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
@@ -60,6 +59,7 @@ typedef char bool_t;
 /* Protocol constants. */
 #define CMD_SIZE	4	// the size of command
 #define UID_SIZE	5	// the size of the UID
+#define TID_SIZE	4	// the size of the TID
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
 
@@ -291,41 +291,14 @@ const char *getFileOp(const char op);
 int randomNumber(int min, int max);
 
 
-/*! \brief Initialize a directory on the specified path.
+/*! \brief Finds the number of digits of a given number.
  *
- *  Opens a directory on the specified path. The directory is created if it does not exist.
- *  Returns a pointer to the directory and stores its path on the 'path' variable
+ * 	Divides the number by 10 until if reaches 0 and then returns the number of divisions.
  * 
- * 	\param  path			the path to the main directory.
- * 	\param  dirname			the name of the directory (relative to the path).
- * 	\param  outPath			buffer to hold directory path (can be set to NULL).
- * 	\return the directory pointer.
- */ 
-DIR* initDir(const char* path, const char* dirname, char* outPath);
-
-
-/*! \brief Initialize a directory near the executable.
- *
- *  Opens a directory near the specified executable file.
- * 
- * 	\param  exePath			the path of the executable (will act as a relative path).
- * 	\param  dirname			the name of the directory.
- * 	\param  outPath			buffer to hold relative path (can be set to NULL).
- * 	\return the directory pointer.
- */ 
-DIR* initDirFromExe(char* exePath, const char* dirname, char* outPath);
-
-
-/*! \brief Checks if the specified file is whitin the given directory.
- *
- *  Iterates through the directory and checks in any file matches the specified filename.
- *  If so, returns TRUE, otherwise returns FALSE.
- * 
- * 	\param  dir			the directory where to search.
- * 	\param  filename		the name of the file.
- * 	\return TRUE if the file is whitin the directory, FALSE otherwise.
- */ 
-bool_t inDir(DIR* dir, char* filename);
+ * 	\param number		the given number.
+ * 	\return the number of digit of number. 
+ */
+size_t nDigits(int number);
 
 
 /*! \brief Creates a new file in a directory.

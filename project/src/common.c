@@ -175,56 +175,15 @@ int randomNumber(int min, int max) {
 }
 
 
-
-// initialize a directory on the specified path
-DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
-	DIR* d;
-	// make dir path
-	int exePathLen = strlen(exePath);
-	int dirnameLen = strlen(dirname);
-	char tempPath[PATH_MAX];
-	char *formatedPath = (outPath == NULL ? tempPath : outPath);
-	if (exePathLen + dirnameLen + 2 > PATH_MAX) // + 2 ("/" and "\0")
-		_FATAL("The specified path + dirname is too big.\n\t - Max size: %d", PATH_MAX);
-		
-	char* pathEnd = strrchr(exePath, '/'); 	//find the last occurrence of the '/'	
-	if(pathEnd) {
-		char *base_path = (char*)malloc((exePathLen + 1) * sizeof(char));
-		strncpy(base_path, exePath, pathEnd - exePath);
-		sprintf(formatedPath, "%s/%s/", base_path, dirname);
-		free(base_path);
-	}
-	else
-		sprintf(formatedPath, "%s/", dirname);
-		d = opendir(formatedPath);
-
-		if(d) {
-			// dir opened
-			return d;	// and path var updated
-		} else if (errno == ENOENT || errno == ENOTDIR ) {
-			// dir does not exist, create new
-			if (mkdir(formatedPath, S_IRUSR|S_IWUSR|S_IXUSR) == -1) 
-				_FATAL("Failed to create log directory.\n\t - Error: %s", strerror(errno));
-
-			// retry to open
-			d = opendir(formatedPath);
-			if (d) return d;
-		}
-
-		// else
-		_FATAL("Failed to open log directory.\n\t - Error: %s", strerror(errno));
+// finds the number of digits of a given number
+size_t nDigits(int number) {
+	size_t nDigits = 0;
+	while ((number /= 10) != 0)
+		nDigits++;
+	return nDigits;
 }
 
 
-// checks if the specified file is whitin the given directory.
-bool_t inDir(DIR* dir, char* filename){
-	struct dirent *ent;
-	while ((ent = readdir(dir)) != NULL)
-		if (!strcmp(ent->d_name, filename)) 
-			return TRUE;
-
-	return FALSE;	
-}
 
 // creates a new file in a directory
 bool_t createFile(char* pathname, const char* data, int len) {
