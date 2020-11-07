@@ -67,7 +67,7 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 	} 
 
 	if (newfd == -1)
-		_WARN("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Unable to accept a new connection.\n\t - Error code: %d", errno);
 
 	return newfd;
 }
