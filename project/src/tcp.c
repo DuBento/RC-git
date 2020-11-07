@@ -82,12 +82,12 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 
 
 // receives a TCP message
-int tcpReceiveMessage(int sockfd, char *buffer, int len) {
+int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	int sizeRead = 0;
 	do {
 		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(sockfd, buffer, len);
+		int n = read(tcpConnection->fd, buffer, len);
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
 		
@@ -97,20 +97,20 @@ int tcpReceiveMessage(int sockfd, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
-	_LOG("[UDP] Mesaage received (%d bytes) - '%s'", sizeRead, buffer);
+	_LOG("[UDP] Message received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
 
 // sends a TCP message
-int tcpSendMessage(int sockfd, const char *buffer, int len) {
+int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len) {
 	int sizeWritten;
 	
 	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
 		On error, -1 is returned, and errno is set appropriately.*/
-		int n = write(sockfd, buffer + sizeWritten, len - sizeWritten);
+		int n = write(tcpConnection->fd, buffer + sizeWritten, len - sizeWritten);
 		if (n == -1)
 			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
 		sizeWritten += n;
@@ -133,4 +133,6 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 void tcpDestroySocket(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
+	free(tcpConnection);
+	tcpConnection = NULL;
 }
