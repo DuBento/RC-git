@@ -24,9 +24,6 @@ typedef struct tcp_connection {
 } TCPConnection_t;
 
 
-char* tcpConnIp(TCPConnection_t *conn);
-int tcpConnPort(TCPConnection_t *conn);
-
 
 /*! \brief Creates and initializes a TCP socket.
  *
@@ -126,6 +123,25 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection);
  */
 TCPConnection_t *tcpDestroySocket(TCPConnection_t *tcpConnection);
 
+
+/*! \brief Returns the IP address associated with a TCP connection.
+ *
+ *  Returns a string with the IP address of the specified connection.
+ *
+ *  \param  conn        the TCP connection.
+ *  \return the IP address of the tcp connection.
+ */
+char* tcpConnIp(TCPConnection_t *conn);
+
+
+/*! \brief Returns the port associated with a TCP connection.
+ *
+ *  Returns a string with the port of the specified connection.
+ *
+ *  \param  conn        the TCP connection.
+ *  \return the port of the tcp connection.
+ */
+int tcpConnPort(TCPConnection_t *conn);
 
 
 #endif  /* TCP_H */

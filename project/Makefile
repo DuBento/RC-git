@@ -31,7 +31,7 @@ DIR_OBJ	:= obj
 # Executable files
 # ==============================================================================
 # (names of the executables that will be generated)
-EXE_NAMES := fs/fs as/as pd/pd user/user
+EXE_NAMES := pd/pd user/user as/as fs/fs 
 # ==============================================================================
 
 
@@ -55,6 +55,7 @@ $(DIR_OBJ)/tcp.deps		= tcp.h common.h
 $(DIR_OBJ)/list.deps	= list.h common.h
 $(DIR_OBJ)/files.deps	= files.h list.h common.h
 
+
 $(DIR_OBJ)/pd/pd.deps 	  = pd/pd_aux.h udp.h common.h  
 $(DIR_OBJ)/pd/pd_aux.deps = pd/pd_aux.h udp.h common.h 
 
@@ -65,7 +66,7 @@ $(DIR_OBJ)/user/user.deps 	  = user/user_aux.h files.h tcp.h common.h
 $(DIR_OBJ)/user/user_aux.deps = user/user_aux.h files.h tcp.h common.h  
 
 $(DIR_OBJ)/fs/fs.deps     = fs/fs_aux.h files.h list.h udp.h tcp.h common.h 
-$(DIR_OBJ)/fs/fs_aux.deps = fs/fs_aux.h files.h list.h udp.h tcp.h common.h 
+$(DIR_OBJ)/fs/fs_aux.deps = fs/fs_aux.h files.h list.h udp.h tcp.h common.h
 # ==============================================================================
 
 

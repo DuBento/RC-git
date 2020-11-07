@@ -184,7 +184,6 @@ size_t nDigits(int number) {
 }
 
 
-
 // creates a new file in a directory
 bool_t createFile(char* pathname, const char* data, int len) {
 	int fd = open(pathname, O_CREAT|O_WRONLY, 700);

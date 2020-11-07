@@ -110,7 +110,17 @@ int listIteratorEmpty(ListIterator_t *iterator);
 
 
 /**
- * Returns the current element of the iteration and jumps on to the next
+ * Returns the current node of the iteration and jumps on to the next.
+ * 
+ * @param iterator
+ *          The iterator of the list.
+ * @return The current node of the iteration.
+ */
+ListNode_t listIteratorNextNode(ListIterator_t *iterator);
+
+
+/**
+ * Returns the current element of the iteration and jumps on to the next.
  * 
  * @param iterator
  *          The iterator of the list.

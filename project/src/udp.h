@@ -25,9 +25,6 @@ typedef struct udp_connection {
 } UDPConnection_t;
 
 
-char* udpConnIp(UDPConnection_t *conn);
-int udpConnPort(UDPConnection_t *conn);
-
 
 /*! \brief Creates and initializes an UDP socket.
  *
@@ -121,6 +118,26 @@ int udpSendMessage_specifyConn(UDPConnection_t *udpConnection, UDPConnection_t *
  *  \param  udpConnection	the udp connection structure.
  */
 void udpDestroySocket(UDPConnection_t *udpConnection);
+
+
+/*! \brief Returns the IP address associated with a UDP connection.
+ *
+ *  Returns a string with the IP address of the specified connection.
+ *
+ *  \param  conn        the UDP connection.
+ *  \return the IP address of the UDP connection.
+ */
+char* udpConnIp(UDPConnection_t *conn);
+
+
+/*! \brief Returns the port associated with a UDP connection.
+ *
+ *  Returns a string with the port of the specified connection.
+ *
+ *  \param  conn        the UDP connection.
+ *  \return the port of the UDP connection.
+ */
+int udpConnPort(UDPConnection_t *conn);
 
 
 

@@ -1,14 +1,5 @@
 #include "udp.h"
 
-char* udpConnIp(UDPConnection_t *conn) {
-	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
-	return inet_ntoa(addr_in->sin_addr);
-}
-
-int udpConnPort(UDPConnection_t *conn) {
-	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
-	return ntohs(addr_in->sin_port);
-}
 
 // creates and initializes an UDP socket
 UDPConnection_t* udpCreateSocket(const char *addrIP, const char *port, char mode) {
@@ -117,4 +108,18 @@ void udpDestroySocket(UDPConnection_t *udpConnection) {
 	if (close(udpConnection->fd))
 		_FATAL("[UDP] Error while closing the socket!\n\t - Error code: %d", errno);
 	free(udpConnection);
+}
+
+
+// returns the IP address associated with a UDP connection
+char* udpConnIp(UDPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return inet_ntoa(addr_in->sin_addr);
+}
+
+
+// returns the port associated with a UDP connection
+int udpConnPort(UDPConnection_t *conn) {
+	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
+	return ntohs(addr_in->sin_port);
 }

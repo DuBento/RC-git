@@ -3,7 +3,7 @@
 
 // initialize a directory on the specified path
 DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
-	DIR* d;
+	DIR* d = NULL;
 	// make dir path
 	int exePathLen = strlen(exePath);
 	int dirnameLen = strlen(dirname);
@@ -16,6 +16,7 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 	if(pathEnd) {
 		char *base_path = (char*)malloc((exePathLen + 1) * sizeof(char));
 		strncpy(base_path, exePath, pathEnd - exePath);
+		base_path[pathEnd - exePath] = '\0';
 		sprintf(formatedPath, "%s/%s/", base_path, dirname);
 		free(base_path);
 	}
@@ -29,15 +30,14 @@ DIR* initDir(const char* exePath, const char* dirname, char* outPath) {
 		} else if (errno == ENOENT || errno == ENOTDIR ) {
 			// dir does not exist, create new
 			if (mkdir(formatedPath, S_IRUSR|S_IWUSR|S_IXUSR) == -1) 
-				_FATAL("Failed to create log directory.\n\t - Error: %s", strerror(errno));
+				_FATAL("Failed to create log directory.\n\t - Error code: %d", errno);
 
 			// retry to open
 			d = opendir(formatedPath);
 			if (d) return d;
 		}
 
-		// else
-		_FATAL("Failed to open log directory.\n\t - Error: %s", strerror(errno));
+	_FATAL("Failed to open log directory.\n\t - Error code: %d", errno);
 }
 
 

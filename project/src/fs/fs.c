@@ -1,4 +1,5 @@
 #include "fs_aux.h"
+#include "../list.h"
 #include "../files.h"
 
 
@@ -8,9 +9,15 @@ static DIR *files;
 char filesPath[PATH_MAX];
 
 bool_t verbosity = FALSE;
-bool_t bRunning = TRUE;
-int exitCode = 0;
 
+
+/*! \brief Cleans the server and frees all the memory allocated.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void cleanFS() {
+	closedir(files);
+}
 
 
 /*! \brief Terminates the program on success.
@@ -18,8 +25,8 @@ int exitCode = 0;
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
 void terminateFS() {
-	bRunning = FALSE;
-	exitCode = 0;
+	cleanFS();
+	exit(EXIT_SUCCESS);
 }
 
 
@@ -28,8 +35,8 @@ void terminateFS() {
  *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
  */
 void abortFS() {
-	bRunning = FALSE;
-	exitCode = 1;
+	cleanFS();
+	exit(EXIT_FAILURE);
 }
 
 
@@ -81,6 +88,112 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
+/*! \brief Adds a user to the connection list.
+ *
+ *  Adds a user to the connection list opens up the communication with him.
+ * 
+ * 	\param userConnections		the list of users currently connected.
+ *  \param tcpConnection		the tcp connection that is waiting for connection requests.
+ *  \param fds					a pointer to the fds.
+ *  \param fdsSize				a pointer to the size of the fds.
+ */
+void handleUserConnection(List_t userConnections, TCPConnection_t *tcpConnection, fd_set *fds, int *fdsSize) {
+	TCPConnection_t *userConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
+	tcpAcceptConnection(tcpConnection, userConnection);
+	listInsert(userConnections, userConnection);
+	FD_SET(userConnection->fd, fds);
+	*fdsSize = (*fdsSize > userConnection->fd ? *fdsSize : userConnection->fd +  1);
+	_LOG("Connection accepted!\n\t - IP\t: %s\n\t - PORT\t: %d\n\t - FD\t: %d", 
+		tcpConnIp(userConnection), tcpConnPort(userConnection), userConnection->fd);
+}
+
+
+/*! \brief Processes all the currently active requests
+ *
+ *  Sends the operation requests to the as everytime the waiting time expires. If the request
+ *  was already sent NREQUEST_TRIES times, sends an error to the user.
+ * 
+ * 	\param userConnections		the list of users currently connected.
+ *  \param tcpConnection		the tcp connection that is waiting for connection requests.
+ *  \param fds					a pointer to the fds.
+ *  \param fdsSize				a pointer to the size of the fds.
+ */
+void processUserRequests(const struct timeval *oldTime, List_t userRequests) {
+		struct timeval newTime;
+		gettimeofday(&newTime, NULL);
+		float timeExpired = newTime.tv_sec - oldTime->tv_sec;
+
+		ListIterator_t iterator = listIteratorCreate(userRequests);
+		while (!listIteratorEmpty(&iterator)) {
+			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
+			if (userRequest->nTries != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
+				if (userRequest->nTries == NREQUEST_TRIES) {
+					_LOG("Maximum number of tries reached on request %s. Aborting...", userRequest->tid);
+					// send message back to the user
+				}
+
+				userRequest->exeRequest(userRequest);
+			}
+		}
+}
+
+
+
+/*! \brief Handles the server messages during the runtime.
+ *
+ *  Verifies which message was sent by the server and updates the server accordingly
+ */
+void runFS() {
+	TCPConnection_t *tcpConnection = tcpCreateServer(connectionInfo.fsip, connectionInfo.fsport, SOMAXCONN);
+	UDPConnection_t *udpConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	List_t userConnections = listCreate();
+	List_t userRequests = listCreate();
+
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(tcpConnection->fd, &fds);
+	FD_SET(udpConnection->fd, &fds);
+	int fdsSize = (tcpConnection->fd > udpConnection->fd ? tcpConnection->fd : udpConnection->fd) + 1;
+	struct timeval tv;
+	tv.tv_sec = TIMEOUT;
+	tv.tv_usec = 0;
+
+	while (TRUE) {
+		fd_set fdsTemp = fds;
+		struct timeval tvTemp, currentTime;
+		gettimeofday(&currentTime, NULL);
+		tvTemp = tv;
+		
+		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
+		if (selRetv == -1) {
+			if (errno == EINTR)		break;	// return from signal
+			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+		}
+
+		// handle the new users's connections
+		if (FD_ISSET(tcpConnection->fd, &fdsTemp))
+			handleUserConnection(userConnections, tcpConnection, &fds, &fdsSize);
+
+		// handle the as reply
+		if (FD_ISSET(udpConnection->fd, &fdsTemp)) {
+			// handle as reply
+		}
+
+		// handles the user's new requests
+		ListIterator_t iterator = listIteratorCreate(userConnections);
+		while (!listIteratorEmpty(&iterator)) {
+			ListNode_t node = listIteratorNextNode(&iterator);
+			TCPConnection_t *userConnection = (TCPConnection_t *)listValue(node);
+			if (FD_ISSET(userConnection->fd, &fdsTemp)) {
+				;	// handle userRequest	
+			}
+		}
+
+		// processes the user's current requests
+		processUserRequests(&currentTime, userRequests);
+	}
+}
+
 
 
 int main(int argc, char *argv[]) {
@@ -88,7 +201,9 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
-
-	closedir(files);
+	//VERBOSE("Starting FS server...");
+	//runFS();
+	
+	cleanFS();
 	return 0;
 }	
