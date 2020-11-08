@@ -138,6 +138,7 @@ The reply should be displayed as a numbered list of filenames and the respective
 	// Establish TCP connection with FS (update ptr outside)
 	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
 	connectionInfo.fsport);
+
 	tcpConnect(fsconnection);	
 
 	// Send message to FS: LST UID TID 
@@ -211,11 +212,17 @@ with name Fname and size Fsize bytes. The user ID (UID) and transaction ID
 validate the transaction (VLD).*/
 
 	char *msgBuffer, *data;
-	int msgSize, sizeSent;
+	int msgSize, sizeSent, filenameSize;
 	TCPConnection_t *fsconnection;
 	ssize_t fileSize;
 
-	msgSize = sizeSent = fileSize = 0;
+	if (filename == NULL) {
+		printf("How the hell can I upload a file without a filename?\n");
+		return FALSE;
+	}
+
+	msgSize = sizeSent = fileSize = filenameSize = 0;
+	msgBuffer = data = NULL;
 
 	// Establish TCP connection with FS (update ptr outside)
 	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
@@ -223,15 +230,17 @@ validate the transaction (VLD).*/
 	tcpConnect(fsconnection);
 
 	// Get data
-	fileSize = retreiveFile("","",filename, &data);
-
-
+	fileSize = retreiveFile(".","\0",filename, &data);
 
 	// Send message to FS: UPL UID TID Fname Fsize data
 	msgBuffer = (char*) malloc((3+1+4+1+4+1+strlen(filename)+1+fileSize+1+fileSize)*sizeof(char));
+	if (msgBuffer == NULL) {
+		printf("Failed to allocate buffer to send upload message.\n");
+		free(data);
+		return FALSE;
+	}
 	
-	
-	msgSize = sprintf(msgBuffer, "%s %s %.4d\n", REQ_UPL, userInfo->uid, 
+	msgSize = sprintf(msgBuffer, "%s %s %.4d %s %d %s\n", REQ_UPL, userInfo->uid, 
 	tid, filename, fileSize, data);
 
 	if (msgSize == SSCANF_FAILURE) {
@@ -241,6 +250,8 @@ validate the transaction (VLD).*/
 	if (msgSize != sizeSent) {
 		printf("A problem may have occured while sending the upload " 
 		"request because the whole message was not sent!");
+		free(msgBuffer);
+		free(data);
 		return FALSE;
 	}
 	free(msgBuffer);
@@ -383,8 +394,9 @@ otherwise (e.g. incorrectly formatted REQ message) the status is ERR.*/
 				"\t-> Have you written it with uppercase?\n"
 				"\t-> Have you written a valid Fop? (R, D, L, U, X)\n");
 		else if (!strcmp(status, SERVER_ERR))
-			printf("Incorrectly formatted request, dear.\n"
-				"\t-> Have you logged in before?\n");
+			printf("Request request incorrectly formatted, dear.\n"
+				"\t-> Have you logged in before?\n"
+				"\t-> Have you written Fname if needed?\n");
 	
 
 	// DO NOT close connection to AS
@@ -439,7 +451,9 @@ RLS status:
  - status = INV in case of an AS validation error of the provided TID,
  - status = ERR if the LST request is not correctly formulated*/
 	//Close TCP connection with FS.
+//int numFiles;
 
+//numFiles = (int) strtol(str, (char **)NULL, 10);
 
 	/*if is integer (status)
 		printf name \t\t\t size		like a table header?
@@ -457,10 +471,17 @@ RLS status:
 
 	*/
 	TCPConnection_t *fsconnection;
+	int numFiles;
 	fsconnection = *fsConnection;
 
-	LOG("we're in");
-
+	sscanf(data, "%d", &numFiles);
+	data += 2+numFiles/10;	// shift pointer space + numDigits(numFiles)
+	
+	_LOG("bufffffff %s", data);
+	for(int i = numFiles; i != 0; i--) {
+		
+	}
+	//numFiles = (int) strtol(str, (char **)NULL, 10);
 	// Close TCP connection with FS (update variable outside).
 	*fsConnection = tcpDestroySocket(fsconnection);
 	return TRUE;
@@ -534,7 +555,7 @@ connection with the FS.*/
 		printf("Failed authentication near the Authentication Server "
 		"(AS)\n");
 	else if (!strcmp(status, SERVER_ERR))
-		printf ("Request wrongly formulated.");
+		printf ("Upload request wrongly formulated.\n");
 	
 	// Close FS TCP connection
 	*fsConnection = tcpDestroySocket(fsconnection);

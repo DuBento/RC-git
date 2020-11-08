@@ -52,7 +52,7 @@ void parseArgs(int argc, char *argv[]) {
 		// check the number of arguments       
 	if (argc < 1 || argc > 9 || argc % 2 != 1) {
 		_FATAL("Invalid number of arguments!\n\t - [Usage]: %s [-n ASIP] "
-		"[-d ASport] [-n FSIP] [-p FSport]\n", argv[0]);
+		"[-p ASport] [-m FSIP] [-q FSport]\n", argv[0]);
 	}
 
 	for (int i = 1; i < argc; i++) {
@@ -60,18 +60,19 @@ void parseArgs(int argc, char *argv[]) {
 		if (!strcmp(ARG_ASIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1])) 
 			strncpy(connectionInfo.asip, argv[++i], IP_SIZE);
 		else if (!strcmp(ARG_ASPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
-			strncpy(connectionInfo.asip, argv[++i], PORT_SIZE);
+			strncpy(connectionInfo.asport, argv[++i], PORT_SIZE);
 		else if (!strcmp(ARG_FSIP, argv[i]) && (ipPortSwitch = ARG_IP) && isIPValid(argv[i + 1]))
-		   strncpy(connectionInfo.asport, argv[++i], IP_SIZE); 
+			strncpy(connectionInfo.fsip, argv[++i], IP_SIZE); 
 		else if (!strcmp(ARG_FSPORT, argv[i]) && (ipPortSwitch = ARG_PORT) && isPortValid(argv[i + 1]))
-		   strncpy(connectionInfo.asport, argv[++i], PORT_SIZE);
+			strncpy(connectionInfo.fsport, argv[++i], PORT_SIZE);
 		else {
-			if (ipPortSwitch == ARG_IP)
+			if (ipPortSwitch == ARG_IP) {
 				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
-			else if (ipPortSwitch == ARG_PORT)
+				}
+			else if (ipPortSwitch == ARG_PORT) {
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
-				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
+				ARG_USAGE_PORT " (x -> digit)", argv[i + 1]) }
 			else
 				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
 		}
@@ -187,7 +188,7 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 
 
 bool_t handleFSServer() {
-	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = { 0 }, arg[BUFSIZ] = {0};
+	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = { 0 }/*, arg[BUFSIZ] = {0}*/, *arg;
 	int size;
 	
 	/* Each user can have a maximum of 15 files stored in the FS server. */
@@ -196,7 +197,8 @@ bool_t handleFSServer() {
 	
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
 	_LOG("Le fs buffer %s", buffer);
-	sscanf(buffer, "%s %s", opcode, arg);
+	arg = buffer + PROTOCOL_MSSG_OFFSET;
+	sscanf(buffer, "%s", opcode);
 
 	// List response RLS N[ Fname Fsize]*
 	if (!strcmp(opcode, RESP_LST))
@@ -207,7 +209,7 @@ bool_t handleFSServer() {
 		userInfo.fsConnected = !resp_retrieve(arg);*/
 
 	// Upload response " RUP status"
-	else if (!strcmp(opcode, RESP_AUT))
+	else if (!strcmp(opcode, RESP_UPL))
 		userInfo.fsConnected = !resp_upload(&fsConnection, arg);
 
 	//	Delete response RDL status

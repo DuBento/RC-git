@@ -30,7 +30,16 @@ typedef struct user_info_t {
 } userInfo_t;
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+
+// Sigma testing fs
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
+
+// Sigma testing as
+//static connectionInfo_t connectionInfo = {"79.169.11.135\0", "5000\0", TEJO_IP, TEJO_FS_PORT};
+
+
+
 static userInfo_t userInfo = { 0 };
 
 
@@ -76,7 +85,7 @@ static userInfo_t userInfo = { 0 };
 #define FOP_STR_D	"D"
 #define FOP_STR_X	"X"
 
-
+#define PROTOCOL_MSSG_OFFSET	4	// space between response letters and relevant data
 
 
 /*! \brief Request user login.
