@@ -113,6 +113,7 @@ bool_t storeFile(const char *filesPath, const char *dirname, const char *filenam
 
 	size_t read = fwrite(contents, sizeof(char), len, file);
 	fclose(file);
+	closedir(directory);
 	return read == len;
 }
 
