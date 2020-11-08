@@ -123,3 +123,14 @@ int udpConnPort(UDPConnection_t *conn) {
 	struct sockaddr_in *addr_in = (struct sockaddr_in*) &conn->addr;
 	return ntohs(addr_in->sin_port);
 }
+
+void udpMakeSockaddr(UDPConnection_t *conn, char *ip, char* port) {
+	struct sockaddr_in tmpAddr;
+	memset(&tmpAddr, 0, sizeof(tmpAddr));
+	tmpAddr.sin_family = AF_INET;
+	tmpAddr.sin_addr.s_addr = inet_addr(ip);
+	tmpAddr.sin_port = htons(atoi(port));
+
+	memcpy(&conn->addr, (struct sockaddr*) &tmpAddr, sizeof(struct sockaddr));
+	conn->addrlen = sizeof(tmpAddr);
+}

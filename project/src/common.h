@@ -60,6 +60,7 @@ typedef char bool_t;
 #define CMD_SIZE	4	// the size of command
 #define UID_SIZE	5	// the size of the UID
 #define TID_SIZE	4	// the size of the TID
+#define RID_SIZE	4	// the size of the RID
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
 
@@ -71,6 +72,9 @@ typedef char bool_t;
 #define STR_CLEAN	"\b\b"	// the string to clean the input and response strings
 #define CHAR_SEP_MSG	' '	// the sepatation character on a protocol message
 #define CHAR_END_MSG	'\n'	// the last character of a protocol message
+
+#define RAND_NUM_MIN 1000	// to calculate VLC and RID
+#define RAND_NUM_MAX 9999	// to calculate VLC and RID
 
 /* Protocol commands */
 #define SERVER_ERR	"ERR"
@@ -234,7 +238,13 @@ bool_t isUIDValid(const char *buffer);
  */
 bool_t isPassValid(const char *buffer);
 
-
+/*! \brief Checks if the request identifier is valid.
+ *
+ *  Checks if the request identifier is a number with 4 digits.
+ * 	\param  buffer	the buffer containing the request identifier.
+ * 	\return TRUE if the request identifier is valid, FALSE otherwise.
+ */
+bool_t isRIDValid(const char *buffer);
 
 /*! \brief Reads an input line from the user.
  *

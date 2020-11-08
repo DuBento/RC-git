@@ -127,6 +127,9 @@ bool_t isPassValid(const char *buffer) {
 }
 
 
+bool_t isRIDValid(const char *buffer) {
+	return isStringValid(buffer, STR_DIGIT, RID_SIZE);
+}
 
 // reads the user input
 char* getUserInput(char *buffer, size_t size) {
