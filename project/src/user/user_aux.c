@@ -481,9 +481,9 @@ _LOG("retrv %s", response);
 		// shift pointer to reach data
 		data = data + strlen(size) + 1;
 		
-		if (storeFile(CURRENT_DIR, CURRENT_DIR, fname, data, (ssize_t) fsize) == FALSE) {
-			printf("Failed to store file.\n");
-		}	//todo pass this bs to constants
+		if (!storeFile(CURRENT_DIR, CURRENT_DIR, fname, data, (ssize_t) fsize)) {
+			printf("Failed to store file %s.\n", fname);
+		}
 
 		printf("Retrieve request of file %s successeful.\n", *filename);
 		

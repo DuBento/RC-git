@@ -140,5 +140,7 @@ char* udpConnIp(UDPConnection_t *conn);
 int udpConnPort(UDPConnection_t *conn);
 
 
+void udpMakeSockaddr(UDPConnection_t *conn, char *ip, char* port);
+
 
 #endif  /* UDP_H */

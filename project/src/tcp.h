@@ -115,6 +115,13 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len);
 void tcpCloseConnection(TCPConnection_t *tcpConnection);
 
 
+
+
+
+
+void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection);
+
+
 /*! \brief Terminates the TCP socket.
  *
  *  Frees the information associated with an TCP socket and closes it.

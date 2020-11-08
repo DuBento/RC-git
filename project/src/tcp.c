@@ -22,9 +22,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
-
-	free(res);
-
+	freeaddrinfo(res);
 	return tcpConnection;
 }
 
@@ -32,9 +30,11 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 // creates a TCP server
 TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConnections) {
 	TCPConnection_t *tcpConnection = tcpCreateSocket(addrIP, port, SERVER);	
-	if (bind(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
+	if (bind(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen)) {
+		free(tcpConnection);
 		_FATAL("[TCP] Unable to bind the server.\n\t - Error: %s", strerror(errno));
-
+	}
+		
 	if (listen(tcpConnection->fd, nConnections))
 		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d %s", errno, strerror(errno));
 
@@ -79,13 +79,15 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	do {
 		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(tcpConnection->fd, buffer, len);
+		int n = read(tcpConnection->fd, buffer, len-1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
 		
+		// disconnected socket
+		if (n == 0)	return -1;		
 		sizeRead += n;
 		
-	} while (buffer[sizeRead-1] != '\n');
+	} while (buffer[sizeRead-1] != CHAR_END_MSG && len - 1 != sizeRead);
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
@@ -117,6 +119,12 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d %s", errno, strerror(errno));
 	free(tcpConnection);
+}
+
+// closes the tcp connection
+void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection) {	
+	if (close(tcpConnection.fd))
+		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
 }
 
 

@@ -151,7 +151,7 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConnec, UDPConnection_t *recvConno
 /* TCP    */
 /* ====== */
 
-bool_t req_loginUser(TCPConnection_t *tcpConnect, char* buf, char* path) {
+bool_t req_loginUser(asNodeTCP_t *nodeTCP, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
         // dir and file manipulation
@@ -161,6 +161,7 @@ bool_t req_loginUser(TCPConnection_t *tcpConnect, char* buf, char* path) {
         char login_file[2*FILE_SIZE+BUFFER_SIZE], pass_file[2*FILE_SIZE+BUFFER_SIZE];
         DIR *dir;
         // response
+        TCPConnection_t *tcpConnect = &nodeTCP->tcpConn;
         char answer[BUFFER_SIZE];
         int msgLen;
         
@@ -206,6 +207,8 @@ bool_t req_loginUser(TCPConnection_t *tcpConnect, char* buf, char* path) {
         _VERBOSE("Loging User:\nuid: %s\npass: %s\nFrom IP:%s\tPORT:%d",
                                 uid, pass, tcpConnIp(tcpConnect), tcpConnPort(tcpConnect));
         
+        // log uid in list node
+        strcpy(nodeTCP->uid, uid);
         _loginUser(path, dirname, login_file, tcpConnIp(tcpConnect), tcpConnPort(tcpConnect));
 
         // reply to PD
@@ -221,6 +224,29 @@ void _loginUser(char* relative_path, char* dirname, char* filename, char* ip, in
 
         size = sprintf(data, "%s\n%d", ip, port);
         storeFile(relative_path, dirname, filename, data, size);
+}
+
+
+bool_t unregisterUser(asNodeTCP_t *nodeTCP, char* path) {
+        char login_file[2*FILE_SIZE+BUFFER_SIZE];
+        char dirname[FILE_SIZE+BUFFER_SIZE];
+        //response
+        TCPConnection_t *tcpConnect = &nodeTCP->tcpConn;
+        char answer[BUFFER_SIZE];
+        int msgLen;
+
+        sprintf(dirname, "%s%s", USERDIR_PREFIX, nodeTCP->uid); 
+
+
+        sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
+        // tries to delete login file
+        if (remove(login_file) == -1)
+                if(errno == ENOENT){
+                        _FATAL("User: %s was not registered. Internal error.", nodeTCP->uid);
+                        return FALSE;
+                }
+        
+        return TRUE;
 }
 
 
