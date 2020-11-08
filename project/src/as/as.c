@@ -25,7 +25,8 @@ DIR *dir;
 char dir_path[PATH_MAX];
 TCPConnection_t *tcpServer;
 UDPConnection_t *udpServer;
-List_t tcpList;
+List_t userList;
+List_t pdList;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
 
@@ -116,14 +117,14 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
 
 void cleanListNodeTCP(void* nodeData) {
-	asNodeTCP_t *nodeDataAS =  (asNodeTCP_t*) nodeData;
+	userNode_t *nodeDataAS =  (userNode_t*) nodeData;
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
 }
 
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
-	listDestroy(tcpList, cleanListNodeTCP);
+	listDestroy(userList, cleanListNodeTCP);
 	closedir(dir);
 	exit(flag);
 }
@@ -141,15 +142,13 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	// Registration Request
 	if (!strcmp(opcode, REQ_REG)){
 		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG), dir_path);
-		return FALSE;	// not waiting replay
 	}// Unregistration Request
 	else if (!strcmp(opcode, REQ_UNR)){
-		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR), dir_path);                
-		return FALSE;	// not waiting replay
+		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR), dir_path, pdList);                
 	}
 	// Validation Code received "RVC"
 	else if (!strcmp(opcode, RESP_VLC))
-		return FALSE;// TODO ? validationCode_Response();
+		resp_validationCode(udpConnec, &recvConnoc, userList, pdList, msgBuf+strlen(REQ_UNR));
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
@@ -161,12 +160,12 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	}
 }
 
-bool_t handleTCP(asNodeTCP_t *tcpNode, char *msgBuf) {
+bool_t handleTCP(userNode_t *tcpNode, char *msgBuf) {
 	char opcode[BUFFER_SIZE];
 
 	if (tcpReceiveMessage(&tcpNode->tcpConn, msgBuf, BUFFER_SIZE) == -1){
-		unregisterUser(tcpNode, dir_path);
-		return TRUE;	
+		unregisterUser(tcpNode, dir_path, pdList);
+		return FALSE;	
 	}
 
 	sscanf(msgBuf, "%s", opcode);
@@ -174,22 +173,25 @@ bool_t handleTCP(asNodeTCP_t *tcpNode, char *msgBuf) {
 	// Login Request
 	if (!strcmp(opcode, REQ_LOG))
 		req_loginUser(tcpNode, msgBuf+strlen(REQ_LOG), dir_path);
+	
 	// File manipulation Request
 	else if (!strcmp(opcode, REQ_REQ))
-		;// req_fileOP()
+		req_fileOP(tcpNode, msgBuf+strlen(REQ_LOG), dir_path, udpServer, pdList);
+	
 	// Authorize Op
 	else if (!strcmp(opcode, REQ_AUT))
-		;// req_Auth()
+		req_auth(tcpNode, msgBuf);
+	
 	// Error
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
-		return TRUE;
 	}
 	else{
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		req_serverErrorTCP(&tcpNode->tcpConn, msgBuf);
-		return TRUE;
 	}
+
+	return TRUE;
 }
 
 
@@ -213,7 +215,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 	struct timeval tv, tmp_tv;
 	int selectRet, fds_size;
 	int nTry = 0;
-	int waitingReply = FALSE;
+	ListIterator_t iter;
 	/* SELECT */
 	FD_ZERO(&fds);
 	FD_SET(tcp_server->fd, &fds);
@@ -233,48 +235,59 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			if (errno == EINTR) break;	// return from signal
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 		}
+		
+		_LOG("ret val:%d", selectRet);
+		// timeout expired
+		iter = listIteratorCreate(pdList);
+		if (selectRet == 0 && !listIteratorEmpty(&iter)) {
+			LOG("Inside timeouted");
+			while (!listIteratorEmpty(&iter)){
+				ListNode_t node = (ListNode_t) iter;
+				pdNode_t *nodeData = listIteratorNext(&iter);
+				// act as previous message didn't reach the target
+				// try to resend NTRIES_NORESP times
+				if (nodeData->nAttempts < NREQUEST_TRIES)
+					resendMessagePD(udpServer, nodeData, dir_path);	//handle no reponse to prev msg
+				else{
+					nTry = 0;
+					listRemove(pdList, node, NULL);
+					_WARN("No response received from sent message.\nUID:%s\nCommunication error.", nodeData->uid);
+				}
+			}
+			LOG("BEFORE CONTINUE");
+			continue;	// run select again
+			LOG("AFTER CONTINUE");
+
+		}       
 
 		// handle PD interaction
 		if (FD_ISSET(udp_server->fd , &ready_fds)){
-			waitingReply = handleUDP(udp_server, msgBuf);
+			handleUDP(udp_server, msgBuf);
 		}
 
 		// handle User new connection
 		if (FD_ISSET(tcp_server->fd, &ready_fds)){
-			asNodeTCP_t *newNode = (asNodeTCP_t*) malloc(sizeof(asNodeTCP_t));
+			userNode_t *newNode = (userNode_t*) malloc(sizeof(userNode_t));
 			tcpAcceptConnection(tcp_server, &newNode->tcpConn);
-			// add to list pf tcp connections
-			listInsert(tcpList, newNode);	
-			// add to select fd set
-			addSocket(&newNode->tcpConn, &fds, &fds_size);
+			newNode->uid[0] = '\0'; newNode->rid=0; newNode->vc=0; newNode->tid=0;	// set as clean
+			listInsert(userList, newNode);	// add to list pf tcp connections
+			addSocket(&newNode->tcpConn, &fds, &fds_size);	// add to select fd set
 		}
 
-		// timeout expired
-		if (selectRet == 0 && waitingReply) {
-			// act as previous message didn't reach the target
-			// try to resend NTRIES_NORESP times
-			if (nTry < NREQUEST_TRIES)
-				;//handle no reponse to prev msg
-			else{
-				nTry = 0;
-				WARN("No response received from sent message.\nCommunication error.");
-			}
-		}       
 		
-		if (selectRet != 0){	// not time out
-			// Handle all tcp cliente connections
-			ListIterator_t iter = listIteratorCreate(tcpList);
-			while (!listIteratorEmpty(&iter)){
-				puts("inloop");
-				ListNode_t node = (ListNode_t) iter;
-				asNodeTCP_t *nodeData = listIteratorNext(&iter);
-				TCPConnection_t *conn = &nodeData->tcpConn;
-				if (FD_ISSET(conn->fd, &ready_fds)){
-					if(handleTCP(nodeData, msgBuf) == FALSE){
-						// connection closed
-						removeSocket(conn, &fds, &fds_size);
-						listRemove(tcpList, node, cleanListNodeTCP);
-					}
+		// Handle all tcp cliente connections
+		iter = listIteratorCreate(userList);
+		while (!listIteratorEmpty(&iter)){
+			puts("inloop");
+			ListNode_t node = (ListNode_t) iter;
+			userNode_t *nodeData = listIteratorNext(&iter);
+			TCPConnection_t *conn = &nodeData->tcpConn;
+			if (FD_ISSET(conn->fd, &ready_fds)){
+				if(handleTCP(nodeData, msgBuf) == FALSE){
+					LOG("connection closed");
+					// connection closed
+					removeSocket(conn, &fds, &fds_size);
+					listRemove(userList, node, cleanListNodeTCP);
 				}
 			}
 		}
@@ -300,11 +313,14 @@ int main(int argc, char *argv[]) {
 	connectionInfo_t connectionInfo = {"58053\0"};
 	parseArgs(argc, argv, &connectionInfo);
 	dir = initDir(argv[0], DIR_NAME, dir_path);
-	// mount UDP server socket
+	// mount UDP server socket and pd logs
 	udpServer = udpCreateServer(NULL, connectionInfo.asport);
-	// mount TCP server socket
+	pdList = listCreate();
+
+	// mount TCP server socket and user logs
 	tcpServer = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
-	tcpList = listCreate();
+	userList = listCreate();
+	
 	waitMainEvent(tcpServer, udpServer, msgBuffer);
 
 	return 0; // Never used

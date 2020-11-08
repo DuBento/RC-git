@@ -132,11 +132,16 @@ bool_t isRIDValid(const char *buffer) {
 	return isStringValid(buffer, STR_DIGIT, RID_SIZE);
 }
 
+// checks if the VC is valid
+bool_t isVCValid(const char *buffer) {
+	return isStringValid(buffer, STR_DIGIT, VC_SIZE);
+}
 
 // checks if the TID is valid
 bool_t isTIDValid(const char *buffer) {
 		return isStringValid(buffer, STR_DIGIT, TID_SIZE);
 }
+
 
 
 // checks if the file name is valid
