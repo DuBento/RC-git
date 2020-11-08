@@ -165,19 +165,19 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 			tcpConnPort(userRequest->tcpConnection), opcode, uid, tid, fname);
 
 	bool_t successOnFill;
-	if (validArgs == 3 && !strcmp(opcode, REQ_LST) && buffer[size -1] != '\n')
+	if (validArgs == 3 && !strcmp(opcode, REQ_LST) && buffer[size] != '\n')
 		successOnFill = fillListRequest(userRequest, uid, tid);
 
-	else if (validArgs == 4 && !strcmp(opcode, REQ_RTV) && buffer[size -1] != '\n')
+	else if (validArgs == 4 && !strcmp(opcode, REQ_RTV) && buffer[size] != '\n')
 		successOnFill = fillRetreiveRequest(userRequest, uid, tid, fname);
 
 	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL) && (fdata = findNthCharOccurence(buffer, ' ', 5)) != NULL)
 		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize, fdata);
 
-	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size -1] != '\n')
+	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size] != '\n')
 		successOnFill = fillDeleteRequest(userRequest, uid, tid, fname);
 
-	else if (validArgs == 3  && !strcmp(opcode, REQ_REM) && buffer[size -1] != '\n')
+	else if (validArgs == 3  && !strcmp(opcode, REQ_REM) && buffer[size] != '\n')
 		successOnFill = fillRemoveRequest(userRequest, uid, tid);
 
 	else {

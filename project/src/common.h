@@ -65,9 +65,6 @@ typedef char bool_t;
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer
 
-#define MAX_FILENAME_SIZE	24	// the maximum size of the file name
-#define MAX_FILES			15	// the maximum amount of files in a directory
-
 #define BUFFER_SIZE	128	// the maximum number of characters of a message/input line
 #define TIMEOUT		10	// the number of seconds before timeout
 #define NREQUEST_TRIES	3	// the number of resent messages before quiting
@@ -136,7 +133,8 @@ typedef char bool_t;
 #define FOP_X		'X'
 
 /* Folder properties */
-#define FILE_NAME_SIZE 24
+#define FILE_NAME_SIZE 		24
+#define MAX_FILES			15	// the maximum amount of files in a directory
 
 
 
@@ -361,17 +359,5 @@ int randomNumber(int min, int max);
 size_t nDigits(int number);
 
 
-/*! \brief Creates a new file in a directory.
- *
- *  Creates a new file with the specified filename and copies the data buffer on to him.
- * 
- * 	\param  filename		the name of the new file.
- * 	\param 	data			a buffer containing the data to be stored on the file.
- * 	\param 	len				the size of the buffer.
- * 	\return TRUE if the file was successfully created, FALSE, otherwise
- */ 
-bool_t createFile(char* pathname, const char* data, int len);
-
-bool_t readFile(char* pathname, char* buf, int size);
 
 #endif 	/* COMMON_H */
