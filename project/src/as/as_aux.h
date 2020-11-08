@@ -14,33 +14,46 @@
 #define TIDFILE_SUFIX   "_tid.txt"
 #define FILE_SIZE       32
 
-typedef struct as_node_tcp {
+
+
+typedef struct user_node {
 	TCPConnection_t tcpConn;
 	char uid[UID_SIZE+1];
-}asNodeTCP_t;
+	short vc;
+	short rid;
+	short tid;
+}userNode_t;
 
 
-/* typedef struct as_node_udp {
-	struct as_node_udp *next;
+
+typedef struct pd_node {
+	// bool_t msg_sent; // unnecessary because if in list, msg sent no response received 
+	short nAttempts;
 	char uid[UID_SIZE+1];
-	bool_t msg_sent;
 	char msg[BUFFER_SIZE];
-	UDPConnection_t udp_node;
-} asNodeUDP_t; */
+} pdNode_t;
 
-// UDP
+// remove and adds msgs from waitingReply Queue for specified uid
+void _cleanQueueFromUID(List_t list, char *uid);
+void _addMsgToQueue(List_t ist, char* uid, char* msg);
+
+// PD
+void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path);
 bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
-bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
+bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path, List_t list);
+bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, List_t userList, List_t pdList, char* buf);
 bool_t req_serverErrorUDP(UDPConnection_t *udpConnec, UDPConnection_t *recvConnoc, char *msgBuffer);
-
-// TCP
-bool_t req_loginUser(asNodeTCP_t *nodeTCP, char* buf, char* path);
-bool_t unregisterUser(asNodeTCP_t *nodeTCP, char* path);
+// User
+bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path);
+bool_t unregisterUser(userNode_t *nodeTCP, char* path, List_t list);
+bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *udpConnec, List_t list);
 bool_t req_serverErrorTCP(TCPConnection_t *tcpConnect, char *msgBuffer);
-
+bool_t resp_fileOP(List_t list, char* uid, char* status);
+bool_t req_auth(userNode_t *nodeTCP, char* buf);
 
 void _loginUser(char* relative_path, char* dirname, char* filename, char* ip, int port);
 void _registerPD(char* relative_path, char* dirname, char* filename, char* pdip, char* pdport);
 void _storePassPD(char* relative_path, char* dirname, char* filename, char* pass);
+bool_t _getUDPConnPD(char *uid, char* path, UDPConnection_t *conn);
 
 #endif /* AS_AUX_H */

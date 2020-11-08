@@ -124,6 +124,8 @@ typedef char bool_t;
 #define	STATUS_FULL	"FULL"
 #define STATUS_INV	"INV"
 
+#define AUTH_ERROR	"0"
+
 /* file operations */
 #define FOP_L		'L'
 #define FOP_R		'R'
