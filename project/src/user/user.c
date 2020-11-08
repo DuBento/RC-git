@@ -301,7 +301,7 @@ void runUser() {
 		if (selRetv == 0 && waitingReply) {
 			if (nRequestTries == NREQUEST_TRIES) {
 				// Exceeded max resends
-				WARN("The server is not responding!" MSG_OP_IGN "\n");
+				WARN("The server is "MSG_NOT_RESP"\n"MSG_OP_IGN "\n");
 				waitingReply = FALSE;
 
 			} else if (userInfo.asConnected) {
@@ -324,7 +324,7 @@ void runUser() {
 bool_t initUser() {
 	/* Establish TCP connection with AS. */
 	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
-	tcpConnect(asConnection);
+	userInfo.asConnected = tcpConnect(asConnection);
 
 	/* Initialise user info structure. */
 	userInfo.fsConnected = FALSE;

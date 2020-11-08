@@ -30,13 +30,13 @@ typedef struct user_info_t {
 } userInfo_t;
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.109\0", "59053\0"};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.104\0", "59053\0"};
 
 // Sigma testing as
-//static connectionInfo_t connectionInfo = {"79.169.11.135\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
+static connectionInfo_t connectionInfo = {"79.169.11.135\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
 
 
 
@@ -90,6 +90,9 @@ static userInfo_t userInfo = { 0 };
 #define MSG_PD		"Personal Device (PD)"
 #define MSG_TID		"Transaction ID (TID)"
 #define MSG_UID		"User ID (UID)"
+#define	MSG_VC		"Validation Code (VC)"
+
+#define MSG_NOT_RESP	" not responding."
 
 #define	MSG_ERR_COM	"Error in communication with "
 #define	MSG_ERR_INV_REQ	"Invalid request!"
@@ -97,7 +100,9 @@ static userInfo_t userInfo = { 0 };
 #define MSG_ERR_INV_FOP	"Invalid file operation (Fop)!"
 #define MSG_ERR_INV_FMT "Request request incorrectly formatted, dear."
 #define	MSG_OP_IGN	"Operation ignored."
-#define MSG_DNE		" does not exist."
+#define MSG_DNE		" does not exist"
+#define MSG_FILES_DNE	"There are no files"
+#define MSG_MAXFILES	"maximum files (15)"
 
 #define MSG_SUC_LOG	"Login successeful. Congrats lad."
 #define MSG_SUC_AUT	"Authentication successeful."

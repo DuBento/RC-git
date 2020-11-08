@@ -49,9 +49,10 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port) {
 
 
 // connects the client with the server
-void tcpConnect(TCPConnection_t *tcpConnection) {
+bool_t tcpConnect(TCPConnection_t *tcpConnection) {
 	if (connect(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
 		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d %s", errno, strerror(errno));
+	return TRUE;
 }
 
 

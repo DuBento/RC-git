@@ -67,7 +67,7 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port);
  *
  *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpConnect(TCPConnection_t *tcpConnection);
+bool_t tcpConnect(TCPConnection_t *tcpConnection);
 
 
 /*! \brief Accepts the connections from the clients.
