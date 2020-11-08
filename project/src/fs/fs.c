@@ -151,48 +151,42 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	userRequest_t *userRequest = (userRequest_t*)listValue(node);
 	char buffer[BUFFER_SIZE] = { 0 };
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
-	buffer[size] = '\0';
+
+	// removes this connection from the select
+	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
+	FD_CLR(userRequest->tcpConnection->fd, fds);
+
+	// checks if the message contains a '\n' at the end and removes it
 	char opcode[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, tid[BUFFER_SIZE] = { 0 };
 	char fname[BUFFER_SIZE] = { 0 }, fsize[BUFFER_SIZE] = { 0 }, *fdata;
 	int validArgs = sscanf(buffer, "%s %s %s %s %s", opcode, uid, tid, fname, fsize);
 
-	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
-	FD_CLR(userRequest->tcpConnection->fd, fds);
+	_VERBOSE("[ %s - %d ] : %s %s %s %s", tcpConnIp(userRequest->tcpConnection), 
+			tcpConnPort(userRequest->tcpConnection), opcode, uid, tid, fname);
 
-	if (validArgs == 3 && fillListRequest(userRequest, opcode, uid, tid)) {
-		_VERBOSE("[ %s - %d ] : %c %s %s", tcpConnIp(userRequest->tcpConnection), 
-			tcpConnPort(userRequest->tcpConnection), userRequest->fop, userRequest->uid, userRequest->tid);
-	}
-	else if (validArgs == 4 && fillRetreiveRequest(userRequest, opcode, uid, tid, fname)) {
-		_VERBOSE("[ %s - %d ] : %c %s %s %s", tcpConnIp(userRequest->tcpConnection), 
-			tcpConnPort(userRequest->tcpConnection), userRequest->fop, userRequest->uid, userRequest->tid, userRequest->fileName);
-	}
-	else if (validArgs == 5 && (fdata = findNthCharOccurence(buffer, ' ', 5)) != NULL && fillUploadRequest(userRequest, opcode, uid, tid, fname, fsize)) {
-		_VERBOSE("[ %s - %d ] : %c %s %s %s", tcpConnIp(userRequest->tcpConnection), 
-			tcpConnPort(userRequest->tcpConnection), userRequest->fop, userRequest->uid, userRequest->tid, userRequest->fileName);
-		int fdatalen = strlen(++fdata);
-		if (fdata[fdatalen] == '\n')
-			fdata[fdatalen--] == '\0';
-		strncpy(userRequest->data, fdata, userRequest->fileSize);
-		userRequest->data[userRequest->fileSize] = '\0';
-		if (userRequest->fileSize > fdatalen) {
-			int dataSize = tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], userRequest->fileSize - fdatalen + 1);
-			userRequest->data[userRequest->fileSize] = '\0';
-		}			
-		_LOG("File info [%lu bytes] : %s", userRequest->fileSize, userRequest->data);
-	}
-	else if (validArgs == 4  && fillDeleteRequest(userRequest, opcode, uid, tid, fname)) {
-		_VERBOSE("[ %s - %d ] : %c %s %s %s", tcpConnIp(userRequest->tcpConnection), 
-			tcpConnPort(userRequest->tcpConnection), userRequest->fop, userRequest->uid, userRequest->tid, userRequest->fileName);
-	}
-	else if (validArgs == 3  && fillRemoveRequest(userRequest, opcode, uid, tid)) {
-		_VERBOSE("[ %s - %d ] : %c %s %s", tcpConnIp(userRequest->tcpConnection), 
-			tcpConnPort(userRequest->tcpConnection), userRequest->fop, userRequest->uid, userRequest->tid);
-	}
+	bool_t successOnFill;
+	if (validArgs == 3 && !strcmp(opcode, REQ_LST) && buffer[size -1] != '\n')
+		successOnFill = fillListRequest(userRequest, uid, tid);
+
+	else if (validArgs == 4 && !strcmp(opcode, REQ_RTV) && buffer[size -1] != '\n')
+		successOnFill = fillRetreiveRequest(userRequest, uid, tid, fname);
+
+	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL) && (fdata = findNthCharOccurence(buffer, ' ', 5)) != NULL)
+		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize, fdata);
+
+	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size -1] != '\n')
+		successOnFill = fillDeleteRequest(userRequest, uid, tid, fname);
+
+	else if (validArgs == 3  && !strcmp(opcode, REQ_REM) && buffer[size -1] != '\n')
+		successOnFill = fillRemoveRequest(userRequest, uid, tid);
+
 	else {
+		successOnFill = FALSE;
 		tcpSendMessage(userRequest->tcpConnection, "ERR\n", 4);
-		listRemove(userRequests, node, cleanRequest);
 	}
+		
+	if (!successOnFill)
+		listRemove(userRequests, node, cleanRequest);
 }
 
 
@@ -223,8 +217,12 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries++);
-				userRequest->timeExpired = 0;
+				// TEMP
+				userRequest->exeRequest(userRequest, filesPath);
+				listRemove(userRequests, node, cleanRequest);
+
+				//_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries++);
+				//userRequest->timeExpired = 0;
 				// sends the request on to the AS server
 			}
 		}

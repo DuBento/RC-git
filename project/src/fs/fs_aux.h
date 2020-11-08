@@ -21,12 +21,12 @@ typedef struct connectionInfo_t {
 
 
 // the structure that stores a request from the user
-typedef struct userRequest {
+typedef struct userRequest_t {
 	TCPConnection_t *tcpConnection;
 	float timeExpired;
 	int nTries;
 	char fop;
-	void(*exeRequest)(void*);
+	void(*exeRequest)(struct userRequest_t*, const char*);
 
 	char uid[UID_SIZE + 1];
 	char tid[TID_SIZE + 1];
@@ -44,12 +44,11 @@ typedef struct userRequest {
  * 	(if all the parameters are correct)
  * 
  * 	\param  userRequest		the pointer to the user request structure.
- * 	\param  opcode			the opcode of the request specified by the user.
- * 	\param 	uid				the uid of the user.
+ * 	\param 	uid				the uid of the request.
  * 	\param	tid				the tid of the request.
- * 	\return TRUE if the list request is valid, FALSE otherwise
+ * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillListRequest(userRequest_t *userRequest, const char *opcode, const char *uid, const char *tid);
+bool_t fillListRequest(userRequest_t *userRequest, const char* uid, const char *tid);
 
 
 /*! \brief Prepares a retreive request from the user.
@@ -58,14 +57,12 @@ bool_t fillListRequest(userRequest_t *userRequest, const char *opcode, const cha
  * 	(if all the parameters are correct)
  * 
  * 	\param  userRequest		the pointer to the user request structure.
- * 	\param  opcode			the opcode of the request specified by the user.
- * 	\param 	uid				the uid of the user.
+ * 	\param 	uid				the uid of the request.
  * 	\param	tid				the tid of the request.
  *  \param  fname			the name of the file.
- * 	\return TRUE if the retreive request is valid, FALSE otherwise
+ * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillRetreiveRequest(userRequest_t *userRequest, const char *opcode, const char *uid, const char *tid, 
-	const char *fname);
+bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname);
 
 
 /*! \brief Prepares a upload request from the user.
@@ -74,16 +71,14 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char *opcode, const
  * 	(if all the parameters are correct)
  * 
  * 	\param  userRequest		the pointer to the user request structure.
- * 	\param  opcode			the opcode of the request specified by the user.
- * 	\param 	uid				the uid of the user.
+ * 	\param 	uid				the uid of the request.
  * 	\param	tid				the tid of the request.
  *  \param  fname			the name of the file.
  * 	\param	fsize			the file of the contents.
- * 	\param	fdata			the contents of the file.
- * 	\return TRUE if the retreive request is valid, FALSE otherwise
+ * 	\param	fdata			the contents of the firt buffer.
+ * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillUploadRequest(userRequest_t *userRequest, const char *opcode, const char *uid, const char *tid, 
-	const char *fname, const char *fsize);
+bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata);
 
 
 /*! \brief Prepares a delete request from the user.
@@ -92,14 +87,12 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char *opcode, const c
  * 	(if all the parameters are correct)
  * 
  * 	\param  userRequest		the pointer to the user request structure.
- * 	\param  opcode			the opcode of the request specified by the user.
- * 	\param 	uid				the uid of the user.
+ * 	\param 	uid				the uid of the request.
  * 	\param	tid				the tid of the request.
  *  \param  fname			the name of the file.
- * 	\return TRUE if the retreive request is valid, FALSE otherwise
+ * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillDeleteRequest(userRequest_t *userRequest, const char *opcode, const char *uid, const char *tid, 
-	const char *fname);
+bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname);
 
 
 /*! \brief Prepares a remove request from the user.
@@ -108,21 +101,64 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char *opcode, const c
  * 	(if all the parameters are correct)
  * 
  * 	\param  userRequest		the pointer to the user request structure.
- * 	\param  opcode			the opcode of the request specified by the user.
- * 	\param 	uid				the uid of the user.
+ * 	\param 	uid				the uid of the request.
  * 	\param	tid				the tid of the request.
- * 	\return TRUE if the retreive request is valid, FALSE otherwise
+ * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillRemoveRequest(userRequest_t *userRequest, const char *opcode, const char *uid, const char *tid);
+bool_t fillRemoveRequest(userRequest_t *userRequest, const char* uid, const char *tid);
 
 
-/*! \brief Sends an error to the user (invalid request).
+
+
+/*! \brief Executes the list request.
  *
- *  Sends the ERR message back to the user.
+ *  Gathers all files in the user's directory and sends back a list with their names.
  * 
- * 	\param  userRequest		the pointer to the user request structure.
- * 	\return TRUE if the retreive request is valid, FALSE otherwise
+ * 	\param  userRequest		the user's request.
+ * 	\param  filesPath		the path to the files root directory.
  */
-bool_t replyInvalidRequest(userRequest_t *userRequest);
+void listRequest(userRequest_t *userRequest, const char *filesPath);
+
+
+/*! \brief Executes the retreive request.
+ *
+ *  Reads a file and send back to the user its contents.
+ * 
+ * 	\param  userRequest		the user's request.
+ * 	\param  filesPath		the path to the files root directory.
+ */
+void retreiveRequest(userRequest_t *userRequest, const char *filesPath);
+
+
+/*! \brief Executes the upload request.
+ *
+ *  Stores a new file in the users directory.
+ * 
+ * 	\param  userRequest		the user's request.
+ * 	\param  filesPath		the path to the files root directory.
+ */
+void uploadRequest(userRequest_t *userRequest, const char *filesPath);
+
+
+/*! \brief Executes the delete request.
+ *
+ *  Removes a file from the user's directory.
+ * 
+ * 	\param  userRequest		the user's request.
+ * 	\param  filesPath		the path to the files root directory.
+ */
+void deleteRequest(userRequest_t *userRequest, const char *filesPath);
+
+
+/*! \brief Executes the remove request.
+ *
+ *  Deletes the entire directory of the user.
+ * 
+ * 	\param  userRequest		the user's request.
+ * 	\param  filesPath		the path to the files root directory.
+ */
+void removeRequest(userRequest_t *userRequest, const char *filesPath);
+
+
 
 #endif 	/* FS_AUX */

@@ -63,7 +63,9 @@ typedef char bool_t;
 #define RID_SIZE	4	// the size of the RID
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer
+
 #define MAX_FILENAME_SIZE	24	// the maximum size of the file name
+#define MAX_FILES			15	// the maximum amount of files in a directory
 
 #define BUFFER_SIZE	128	// the maximum number of characters of a message/input line
 #define TIMEOUT		10	// the number of seconds before timeout
