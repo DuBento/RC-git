@@ -127,6 +127,23 @@ bool_t isPassValid(const char *buffer) {
 }
 
 
+// checks if the TID is valid
+bool_t isTIDValid(const char *buffer) {
+		return isStringValid(buffer, STR_DIGIT, TID_SIZE);
+}
+
+
+// checks if the file name is valid
+bool_t isFileNameValid(const char *buffer) {
+	for (int i = 0; i < strlen(buffer); i++)
+		if (i > MAX_FILENAME_SIZE || (!isalnum((int)buffer[i]) && buffer[i] != '.' && buffer[i] != '-' 
+			&& buffer[i] != '_'))
+			return FALSE;
+
+	return TRUE;
+}
+
+
 
 // reads the user input
 char* getUserInput(char *buffer, size_t size) {
@@ -152,6 +169,19 @@ void putStr(const char *buffer, bool_t flush) {
 		
 	if (flush)
 		fflush(stdout);
+}
+
+
+// finds the nth occurence of the specified character in the string
+char* findNthCharOccurence(char *buffer, char c, int n) {
+	int i = -1;
+	while (buffer[++i] != '\0') {
+		n -= (buffer[i] == c ? 1 : 0); 
+		if (n == 0)
+			return &(buffer[i]);
+	}
+
+	return NULL;
 }
 
 

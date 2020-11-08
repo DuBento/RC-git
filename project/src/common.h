@@ -61,7 +61,8 @@ typedef char bool_t;
 #define UID_SIZE	5	// the size of the UID
 #define TID_SIZE	4	// the size of the TID
 #define PASS_SIZE	8	// the size of the password
-#define BUFFER_SIZE	128	// the maximum size of the buffer [ALOCATE DYNAMIC]
+#define BUFFER_SIZE	128	// the maximum size of the buffer
+#define MAX_FILENAME_SIZE	24	// the maximum size of the file name
 
 #define BUFFER_SIZE	128	// the maximum number of characters of a message/input line
 #define TIMEOUT		10	// the number of seconds before timeout
@@ -235,6 +236,25 @@ bool_t isUIDValid(const char *buffer);
 bool_t isPassValid(const char *buffer);
 
 
+/*! \brief Checks if the TID is valid.
+ *
+ *  Checks if the TID is a number with 4 digits.
+ * 	\param  buffer	the buffer containing the TID.
+ * 	\return TRUE if the TID is valid, FALSE otherwise.
+ */
+bool_t isTIDValid(const char *buffer);
+
+
+/*! \brief Checks if the file name is valid.
+ *
+ *  Checks if the file name is a string containing only characters and '-', '.', '_'
+ * 	with a maximum size of 24 characters
+ * 	\param  buffer	the buffer containing the fil ename.
+ * 	\return TRUE if the file name is valid, FALSE otherwise.
+ */
+bool_t isFileNameValid(const char *buffer);
+
+
 
 /*! \brief Reads an input line from the user.
  *
@@ -259,6 +279,18 @@ char* getUserInput(char *buffer, size_t size);
  * 	\param  flush	TRUE to flush the output stream, FALSE, otherwise.
  */
 void putStr(const char *buffer, bool_t flush);
+
+
+/*! \brief Finds the nth occurence of the specified character in the string
+ *
+ *  Returns a pointer to the nth occurence of the specified characted in the string.
+ * 
+ * 	\param   buffer		the string to be searched
+ *  \param   c			the character to be searched
+ * 	\param   n			the number of occurences
+ * 	\return  the pointer to the nth occurence of the character (NULL if none)
+ */
+char* findNthCharOccurence(char *buffer, char c, int n);
 
 
 
