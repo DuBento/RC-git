@@ -115,14 +115,18 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
 
 
+void cleanListNodeTCP(void* nodeData) {
+	asNodeTCP_t *nodeDataAS =  (asNodeTCP_t*) nodeData;
+	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
+}
+
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
-	listDestroy(tcpList, &free);
+	listDestroy(tcpList, cleanListNodeTCP);
 	closedir(dir);
 	exit(flag);
 }
-
 
 /* Handle UDP Responses (Incoming Messages) */
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
@@ -157,14 +161,19 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	}
 }
 
-bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
+bool_t handleTCP(asNodeTCP_t *tcpNode, char *msgBuf) {
 	char opcode[BUFFER_SIZE];
+
+	if (tcpReceiveMessage(&tcpNode->tcpConn, msgBuf, BUFFER_SIZE) == -1){
+		unregisterUser(tcpNode, dir_path);
+		return TRUE;	
+	}
 
 	sscanf(msgBuf, "%s", opcode);
 
 	// Login Request
 	if (!strcmp(opcode, REQ_LOG))
-		req_loginUser(tcpConn, msgBuf+strlen(REQ_LOG), dir_path);
+		req_loginUser(tcpNode, msgBuf+strlen(REQ_LOG), dir_path);
 	// File manipulation Request
 	else if (!strcmp(opcode, REQ_REQ))
 		;// req_fileOP()
@@ -174,12 +183,12 @@ bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
 	// Error
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
-		return FALSE;
+		return TRUE;
 	}
 	else{
 		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
-		req_serverErrorTCP(tcpConn, msgBuf);
-		return FALSE;
+		req_serverErrorTCP(&tcpNode->tcpConn, msgBuf);
+		return TRUE;
 	}
 }
 
@@ -232,12 +241,12 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 
 		// handle User new connection
 		if (FD_ISSET(tcp_server->fd, &ready_fds)){
-			TCPConnection_t *newCon = (TCPConnection_t*) malloc(sizeof(TCPConnection_t));
-			tcpAcceptConnection(tcp_server, newCon);
+			asNodeTCP_t *newNode = (asNodeTCP_t*) malloc(sizeof(asNodeTCP_t));
+			tcpAcceptConnection(tcp_server, &newNode->tcpConn);
 			// add to list pf tcp connections
-			listInsert(tcpList, newCon);	
+			listInsert(tcpList, newNode);	
 			// add to select fd set
-			addSocket(newCon, &fds, &fds_size);
+			addSocket(&newNode->tcpConn, &fds, &fds_size);
 		}
 
 		// timeout expired
@@ -252,20 +261,21 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			}
 		}       
 		
-		// Handle all tcp cliente connections
-		ListIterator_t iter = listIteratorCreate(tcpList);
-		while (!listIteratorEmpty(&iter)){
-			puts("inloop");
-			ListNode_t node = (ListNode_t) iter;
-			TCPConnection_t *conn = listIteratorNext(&iter);
-			if (FD_ISSET(conn->fd, &ready_fds)){
-					// connection closed
-					if (tcpReceiveMessage(conn, msgBuf, BUFFER_SIZE) == -1){	
-						close(conn->fd);
+		if (selectRet != 0){	// not time out
+			// Handle all tcp cliente connections
+			ListIterator_t iter = listIteratorCreate(tcpList);
+			while (!listIteratorEmpty(&iter)){
+				puts("inloop");
+				ListNode_t node = (ListNode_t) iter;
+				asNodeTCP_t *nodeData = listIteratorNext(&iter);
+				TCPConnection_t *conn = &nodeData->tcpConn;
+				if (FD_ISSET(conn->fd, &ready_fds)){
+					if(handleTCP(nodeData, msgBuf) == FALSE){
+						// connection closed
 						removeSocket(conn, &fds, &fds_size);
-						listRemove(tcpList, node, tcpCloseConnection_void);
-					}else // has recived msg
-						handleTCP(conn, msgBuf);
+						listRemove(tcpList, node, cleanListNodeTCP);
+					}
+				}
 			}
 		}
 

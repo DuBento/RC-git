@@ -16,6 +16,7 @@
 
 typedef struct as_node_tcp {
 	TCPConnection_t tcpConn;
+	char uid[UID_SIZE+1];
 }asNodeTCP_t;
 
 
@@ -33,7 +34,8 @@ bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, c
 bool_t req_serverErrorUDP(UDPConnection_t *udpConnec, UDPConnection_t *recvConnoc, char *msgBuffer);
 
 // TCP
-bool_t req_loginUser(TCPConnection_t *tcpConnect, char* buf, char* path);
+bool_t req_loginUser(asNodeTCP_t *nodeTCP, char* buf, char* path);
+bool_t unregisterUser(asNodeTCP_t *nodeTCP, char* path);
 bool_t req_serverErrorTCP(TCPConnection_t *tcpConnect, char *msgBuffer);
 
 

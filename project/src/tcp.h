@@ -113,7 +113,7 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len);
  *  \return the file descriptor for communicating with the client.
  */
 void tcpCloseConnection(TCPConnection_t *tcpConnection);
-void tcpCloseConnection_void(void *tcpConnection);
+void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection);
 
 
 /*! \brief Terminates the TCP socket.

@@ -90,7 +90,7 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
-	_LOG("[UDP] Message received (%d bytes) - '%s'", sizeRead, buffer);
+	_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
@@ -122,11 +122,9 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 }
 
 // closes the tcp connection
-void tcpCloseConnection_void(void *tcpConnection) {	
-	TCPConnection_t *conn = (TCPConnection_t *) tcpConnection;
-	if (close(conn->fd))
+void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection) {	
+	if (close(tcpConnection.fd))
 		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
-	free(conn);
 }
 
 
