@@ -53,7 +53,7 @@ void parseArgs(int argc, char *argv[]) {
 		// check the number of arguments       
 	if (argc < 1 || argc > 9 || argc % 2 != 1) {
 		_FATAL("Invalid number of arguments!\n\t - [Usage]: %s [-n ASIP] "
-		"[-d ASport] [-n FSIP] [-p FSport]\n", argv[0]);
+		"[-p ASport] [-n FSIP] [-q FSport]\n", argv[0]);
 	}
 
 		for (int i = 1; i < argc; i++) {
