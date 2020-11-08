@@ -363,7 +363,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         int vc = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
         // VLC UID VC Fop [Fname]
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0') {
-                msgLen = sprintf(answer, "%s %s %s %c %s %c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c %s %c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 _addMsgToQueue(list, nodeTCP->uid, answer);
                 nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;
@@ -371,7 +371,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         }
 
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
-                msgLen = sprintf(answer, "%s %s %s %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 _addMsgToQueue(list, nodeTCP->uid, answer);
                 nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;

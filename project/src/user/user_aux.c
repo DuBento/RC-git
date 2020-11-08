@@ -242,7 +242,7 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 		return TRUE; // because connection is on - tbd change FALSE
 	}
 	
-	msgSize = sprintf(msgBuffer, "%s %s %.4d %s %d %s\n", REQ_UPL, userInfo->uid, 
+	msgSize = sprintf(msgBuffer, "%s %s %.4d %s %ld %s\n", REQ_UPL, userInfo->uid, 
 	tid, filename, fileSize, data);
 
 	if (msgSize == SSCANF_FAILURE) {

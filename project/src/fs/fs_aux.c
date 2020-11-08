@@ -24,7 +24,7 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
 // prepares a list request from the user.
 bool_t fillListRequest(userRequest_t *userRequest, const char* uid, const char *tid) {
     if (!_fillBaseRequest(userRequest, uid, tid)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RLS " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_LST " ERR\n", 8);
         return FALSE;
     }
     
@@ -37,7 +37,7 @@ bool_t fillListRequest(userRequest_t *userRequest, const char* uid, const char *
 // prepares a retreive request from the user
 bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname) {
     if (!_fillBaseRequest(userRequest, uid, tid)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RRT " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " ERR\n", 8);
         return FALSE;
     }
 
@@ -46,7 +46,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
         
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RRT " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
         return FALSE;
     }   
 
@@ -58,7 +58,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 // prepares a upload request from the user
 bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata) {
     if (!_fillBaseRequest(userRequest, uid, tid) || !isStringValid(fsize, STR_DIGIT, 0)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
     }
     
@@ -72,7 +72,7 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     if (userRequest->fileName == NULL || userRequest->data == NULL || fdatalen > userRequest->fileSize + 1 || 
         (fdata[fdatalen - 1] == '\n' && fdatalen <= userRequest->fileSize))
     {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " NOK\n", 8);
         return FALSE;
     }
 
@@ -83,30 +83,19 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
         tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], userRequest->fileSize + 2 - fdatalen);
 
     if (userRequest->data[userRequest->fileSize] != '\n') {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
     }
     
     userRequest->data[userRequest->fileSize] = '\0';
-    return  TRUE;
-
-
-    /*if (fdata[fdatalen] == '\n')
-        fdata[fdatalen--] == '\0';
-    userRequest->data[userRequest->fileSize] = '\0';
-    if (userRequest->fileSize > fdatalen) {
-        int dataSize = tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], userRequest->fileSize - fdatalen + 1);
-    }			
-    _LOG("File info [%lu bytes] : %s", userRequest->fileSize, userRequest->data);*/
-
-    
+    return  TRUE;   
 }
 
 
 // prepares a delete request from the user
 bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname) {
      if (!_fillBaseRequest(userRequest, uid, tid)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RDL " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " ERR\n", 8);
         return FALSE;
     }
 
@@ -115,7 +104,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
 
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RDL " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " NOK\n", 8);
         return FALSE;
     }   
     
@@ -127,7 +116,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
 // prepares a remove request from the user
 bool_t fillRemoveRequest(userRequest_t *userRequest, const char* uid, const char *tid) {
     if (!_fillBaseRequest(userRequest, uid, tid)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RRM " ERR\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_REM " ERR\n", 8);
         return FALSE;
     }
 
@@ -158,7 +147,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     DIR *userDir = initDir(filesPath, userRequest->uid, NULL);
     if (inDir(userDir, userRequest->fileName)) {
         closedir(userDir);
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " DUP\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, REQ_UPL " DUP\n", 8);
         return;
     }
     
@@ -167,19 +156,19 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     List_t userFiles = listFiles(filesPath, userRequest->uid);
     if (listSize(userFiles) >= MAX_FILES) {
         listDestroy(userFiles, free);
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " FULL\n", 9);
+        tcpSendMessage(userRequest->tcpConnection, REQ_UPL " FULL\n", 9);
         return;
     }
     
 
     // cheks if the filename is valid
     if (!isFileNameValid(userRequest->fileName)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RUP " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, REQ_UPL " NOK\n", 8);
         return;
     }
 
     storeFile(filesPath, userRequest->uid, userRequest->fileName, userRequest->data, userRequest->fileSize);
-    tcpSendMessage(userRequest->tcpConnection, RESP_RUP " OK\n", 7);
+    tcpSendMessage(userRequest->tcpConnection, REQ_UPL " OK\n", 7);
     closedir(userDir);
     listDestroy(userFiles, free);
 }
