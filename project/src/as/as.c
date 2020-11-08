@@ -68,7 +68,7 @@ char verbosity = FALSE;
 // 	else 
 // 		previous->next = current->next; //update
 		
-// 	return current;
+// 	return current;	
 // }
 
 // udpNode_t* find(int key) {
@@ -158,10 +158,7 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 }
 
 bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
-	int n;
 	char opcode[BUFFER_SIZE];
-
-	n = tcpReceiveMessage(tcpConn, msgBuf, BUFFER_SIZE);
 
 	sscanf(msgBuf, "%s", opcode);
 
@@ -190,8 +187,16 @@ bool_t handleTCP(TCPConnection_t *tcpConn, char *msgBuf) {
 
 
 void addSocket(TCPConnection_t *tcpConnec, fd_set *fds, int *fdsSize) {
+	if (fds == NULL || fdsSize == NULL)	return;
 	if (*fdsSize < tcpConnec->fd+1)	*fdsSize = tcpConnec->fd+1;
 	FD_SET(tcpConnec->fd, fds);
+}
+
+void removeSocket(TCPConnection_t *tcpConnec, fd_set *fds, int *fdsSize) {
+	if (fds == NULL || fdsSize == NULL)	return;
+	int fd = tcpConnec->fd;
+	if (*fdsSize == (fd + 1))	*fdsSize--;
+	FD_CLR(fd, fds);
 }
 
 void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, char *msgBuf) {
@@ -250,9 +255,18 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 		// Handle all tcp cliente connections
 		ListIterator_t iter = listIteratorCreate(tcpList);
 		while (!listIteratorEmpty(&iter)){
+			puts("inloop");
+			ListNode_t node = (ListNode_t) iter;
 			TCPConnection_t *conn = listIteratorNext(&iter);
-			if (FD_ISSET(conn->fd, &ready_fds))
-				handleTCP(conn, msgBuf);
+			if (FD_ISSET(conn->fd, &ready_fds)){
+					// connection closed
+					if (tcpReceiveMessage(conn, msgBuf, BUFFER_SIZE) == -1){	
+						close(conn->fd);
+						removeSocket(conn, &fds, &fds_size);
+						listRemove(tcpList, node, tcpCloseConnection_void);
+					}else // has recived msg
+						handleTCP(conn, msgBuf);
+			}
 		}
 
 	}

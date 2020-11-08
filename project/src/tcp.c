@@ -77,13 +77,16 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	do {
 		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(tcpConnection->fd, buffer, len);
+		int n = read(tcpConnection->fd, buffer, len-1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
 		
+		// disconnected socket
+		if (n == 0)	return -1;
+		
 		sizeRead += n;
 		
-	} while (buffer[sizeRead-1] != '\n');
+	} while (buffer[sizeRead-1] != CHAR_END_MSG);
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
@@ -116,6 +119,14 @@ void tcpCloseConnection(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
 		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
 	free(tcpConnection);
+}
+
+// closes the tcp connection
+void tcpCloseConnection_void(void *tcpConnection) {	
+	TCPConnection_t *conn = (TCPConnection_t *) tcpConnection;
+	if (close(conn->fd))
+		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
+	free(conn);
 }
 
 
