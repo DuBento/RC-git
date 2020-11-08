@@ -132,7 +132,8 @@ typedef char bool_t;
 
 #define FILE_NOT_AVAILABLE	"EOF"
 
-
+#define RAND_NUM_MIN 1000
+#define RAND_NUM_MAX 9999
 
 
 /* Macro for logging debug messages. */

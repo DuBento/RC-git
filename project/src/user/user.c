@@ -9,6 +9,8 @@ static TCPConnection_t *fsConnection = NULL;
 static int rid = RID_INVALID;
 static int tid = TID_INVALID;
 
+/* File name being handled in retreive requests. */
+static char *filename = NULL;
 
 
 /*! \brief Cleans the program on termination
@@ -17,8 +19,10 @@ static int tid = TID_INVALID;
  *	required modules.
  */
 void cleanUser() {
-	if (asConnection != NULL)  {	LOG("as not null");tcpDestroySocket(asConnection); }
-	if (fsConnection != NULL)	{LOG("fs not null"); tcpDestroySocket(fsConnection);}
+	if (asConnection != NULL)	tcpDestroySocket(asConnection);
+	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
+
+	if (filename != NULL)		free(filename);
 
 	if (userInfo.uid != NULL) {
 		free(userInfo.uid);}
@@ -125,7 +129,7 @@ bool_t handleUser() {
 	// retrieve command: retrieve filename or r filename
 	else if ((!strcmp(cmd, CMD_RETRIEVE) || !strcmp(cmd, CMD_RETRIEVE_S)) 
 	&& input1[0] != '\0' && input2[0] == '\0')
-		userInfo.fsConnected = req_retrieve(&fsConnection, &userInfo, tid, input1);
+		userInfo.fsConnected = req_retrieve(&fsConnection, &userInfo, tid, input1, &filename);
 
 	// upload command: upload filename or u filename
 	else if ((!strcmp(cmd, CMD_UPLOAD) || !strcmp(cmd, CMD_UPLOAD_S)) 
@@ -147,7 +151,7 @@ bool_t handleUser() {
 		terminateUser();
 			 
 	else {
-		WARN("Invalid command! Operation ignored.\n");
+		WARN(MSG_ERR_INV_CMD MSG_OP_IGN"\n");
 		return FALSE;
 	}
 	return FALSE;
@@ -176,11 +180,10 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 		tid = resp_val(arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
-		printf("Invalid request! Operation ignored\n.");
+		printf(MSG_ERR_INV_REQ"\n.");
 		return FALSE;
 	} else {
-		printf("Error in communication with the Authentication "
-			"Server (AS).\n");
+		printf(MSG_ERR_COM MSG_AS ".\n");
 		return FALSE;
 	}
 	return TRUE;
@@ -194,9 +197,11 @@ bool_t handleFSServer() {
 	/* Each user can have a maximum of 15 files stored in the FS server. */
 	/* All file Fsize fields can have at most 10 digits. */
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
-	
+LOG("about to receive fs message");
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
+LOG("Received fs message");
 	_LOG("Le fs buffer %s", buffer);
+	buffer[strlen(buffer)-1] = '\0';
 	arg = buffer + PROTOCOL_MSSG_OFFSET;
 	sscanf(buffer, "%s", opcode);
 
@@ -205,8 +210,8 @@ bool_t handleFSServer() {
 		userInfo.fsConnected = !resp_list(&fsConnection, arg);
 
 	// Retrieve code response "RRT status [Fsize data]"	
-/*	else if (!strcmp(opcode, RESP_REQ))
-		userInfo.fsConnected = !resp_retrieve(arg);*/
+	else if (!strcmp(opcode, RESP_RTV))
+		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename);
 
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_UPL))
@@ -221,7 +226,7 @@ bool_t handleFSServer() {
 		userInfo.fsConnected = !resp_remove(&fsConnection, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
-		WARN("Invalid request! Operation ignored\n.");
+		WARN(MSG_ERR_INV_REQ"\n");
 		return FALSE;
 	}
 	return TRUE;
@@ -262,7 +267,7 @@ void runUser() {
 			FD_SET(fsConnection->fd, &fdsTemp);
 			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
 		}
-LOG("Yey reached select!");
+
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
 		if (selRetv  == -1)
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
@@ -296,17 +301,17 @@ LOG("Yey reached select!");
 		if (selRetv == 0 && waitingReply) {
 			if (nRequestTries == NREQUEST_TRIES) {
 				// Exceeded max resends
-				WARN("The server is not responding! Operation ignored");
+				WARN("The server is not responding!" MSG_OP_IGN "\n");
 				waitingReply = FALSE;
 
 			} else if (userInfo.asConnected) {
-				WARN("Authentication server (AS) not responding "
+				WARN(MSG_AS " not responding "
 				"Trying to recontact...\n");
 				waitingReply = req_resendLastMessage(asConnection);	// todo to change to fs also
 				++nRequestTries;
 
 			} else if (userInfo.fsConnected) {
-				WARN("File server (FS) not responding "
+				WARN(MSG_FS " not responding "
 				"Trying to recontact...\n");
 				waitingReply = req_resendLastMessage(fsConnection);	// todo to change to fs also
 				++nRequestTries;
@@ -325,7 +330,6 @@ bool_t initUser() {
 	userInfo.fsConnected = FALSE;
 	return TRUE;
 }
-
 
 
 int main(int argc, char *argv[]) { 

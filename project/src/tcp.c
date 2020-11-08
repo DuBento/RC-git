@@ -89,7 +89,7 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
-	_LOG("[UDP] Message received (%d bytes) - '%s'", sizeRead, buffer);
+	_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
 	return sizeRead;
 }
 
