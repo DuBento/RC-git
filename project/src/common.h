@@ -61,6 +61,7 @@ typedef char bool_t;
 #define UID_SIZE	5	// the size of the UID
 #define TID_SIZE	4	// the size of the TID
 #define RID_SIZE	4	// the size of the RID
+#define VC_SIZE		4	// the size of the VC
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer
 #define MAX_FILENAME_SIZE	24	// the maximum size of the file name
@@ -247,6 +248,15 @@ bool_t isPassValid(const char *buffer);
  * 	\return TRUE if the request identifier is valid, FALSE otherwise.
  */
 bool_t isRIDValid(const char *buffer);
+
+
+/*! \brief Checks if the validation code is valid.
+ *
+ *  Checks if the validation code is a number with 4 digits.
+ * 	\param  buffer	the buffer containing the validation code.
+ * 	\return TRUE if the validation code is valid, FALSE otherwise.
+ */
+bool_t isVCValid(const char *buffer);
 
 
 /*! \brief Checks if the TID is valid.
