@@ -23,8 +23,8 @@ typedef char bool_t;
 #define TRUE		1
 #define FALSE		0
 
-#define LOCAL_IP       "127.0.0.1"
-#define TEJO_IP "193.136.138.142\0"
+#define LOCAL_IP      	"127.0.0.1"
+#define TEJO_IP 	"193.136.138.142\0"
 #define TEJO_FS_PORT	"59000\0"
 #define TEJO_AS_PORT	"58011\0"
 
@@ -98,11 +98,11 @@ typedef char bool_t;
 #define REQ_DEL		"DEL"
 #define REQ_REM		"REM"
 
-#define RESP_RLS	"RLS"
-#define RESP_RRT	"RRT"
-#define RESP_RUP	"RUP"
-#define RESP_RDL	"RDL"
-#define RESP_RRM	"RRM"
+#define RESP_LST	"RLS"
+#define RESP_RTV	"RRT"
+#define RESP_UPL	"RUP"
+#define RESP_DEL	"RDL"
+#define RESP_REM	"RRM"
 
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
@@ -137,6 +137,13 @@ typedef char bool_t;
 
 /* Folder properties */
 #define FILE_NAME_SIZE 24
+
+
+
+#define FILE_NOT_AVAILABLE	"EOF"
+
+#define RAND_NUM_MIN 1000
+#define RAND_NUM_MAX 9999
 
 
 /* Macro for logging debug messages. */

@@ -67,7 +67,7 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port);
  *
  *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpConnect(TCPConnection_t *udpConnection);
+bool_t tcpConnect(TCPConnection_t *tcpConnection);
 
 
 /*! \brief Accepts the connections from the clients.
@@ -113,6 +113,12 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len);
  *  \return the file descriptor for communicating with the client.
  */
 void tcpCloseConnection(TCPConnection_t *tcpConnection);
+
+
+
+
+
+
 void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection);
 
 
@@ -122,7 +128,7 @@ void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection);
  *
  *  \param  tcpConnection	the tcp connection structure.
  */
-void tcpDestroySocket(TCPConnection_t *tcpConnection);
+TCPConnection_t *tcpDestroySocket(TCPConnection_t *tcpConnection);
 
 
 /*! \brief Returns the IP address associated with a TCP connection.

@@ -140,7 +140,7 @@ $(EXE_FILES): $$(patsubst %.c, $(DIR_OBJ)/%.o, $$($$@.deps))
 .PHONY:
 compile: $(EXE_FILES)
 	@ echo "\033[97;2m========================================================================================================================\033[0m\n"
-	@ echo "\t\t\033[92;4mAll executables were sucssesfuly compiled!\033[92;0m\n"
+	@ echo "\t\t\033[92;4mAll executables were successfully compiled!\033[92;0m\n"
 
 
 # Compiles the specified executable file

@@ -9,7 +9,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 	memset(&hints, '\0', sizeof(struct addrinfo));	
 	tcpConnection->fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (tcpConnection->fd == -1)
-		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d", errno);
+		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d %s", errno, strerror(errno));
 	
 	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;    
@@ -18,7 +18,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 	int errCode = getaddrinfo(addrIP, port, &hints, &res);
 	if (errCode)
 		_FATAL("[TCP] Unable to translate the the host name to an address with the getaddinfo() function!\n"
-		"\t - Error code: %d", errCode);
+		"\t - Error code: %d %s", errCode, strerror(errCode));
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
@@ -36,7 +36,7 @@ TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConn
 	}
 		
 	if (listen(tcpConnection->fd, nConnections))
-		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error: %s", strerror(errno));
+		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d %s", errno, strerror(errno));
 
 	return tcpConnection;
 }
@@ -49,9 +49,10 @@ TCPConnection_t* tcpCreateClient(const char *addrIP, const char *port) {
 
 
 // connects the client with the server
-void tcpConnect(TCPConnection_t *tcpConnection) {
+bool_t tcpConnect(TCPConnection_t *tcpConnection) {
 	if (connect(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen))
-		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Unable to set the connect to the server.\n\t - Error code: %d %s", errno, strerror(errno));
+	return TRUE;
 }
 
 
@@ -81,7 +82,7 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
 		int n = read(tcpConnection->fd, buffer, len-1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
-			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d", errno);	
+			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
 		
 		// disconnected socket
 		if (n == 0)	return -1;		
@@ -99,14 +100,13 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 // sends a TCP message
 int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len) {
 	int sizeWritten;
-	
 	sizeWritten = 0;
 	do {
 		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
 		On error, -1 is returned, and errno is set appropriately.*/
 		int n = write(tcpConnection->fd, buffer + sizeWritten, len - sizeWritten);
 		if (n == -1)
-			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d", errno);
+			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d %s", errno, strerror(errno));
 		sizeWritten += n;
 	} while (sizeWritten != len);
 
@@ -118,7 +118,7 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len) 
 // closes the tcp connection
 void tcpCloseConnection(TCPConnection_t *tcpConnection) {	
 	if (close(tcpConnection->fd))
-		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Error while terminating the connection!\n\t - Error code: %d %s", errno, strerror(errno));
 	free(tcpConnection);
 }
 
@@ -130,11 +130,11 @@ void tcpCloseConnection_noAlloc(TCPConnection_t tcpConnection) {
 
 
 // terminates the tcp socket
-void tcpDestroySocket(TCPConnection_t *tcpConnection) {
+TCPConnection_t *tcpDestroySocket(TCPConnection_t *tcpConnection) {
 	if (close(tcpConnection->fd))
-		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d", errno);
+		_FATAL("[TCP] Error while closing the socket!\n\t - Error code: %d %s", errno, strerror(errno));
 	free(tcpConnection);
-	tcpConnection = NULL;
+	return NULL;
 }
 
 
