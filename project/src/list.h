@@ -84,7 +84,7 @@ int listSize(List_t list);
 
 
 /* The structure that allows to iterate through a list. */
-typedef struct list_iterator_t *ListIterator_t;
+typedef ListNode_t ListIterator_t;
 
 
 
@@ -107,16 +107,6 @@ ListIterator_t listIteratorCreate(List_t list);
  * @return The emptyness flag of the iterator
  */
 int listIteratorEmpty(ListIterator_t *iterator);
-
-
-/**
- * Returns the current node of the iteration and jumps on to the next.
- * 
- * @param iterator
- *          The iterator of the list.
- * @return The current node of the iteration.
- */
-ListNode_t listIteratorNextNode(ListIterator_t *iterator);
 
 
 /**

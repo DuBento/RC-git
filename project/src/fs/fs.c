@@ -22,7 +22,7 @@ bool_t verbosity = FALSE;
  *	Casts the socket to the correct type and calls the tcpDestroySocket() function.
  * 	This is used to clean the userConnections list.
  * 
- * 	\param
+ * 	\param socket		the socked to be destroyed.
  */
 void cleanSocket(void* socket) {
 	tcpDestroySocket((TCPConnection_t*)socket);
@@ -202,10 +202,10 @@ void runFS() {
 		// handles the user's new requests
 		ListIterator_t iterator = listIteratorCreate(userConnections);
 		while (!listIteratorEmpty(&iterator)) {
-			ListNode_t node = listIteratorNextNode(&iterator);
-			TCPConnection_t *userConnection = (TCPConnection_t *)listValue(node);
+			ListNode_t node = (ListNode_t)iterator;
+			TCPConnection_t *userConnection = listIteratorNext(&iterator);
 			if (FD_ISSET(userConnection->fd, &fdsTemp)) {
-				handleUserRequest();
+				handleUserRequest(node);
 			}
 		}
 
@@ -229,6 +229,5 @@ int main(int argc, char *argv[]) {
 	userRequests = listCreate();
 	runFS();
 	
-	cleanFS();
 	return 0;
 }	

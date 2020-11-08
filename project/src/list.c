@@ -72,7 +72,7 @@ void listRemove(List_t list, ListNode_t node, void (*clean)(void*))
 			(node->_next)->_prev = node->_prev;
 	} 
 
-	clean(node->_data);
+	if (clean != NULL) clean(node->_data);
 	free(node);
 	list->_size--;
 }
@@ -95,51 +95,28 @@ int listSize(List_t list)
 
 
 // the structure that represents an iterator of the list.
-struct list_iterator_t
-{
-	ListNode_t current;     // the current element of the iteration
-};
-
+typedef ListNode_t list_iterator_t;
 
 
 // creates an iterator for the specified list
 ListIterator_t listIteratorCreate(List_t list)
 {
-	ListIterator_t iterator = (ListIterator_t) malloc(sizeof(struct list_iterator_t));
-	if (!list)
-		FATAL("Unable to allocate memory for the list iterator");
-	
-	iterator->current = list->_head;
-	return iterator;
+	return list->_head;
 }
 
 
 // returns the emptyness flag of the iterator
 int listIteratorEmpty(ListIterator_t *iterator)
 {
-	if ((*iterator)->current == NULL)
-	{
-		free(*iterator);
-		(*iterator) = NULL;
-		return 1;
-	}
-	else
-		return 0; 
-}
-
-// returns the current node of the iteration and jumps on to the next
-ListNode_t listIteratorNextNode(ListIterator_t *iterator)
-{
-	ListNode_t node = (*iterator)->current;
-	(*iterator)->current = node->_next;
-	return node;
+	ListNode_t node = (ListNode_t)(*iterator);
+	return  node == NULL;
 }
 
 
 // returns the current element of the iteration and jumps on to the next
 void* listIteratorNext(ListIterator_t *iterator)
 {
-	ListNode_t node = (*iterator)->current;
-	(*iterator)->current = node->_next;
+	ListNode_t node = (ListNode_t)(*iterator);
+	*iterator = (ListIterator_t)node->_next;
 	return node->_data;  
 }
