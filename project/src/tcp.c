@@ -23,7 +23,6 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
-	fcntl(tcpConnection->fd, F_SETFL, O_NONBLOCK);
 	freeaddrinfo(res);
 	return tcpConnection;
 }
@@ -67,7 +66,6 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 		newCon->addrlen = sizeof(newCon->addr);
 		newfd = accept(tcpConnection->fd, &newCon->addr, &newCon->addrlen);
 		newCon->fd = newfd;
-		fcntl(newCon->fd, F_SETFL, O_NONBLOCK);
 	} 
 
 	if (newfd == -1)
@@ -79,6 +77,8 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 
 // receives a TCP message
 int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
+	int fdFlags = fcntl(tcpConnection->fd, F_SETFL, 0);
+	fcntl(tcpConnection->fd, F_SETFL, O_NONBLOCK);
 	int sizeRead = 0;
 	do {
 		int n = read(tcpConnection->fd, buffer, len - 1);		// len-1, adding '\0' afterwards 
@@ -97,8 +97,9 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	if (sizeRead != 0) {
 		buffer[sizeRead] = '\0';	// insert null char to be able to handle buffer content as a string.
 		_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
-	}		
+	}
 	return sizeRead;
+	fcntl(tcpConnection->fd, F_SETFL, fdFlags);
 }
 
 

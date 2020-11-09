@@ -28,13 +28,14 @@ typedef struct user_info_t {
 
 
 
-/*! \brief TODO
+/*! \brief Sends an error reply back to the AS server.
  *
+ * 	Sends an error 'ERR' message back to the AS server.
  *  
- *  \param  udpConnection	the udp connection structure.
- * 	\return TRUE if succeds on sending error , FALSE otherwise.
+ *  \param  udpConnec		the udp connection structure.
+ * 	\return TRUE if succeds on sending error, FALSE otherwise.
  */
-bool_t req_serverError(UDPConnection_t *asConnection);
+bool_t req_serverError(UDPConnection_t *udpConnec);
 
 
 /*! \brief Registers a user on the authentication system.
@@ -42,14 +43,14 @@ bool_t req_serverError(UDPConnection_t *asConnection);
  *  Validates the user's ID and passwords, sends the register request to the as
  *  server and, if succeds, fills the userInfo structure with the new value.
  * 
- *  \param  asConnection	the udp connection structure.
+ *  \param  udpConnec		the udp connection structure.
  * 	\param  connectionInfo	the senders' and receivers' IP and port.
  * 	\param  uid   			the new user's ID.
  * 	\param  pass			the new user's password.
  * 	\param  userInfo		the structure to store the user information (if the authentication succeds).
  * 	\return TRUE if the authentication succeds, FALSE otherwise.
  */
-bool_t req_registerUser(UDPConnection_t *asConnection, const connectionInfo_t *connectionInfo, const char *uid, 
+bool_t req_registerUser(UDPConnection_t *udpConnec, const connectionInfo_t *connectionInfo, const char *uid, 
 const char *pass, userInfo_t *userInfo);
 
 
@@ -57,11 +58,14 @@ const char *pass, userInfo_t *userInfo);
  *
  *  Sends a unregister requiest to the AS with the userInfo's parameters.
  * 
- *  \param  asConnection	the udp connection structure.
+ *  \param  udpConnec		the udp connection structure.
  * 	\param  userInfo		the structure to store the user information (if the authentication succeds).
  * 	\return TRUE if the unregister succeds, FALSE otherwise.
  */
-bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo);
+bool_t req_unregisterUser(UDPConnection_t *udpConnec, userInfo_t *userInfo);
+
+
+
 
 
 /*! \brief Processes the server's requests to display the 2FA validation code.
@@ -69,7 +73,7 @@ bool_t req_unregisterUser(UDPConnection_t *asConnection, userInfo_t *userInfo);
  *  Receives the uid, validation code and file operation and displays to the user.
  *  After that, sends a response back to the server.
  * 
- *  \param  asConnection	the udp connection structure.
+ *  \param  udpConnec		the udp connection structure.
  * 	\param  args		    the arguments of the request.
  * 	\param  userInfo		the structure to store the user information (if the authentication succeds).
  * 	\return TRUE if the validation code was received and displayed correctly, FALSE otherwise.
@@ -104,10 +108,11 @@ bool_t resp_unregisterUser(char *status, userInfo_t *userInfo);
  *
  *  Sends the last message sent (stored on the static global buffer) to the server.
  * 
- *  \param  asConnection	the udp connection structure.
+ *  \param  udpConnec	the udp connection structure.
  * 	\return TRUE if the message was properly sent, FALSE otherwise.
  */
-bool_t req_resendLastMessage(UDPConnection_t *asConnection);
+bool_t req_resendLastMessage(UDPConnection_t *udpConnec);
+
 
 
 #endif  /* PD_AUX_H */
