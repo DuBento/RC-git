@@ -242,15 +242,15 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	}
 	//todo how to check this function?
 	expectedMsgSize = CMD_PRT_SIZE+SEPARATOR_SIZE+UID_SIZE+SEPARATOR_SIZE
-			+TID_SIZE+SEPARATOR_SIZE+strlen(filename)+SEPARATOR_SIZE
+			+TID_SIZE+SEPARATOR_SIZE+strlen(filename)
 			+SEPARATOR_SIZE+nDigits(fileSize)+SEPARATOR_SIZE+fileSize
 			+SEPARATOR_SIZE;
 
 
-_LOG("upload buufer data %s le size %d", data, fileSize);
+_LOG("upload buufer data %s le file size %d", data, fileSize);
 
 	// Send message to FS: UPL UID TID Fname Fsize data
-	msgBuffer = (char*) malloc(expectedMsgSize*sizeof(char));
+	msgBuffer = (char*) malloc((expectedMsgSize+1)*sizeof(char));
 
 	if (msgBuffer == NULL) {
 		printf(MSG_FLD "allocate buffer to send upload message.\n");
@@ -261,15 +261,15 @@ _LOG("upload buufer data %s le size %d", data, fileSize);
 
 	msgSize = sprintf(msgBuffer, "%s %s %.4d %s %d ", REQ_UPL, userInfo->uid, 
 	tid, filename, fileSize);
+_LOG("msg size %d", msgSize);
 	memcpy(msgBuffer + msgSize, data, fileSize);
 
 	// Insert end char to respect protocol.
 	msgBuffer[expectedMsgSize-1] = PRT_TERM_CHAR;
 
-
-	if (expectedMsgSize > msgSize) {
-		printf(MSG_FLD"prepare upload message to "MSG_FS".\n.");
-	}
+	//if (expectedMsgSize > msgSize) {
+	//	printf(MSG_FLD"prepare upload message to "MSG_FS".\n.");
+	//}
 
 	sendUserMessage(fsconnection, msgBuffer, expectedMsgSize);
 	//sizeSent = tcpSendMessage(fsconnection, msgBuffer, msgSize);
