@@ -161,4 +161,20 @@ void removeRequest(userRequest_t *userRequest, const char *filesPath);
 
 
 
+
+
+/*!	\brief Sends a validation request to the AS server.
+ *
+ * 	Sends a validation request to the AS server and returns the status of the request.
+ * 
+ *  \param 	asServer				the UDP connection with the AS server.
+ * 	\param 	userRequest			the request of the user to be validated.
+ * 	\return	TRUE if the validation request was sent on to the AS server, FALSE otherwise.
+ * 
+ */
+bool_t validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest);
+
+
+
+
 #endif 	/* FS_AUX */

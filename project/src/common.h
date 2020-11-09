@@ -95,11 +95,7 @@ typedef char bool_t;
 #define REQ_DEL		"DEL"
 #define REQ_REM		"REM"
 
-#define RESP_LST	"RLS"
-#define RESP_RTV	"RRT"
-#define RESP_UPL	"RUP"
-#define RESP_DEL	"RDL"
-#define RESP_REM	"RRM"
+#define REQ_VLD		"VLD"
 
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
@@ -108,6 +104,14 @@ typedef char bool_t;
 #define RESP_LOG	"RLO"
 #define RESP_REQ	"RRQ"
 #define RESP_AUT	"RAU"
+
+#define RESP_LST	"RLS"
+#define RESP_RTV	"RRT"
+#define RESP_UPL	"RUP"
+#define RESP_DEL	"RDL"
+#define RESP_REM	"RRM"
+
+#define RESP_VLD	"CNF"
 
 
 /* Protocol status */

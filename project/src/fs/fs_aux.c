@@ -238,3 +238,12 @@ void removeRequest(userRequest_t *userRequest, const char *filesPath) {
     deleteDirectory(filesPath, userRequest->uid);
     tcpSendMessage(userRequest->tcpConnection, RESP_DEL " OK\n", 7);
 }
+
+
+
+
+
+// sends a validation request to the AS server.
+bool_t validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
+    return msgSize == udpSendMessage(asServer, msg, msgSize);
+}

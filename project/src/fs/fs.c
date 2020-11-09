@@ -220,9 +220,10 @@ void processUserRequests(const struct timeval *oldTime) {
 				// TEMP
 				userRequest->exeRequest(userRequest, filesPath);
 				listRemove(userRequests, node, cleanRequest);
-
-				//_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries++);
-				//userRequest->timeExpired = 0;
+				
+				userRequest->nTries++;
+				userRequest->timeExpired = 0;
+				_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries);
 				// sends the request on to the AS server
 			}
 		}
