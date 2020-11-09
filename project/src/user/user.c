@@ -4,7 +4,7 @@
 
 
 static TCPConnection_t *asConnection = NULL;
-static TCPConnection_t *fsConnection = NULL;
+static TCPConnection_t *fsConnection = NULL; //it's quite probable this one can get out of here and just be local	
 
 static int rid = RID_INVALID;
 static int tid = TID_INVALID;
@@ -24,10 +24,8 @@ void cleanUser() {
 
 	if (filename != NULL)		free(filename);
 
-	if (userInfo.uid != NULL) {
-		free(userInfo.uid);}
-	if (userInfo.pass != NULL) {
-		free(userInfo.pass);}
+	if (userInfo.uid != NULL) {		free(userInfo.uid);		}
+	if (userInfo.pass != NULL) {		free(userInfo.pass);		}
 }
 
 
@@ -110,7 +108,7 @@ bool_t handleUser() {
 
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
-		req_login(asConnection, &userInfo, input1, input2);
+		return req_login(asConnection, &userInfo, input1, input2);
 	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0') {
@@ -151,7 +149,7 @@ bool_t handleUser() {
 		terminateUser();
 			 
 	else {
-		WARN(MSG_ERR_INV_CMD MSG_OP_IGN"\n");
+		WARN(MSG_ERR_INV_CMD" "MSG_OP_IGN"\n");
 		return FALSE;
 	}
 	return FALSE;
@@ -169,7 +167,7 @@ bool_t handleASServer() {
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
 	if (!strcmp(opcode, RESP_LOG))
-		return resp_login(arg);
+		userInfo.loggedIn = resp_login(&userInfo, arg);
 
 	// Request code response "RRQ"	
 	else if (!strcmp(opcode, RESP_REQ))
@@ -191,28 +189,39 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 
 
 bool_t handleFSServer() {
-	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = { 0 }/*, arg[BUFSIZ] = {0}*/, *arg;
+	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = {0}, *arg;
 	int size;
 	
 	/* Each user can have a maximum of 15 files stored in the FS server. */
 	/* All file Fsize fields can have at most 10 digits. */
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 LOG("about to receive fs message");
+
+_LOG("ptrs %x %x", fsConnection, buffer);
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
+
+	if (size == TCP_FLD_RCV) {
+		LOG("sizze on tcprcv is -1 on fs\n");
+	}
 LOG("Received fs message");
-	_LOG("Le fs buffer %s", buffer);
 	buffer[strlen(buffer)-1] = '\0';
+	_LOG("Le fs buffer %s", buffer);
+_LOG("le le size %d", size);
+
 	arg = buffer + PROTOCOL_MSSG_OFFSET;
 	sscanf(buffer, "%s", opcode);
-
+_LOG("le arg %s", arg);
 	// List response RLS N[ Fname Fsize]*
 	if (!strcmp(opcode, RESP_LST))
 		userInfo.fsConnected = !resp_list(&fsConnection, arg);
 
 	// Retrieve code response "RRT status [Fsize data]"	
-	else if (!strcmp(opcode, RESP_RTV))
+	else if (!strcmp(opcode, RESP_RTV)) {
+		
+		
 		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename);
 
+	}
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_UPL))
 		userInfo.fsConnected = !resp_upload(&fsConnection, arg);
@@ -227,16 +236,11 @@ LOG("Received fs message");
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		WARN(MSG_ERR_INV_REQ"\n");
-		return FALSE;
 	}
 	return TRUE;
 }
 
 
-/*! \brief Main loop for the FS application.
- *
- *  Waits for an interaction from the user/server and then handles them.
- */
 void runUser() {
 	// select
 	int fdsSize;
@@ -277,7 +281,7 @@ void runUser() {
 			//LOG("Yey as contacted us!");
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleASServer();	
+			if (!handleASServer()) return;	
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
@@ -287,7 +291,7 @@ void runUser() {
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
 			LOG("Yey fs contacted us!");
-			handleFSServer();	
+			if (!handleFSServer()) return;
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}

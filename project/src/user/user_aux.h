@@ -26,17 +26,18 @@ typedef struct user_info_t {
 	char *pass;				// the user's password.
 	bool_t asConnected;		// TRUE if User is connected to AS.
 	bool_t fsConnected;		// TRUE if User is connected to FS.
+	bool_t loggedIn;		// TRUE if User has already logged in.
 
 } userInfo_t;
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
 //static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.104\0", "59053\0"};
 
 // Sigma testing as
-static connectionInfo_t connectionInfo = {"79.169.11.135\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
+//static connectionInfo_t connectionInfo = {"79.169.11.135\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
 
 
 
@@ -49,6 +50,10 @@ static userInfo_t userInfo = { 0 };
 #define	TID_INVALID	0
 
 #define SSCANF_FAILURE	EOF
+#define	SPRINTF_THRSHLD	0
+#define	SEPARATOR_SIZE	1
+#define	CMD_PRT_SIZE	3
+#define PRT_TERM_CHAR	'\n'
 
 /* User commands */
 #define CMD_LOGIN	"login"
@@ -130,7 +135,9 @@ static userInfo_t userInfo = { 0 };
 #define MSG_HELP_PRVLOG	"\t-> Have you logged in before?"
 
 #define CURRENT_DIR	"./"
-#define	LST_TABLE_HDR	"#\tFile Name\t\t\t\tSize\n\n"
+#define	LST_TABLE_HDR	"#\tFile Name\t\t\t\t\t\tSize\n\n"
+
+#define	TCP_FLD_RCV	-1
 
 /*! \brief Brief function description here
  *
@@ -287,7 +294,7 @@ bool_t req_resendLastMessage();
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_login(char *status);
+bool_t resp_login(userInfo_t *userInfo, char *status);
 
 
 /*! \brief Brief function description here
