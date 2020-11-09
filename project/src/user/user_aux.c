@@ -36,14 +36,14 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo,
 	int sizeSent, msgSize;
 	char msgBuffer[BUFFER_SIZE * 2];
 	
-	if (userInfo->loggedIn) {
+	//if (userInfo->loggedIn) {
 	//	_WARN("A session is already on! " MSG_OP_IGN "\n"
 	//	"Current " MSG_UID " %s\n"
 	//	"Unregister first if you wish to use another user.", userInfo->uid);
-		strcpy(userInfo->uid, uid);
-		strcpy(userInfo->pass, pass);
-		return TRUE;
-	}
+	//	strcpy(userInfo->uid, uid);
+	//	strcpy(userInfo->pass, pass);
+	//	return TRUE;
+	//}
 
 	msgSize = sprintf(msgBuffer, "%s %s %s\n", REQ_LOG, uid, pass);
 
@@ -57,8 +57,10 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo,
 
 
 	// Adjust size.
-	userInfo->uid = (char*)(malloc((strlen(uid) + 1) * sizeof(char)));
-	userInfo->pass = (char*)(malloc((strlen(pass) + 1) * sizeof(char)));
+	if (!userInfo->loggedIn) {
+		userInfo->uid = (char*)(malloc((strlen(uid) + 1) * sizeof(char)));
+		userInfo->pass = (char*)(malloc((strlen(pass) + 1) * sizeof(char)));
+	}
 	
 	strcpy(userInfo->uid, uid);
 	strcpy(userInfo->pass, pass);
@@ -442,7 +444,7 @@ int resp_val(char *tidStr) {
 bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 	
 	TCPConnection_t *fsconnection;
-	int numFiles;
+	int numFiles, fnameLen;
 	char status[BUFFER_SIZE], fname[BUFFER_SIZE], fsize[BUFFER_SIZE];
 
 	fsconnection = *fsConnection;
@@ -462,7 +464,7 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 		printf(MSG_FLD"get number of files on list operation.\n");
 	}
 	
-	data += 2+numFiles/10;	// shift pointer: space + numDigits(numFiles)
+	data += 2*SEPARATOR_SIZE+nDigits(numFiles) ;	// shift pointer: space + numDigits(numFiles)
 	
 	// Display list of files to user.	
 	printf(LST_TABLE_HDR);
@@ -472,8 +474,10 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 			printf(MSG_FLD"get fname or fsize from list operation.\n");
 		}
 		// Display file to user.
-		printf("%d.\t%s\t\t\t\t\t\t%s\n", i, fname, fsize);
-		data += strlen(fname)+1+strlen(fsize);
+		fnameLen = strlen(fname);
+		printf("%d.\t%s%*c%s\n", i, fname,
+			MAX_FILENAME_SIZE-fnameLen,' ',fsize);
+		data += fnameLen +SEPARATOR_SIZE+strlen(fsize)+SEPARATOR_SIZE;
 	}
 
 	// Close TCP connection with FS (update variable outside).
@@ -513,7 +517,9 @@ _LOG("retrv %s", response);
 		datalen = strlen(data);
 
 		// Pointer that will contain *all* file data
-		fdata = (char*) malloc ((fsize+2)*sizeof(char));
+		fdata = (char*) malloc ((fsize+2*SEPARATOR_SIZE)*sizeof(char));
+		
+		// Copy the first part (what we've already captured in the buffer).
 		strcpy(fdata, data);
 
 		// We still need to get the rest of the file, damnit
