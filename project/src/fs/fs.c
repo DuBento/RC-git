@@ -1,6 +1,7 @@
 #include "fs_aux.h"
 #include "../list.h"
 #include "../files.h"
+#include "../common.h"
 
 
 
@@ -26,8 +27,8 @@ bool_t verbosity = FALSE;
 void cleanRequest(void* request) {
 	userRequest_t *userRequest = (userRequest_t*)request;
 	if (userRequest->tcpConnection != NULL) tcpCloseConnection(userRequest->tcpConnection);
-	if (userRequest->fileName != NULL)	free(userRequest->fileName);
-	if (userRequest->data != NULL)		free(userRequest->data);
+	if (userRequest->fileName != NULL)		free(userRequest->fileName);
+	if (userRequest->data != NULL)			free(userRequest->data);
 	free(userRequest);
 }
 
@@ -100,13 +101,12 @@ void parseArgs(int argc, char *argv[]) {
 		}
 	}
 
-	if (connectionInfo.asip[0] == '\0')
-		strcpy(connectionInfo.asip, LOCAL_IP);
-
 	// logs the server information (on debug mod only)
 	_LOG("Runtime settings:\nFSport\t: %s\nASIP\t: %s\nASPort\t: %s\nVerbose\t: %d", 
 			 connectionInfo.fsport, connectionInfo.asip, connectionInfo.asport, verbosity);
 }
+
+
 
 
 
@@ -121,12 +121,10 @@ void parseArgs(int argc, char *argv[]) {
  */
 void handleUserConnection(fd_set *fds, int *fdsSize) {
 	userRequest_t *userRequest = (userRequest_t*)malloc(sizeof(userRequest_t));
-	if (userRequest == NULL)
+	userRequest->tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
+	if (userRequest == NULL || userRequest->tcpConnection == NULL)
 		FATAL("Unable to allocate memory for the user request!");
 
-	userRequest->tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
-	if (userRequest->tcpConnection == NULL)
-		FATAL("Unable to allocate memory for the user request!");
 	userRequest->nTries = -1;
 	userRequest->fileName = NULL;
 	userRequest->data = NULL;
@@ -163,7 +161,7 @@ void handleASValidationReply() {
 		}
 	}
 
-	if (node == NULL) return;
+	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
 	if (!strcmp(opcode, RESP_VLD) && !strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
@@ -183,24 +181,29 @@ void handleASValidationReply() {
 
 /*! \brief Fills the information about a new user request.
  *
- *  Reads the request from the user and fills the structure with it.
+ *  Reads the request from the user and fills the structure with it if the request is
+ * 	well formated, otherwise removes the request from the server.
+ * 	The user is also removed from the select's fds since only one request is allowed per
+ * 	connection. 
  * 
- * 	\param node		the list node associated with the user request.
+ * 	\param 	node		the list node associated with the user request.
+ *  \param 	fds			a pointer to the fds.
+ *  \param 	fdsSize		a pointer to the size of the fds.
  */
 void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	userRequest_t *userRequest = (userRequest_t*)listValue(node);
-	char buffer[BUFFER_SIZE] = { 0 };
+	char buffer[BUFFER_SIZE];
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
 
 	// removes this connection from the select
 	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
 	FD_CLR(userRequest->tcpConnection->fd, fds);
 
-	// checks if the message contains a '\n' at the end and removes it
 	char opcode[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, tid[BUFFER_SIZE] = { 0 };
 	char fname[BUFFER_SIZE] = { 0 }, fsize[BUFFER_SIZE] = { 0 }, *fdata;
 	int validArgs = sscanf(buffer, "%s %s %s %s %s", opcode, uid, tid, fname, fsize);
 
+	// displays the message (on verbose mode only)
 	_VERBOSE("[ %s - %d ] : %s %s %s %s", tcpConnIp(userRequest->tcpConnection), 
 			tcpConnPort(userRequest->tcpConnection), opcode, uid, tid, fname);
 
@@ -221,8 +224,8 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		successOnFill = fillRemoveRequest(userRequest, uid, tid);
 
 	else {
-		successOnFill = FALSE;
 		tcpSendMessage(userRequest->tcpConnection, "ERR\n", 4);
+		successOnFill = FALSE;
 	}
 		
 	if (!successOnFill)
@@ -235,15 +238,12 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
  *  Sends the operation requests to the as everytime the waiting time expires. If the request
  *  was already sent NREQUEST_TRIES times, sends an error to the user.
  * 
- * 	\param userConnections		the list of users currently connected.
- *  \param tcpConnection		the tcp connection that is waiting for connection requests.
- *  \param fds					a pointer to the fds.
- *  \param fdsSize				a pointer to the size of the fds.
+ * 	\param oldTime		the time stamp before the select was activated.
  */
 void processUserRequests(const struct timeval *oldTime) {
 		struct timeval newTime;
 		gettimeofday(&newTime, NULL);
-		float timeExpired = newTime.tv_sec - oldTime->tv_sec;
+		float timeExpired = newTime.tv_sec - oldTime->tv_sec; 
 
 		ListIterator_t iterator = listIteratorCreate(userRequests);
 		while (!listIteratorEmpty(&iterator)) {
@@ -251,19 +251,23 @@ void processUserRequests(const struct timeval *oldTime) {
 			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
 			if (userRequest->nTries != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
 				if (userRequest->nTries == NREQUEST_TRIES) {
-					_LOG("Maximum number of tries reached on request %s. Aborting...", userRequest->tid);
+					_LOG("Maximum number of tries reached on request %s. Destoying the request...", userRequest->tid);
+					char msg[BUFFER_SIZE];
+					int msgSize = sprintf(msg, "%s ERR\n", userRequest->replyHeader);
+					tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
 					listRemove(userRequests, node, cleanRequest);
 					return;
 				}
 
 				userRequest->nTries++;
 				userRequest->timeExpired = 0;
-				_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				if (!validateRequest(udpConnection, userRequest))
-					listRemove(userRequests, node, cleanRequest);					
+				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
+				validateRequest(udpConnection, userRequest);
 			}
 		}
 }
+
+
 
 
 
@@ -306,13 +310,11 @@ void runFS() {
 		while (!listIteratorEmpty(&iterator)) {
 			ListNode_t node = (ListNode_t)iterator;
 			TCPConnection_t *userConnection = ((userRequest_t*)listIteratorNext(&iterator))->tcpConnection;
-			if (FD_ISSET(userConnection->fd, &fdsTemp)) {
+			if (FD_ISSET(userConnection->fd, &fdsTemp))
 				handleUserRequest(node, &fds, &fdsSize);
-			}
 		}
 
-		// processes the user's current requests
-		processUserRequests(&currentTime);
+		processUserRequests(&currentTime);	// processes the current requests stored on the server
 	}
 }
 
@@ -326,7 +328,7 @@ int main(int argc, char *argv[]) {
 	VERBOSE("Starting FS server...");
 
 	tcpConnection = tcpCreateServer(NULL, connectionInfo.fsport, SOMAXCONN);
-	udpConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	udpConnection = udpCreateClient((connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
 	userRequests = listCreate();
 	runFS();
 

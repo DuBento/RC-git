@@ -1,6 +1,6 @@
 #include "fs_aux.h"
 
-/*! \brief Fill the base information of the user request
+/*! \brief Fill the base information of the user request.
  *
  *  Checks and fills the UID and TID and sets the variables for the timeouts.
  * 
@@ -45,7 +45,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
     userRequest->fop = FOP_R;
     userRequest->exeRequest = retreiveRequest;
     strcpy(userRequest->replyHeader, RESP_RTV);
-        
+    
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
         tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
@@ -71,7 +71,7 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
 
     int fdatalen = strlen(++fdata);
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
-    userRequest->data = (char*)malloc((userRequest->fileSize + 2) * sizeof(char));
+    userRequest->data     = (char*)malloc((userRequest->fileSize + 2) * sizeof(char));  // '\n' included for verifying the message
     if (userRequest->fileName == NULL || userRequest->data == NULL || fdatalen > userRequest->fileSize + 1 || 
         (fdata[fdatalen - 1] == '\n' && fdatalen <= userRequest->fileSize))
     {
@@ -82,7 +82,7 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     strcpy(userRequest->fileName, fname);
     strncpy(userRequest->data, fdata, fdatalen);
 
-    if (userRequest->fileSize >= fdatalen)
+    if (userRequest->fileSize >= fdatalen)      // the static buffer wasn't big enough to hold the file's contents
         tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], userRequest->fileSize + 2 - fdatalen);
 
     if (userRequest->data[userRequest->fileSize] != '\n') {
@@ -167,9 +167,10 @@ void listRequest(userRequest_t *userRequest, const char *filesPath) {
         char *fileEnt = (char*)listIteratorNext(&iterator);
         strcat(msg, fileEnt);
     }
-    
     msg[msgSize - 1] = '\n';
     msg[msgSize] = '\0';
+
+    // sends the message
     tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
     listDestroy(files, free);
     free(msg);
@@ -188,9 +189,11 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
         return;
     }
 
-    // formats the message
-    fileData[fileSize] = '\0';
-    sprintf(msg, "%s OK %lu %s\n", RESP_RTV, fileSize, fileData);
+    // formats and sends the message
+    int headerSize = sprintf(msg, "%s OK %lu\n", RESP_RTV, fileSize);
+    memcpy(msg + headerSize, fileData, fileSize);
+    msg[msgSize - 1] = '\n';
+    msg[msgSize] = '\0';
     tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
     free(fileData);
     free(msg);
@@ -250,9 +253,9 @@ void removeRequest(userRequest_t *userRequest, const char *filesPath) {
 
 
 // sends a validation request to the AS server.
-bool_t validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
+void validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
     const size_t msgSize = 3 + 1 + UID_SIZE + 1 + TID_SIZE + 1 + 1;
     char msg[msgSize];
     sprintf(msg, "%s %s %s\n", REQ_VLD, userRequest->uid, userRequest->tid);
-    return msgSize == udpSendMessage(asServer, msg, msgSize);
+    udpSendMessage(asServer, msg, msgSize);
 }
