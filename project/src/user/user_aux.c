@@ -476,7 +476,7 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 		// Display file to user.
 		fnameLen = strlen(fname);
 		printf("%d.\t%s%*c%s\n", i, fname,
-			MAX_FILENAME_SIZE-fnameLen,' ',fsize);
+			FILE_NAME_SIZE-fnameLen,' ',fsize);
 		data += fnameLen +SEPARATOR_SIZE+strlen(fsize)+SEPARATOR_SIZE;
 	}
 

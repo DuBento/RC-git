@@ -60,16 +60,15 @@ List_t listFiles(const char *filesPath, const char *dirname) {
 
 	while ((ent = readdir(directory)) != NULL) {
 		if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")) {
-			char *filename = (char*)malloc((FILE_NAME_SIZE + 1) * sizeof(char));
-			memset(filename, FILE_NAME_SIZE + 1, '\0');
-			char *extension = strchr(ent->d_name, '.');
-			size_t len = strlen(ent->d_name);
+			char filePath[PATH_MAX];
+			sprintf(filePath, "%s/%s/%s", filesPath, dirname, ent->d_name);  
+			FILE *file = fopen(filePath, "r");
+			fseek(file, 0L, SEEK_END);
+			size_t len = ftell(file);
+			fclose(file);
 
-			strncpy(filename, ent->d_name, FILE_NAME_SIZE);
-			if (len > FILE_NAME_SIZE)
-				strncpy(filename + FILE_NAME_SIZE - 4, extension, 4);
-
-			filename[FILE_NAME_SIZE] = '\0';
+			char *filename = (char*)malloc((FILE_NAME_SIZE + 1 + nDigits(len) + 1 + 1) * sizeof(char));
+			sprintf(filename, "%.24s %lu ", ent->d_name, len);
 			listInsert(list, filename);
 		}
 	}
@@ -127,11 +126,14 @@ bool_t deleteFile(const char *filesPath, const char *dirname, const char *filena
 
 
 // deletes the specified directory.
-void deleteDirectory(const char *filesPath, const char *dirname) {
+bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 	char dirPath[PATH_MAX];
-	DIR *directory = initDir(filesPath, dirname, dirPath);
-	struct dirent *ent;
+	sprintf(dirPath, "%s/%s/", filesPath, dirname);
+	DIR *directory = opendir(dirPath);
+	if (!directory)
+		return FALSE;
 
+	struct dirent *ent;
 	while ((ent = readdir(directory)) != NULL) {
 		if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")) {
 			char filePath[PATH_MAX];
@@ -142,4 +144,5 @@ void deleteDirectory(const char *filesPath, const char *dirname) {
 	
 	closedir(directory);
 	rmdir(dirPath);
+	return TRUE;
 }

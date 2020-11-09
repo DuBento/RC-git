@@ -90,7 +90,8 @@ bool_t deleteFile(const char *filesPath, const char *dirname, const char *filena
  * 
  *  \param  filesPath           the path of the main files directory.
  *  \param  dirname             the name of the directory of the file that is going to be deleted.
+ *  \return TRUE if the directory was deleted, FALSE if it didn't exist
  */
-void deleteDirectory(const char *filesPath, const char *dirname);
+bool_t deleteDirectory(const char *filesPath, const char *dirname);
 
 #endif 	/* FILES */

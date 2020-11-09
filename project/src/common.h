@@ -24,7 +24,7 @@ typedef char bool_t;
 #define FALSE		0
 
 #define LOCAL_IP      	"127.0.0.1"
-#define TEJO_IP 	"193.136.138.142\0"
+#define TEJO_IP 		"193.136.138.142\0"
 #define TEJO_FS_PORT	"59000\0"
 #define TEJO_AS_PORT	"58011\0"
 
@@ -42,19 +42,19 @@ typedef char bool_t;
 #define ARG_VERBOS	"-v"	// the execution argument to specify the server verbose mode
 
 #define ARG_IP          1
-#define ARG_PORT 	2
-#define ARG_STR_IP	"IP address"
+#define ARG_PORT 		2
+#define ARG_STR_IP		"IP address"
 #define ARG_STR_PORT	"Port number"
 #define ARG_USAGE_IP	"xxx.xxx.xxx.xxx"
 #define ARG_USAGE_PORT	"xxxxx"
 
 /* Connection constants. */
-#define IP_SIZE		15	// the maximum size of the IPv4 address
-#define PORT_SIZE	5	// the maximum size of the port
-#define IP_BLOCK_MIN	0	// the minimum value of each block of the IPv4
-#define IP_BLOCK_MAX	255	// the minimum value of each block of the IPv4
-#define PORT_MIN	1000	// the minumum value of the port allowed
-#define PORT_MAX	65535	// the maximum value of the port allowed
+#define IP_SIZE			15		// the maximum size of the IPv4 address
+#define PORT_SIZE		5		// the maximum size of the port
+#define IP_BLOCK_MIN	0		// the minimum value of each block of the IPv4
+#define IP_BLOCK_MAX	255		// the minimum value of each block of the IPv4
+#define PORT_MIN		1000	// the minumum value of the port allowed
+#define PORT_MAX		65535	// the maximum value of the port allowed
 
 /* Protocol constants. */
 #define CMD_SIZE	4	// the size of command
@@ -65,22 +65,20 @@ typedef char bool_t;
 #define PASS_SIZE	8	// the size of the password
 #define BUFFER_SIZE	128	// the maximum size of the buffer
 
-#define MAX_FILENAME_SIZE	24	// the maximum size of the file name
-#define MAX_FILES			15	// the maximum amount of files in a directory
-
-#define BUFFER_SIZE	128	// the maximum number of characters of a message/input line
-#define TIMEOUT		10	// the number of seconds before timeout
-#define NREQUEST_TRIES	3	// the number of resent messages before quiting
-#define	STR_INPUT	"> "	// the string before the user input
+#define BUFFER_SIZE		128		// the maximum number of characters of a message/input line
+#define TIMEOUT			10		// the number of seconds before timeout
+#define NREQUEST_TRIES	3		// the number of resent messages before quiting
+#define	STR_INPUT		"> "	// the string before the user input
 #define	STR_RESPONSE	"# "	// the string before the server output
-#define STR_CLEAN	"\b\b"	// the string to clean the input and response strings
-#define CHAR_SEP_MSG	' '	// the sepatation character on a protocol message
+#define STR_CLEAN		"\b\b"	// the string to clean the input and response strings
+#define CHAR_SEP_MSG	' '		// the sepatation character on a protocol message
 #define CHAR_END_MSG	'\n'	// the last character of a protocol message
 
 #define RAND_NUM_MIN 1000	// to calculate VLC and RID
 #define RAND_NUM_MAX 9999	// to calculate VLC and RID
 
-/* Protocol commands */
+
+/* Protocol messages and arguments */
 #define SERVER_ERR	"ERR"
 
 #define REQ_REG		"REG"
@@ -98,11 +96,7 @@ typedef char bool_t;
 #define REQ_DEL		"DEL"
 #define REQ_REM		"REM"
 
-#define RESP_LST	"RLS"
-#define RESP_RTV	"RRT"
-#define RESP_UPL	"RUP"
-#define RESP_DEL	"RDL"
-#define RESP_REM	"RRM"
+#define REQ_VLD		"VLD"
 
 #define RESP_REG	"RRG"
 #define RESP_UNR	"RUN"
@@ -112,19 +106,29 @@ typedef char bool_t;
 #define RESP_REQ	"RRQ"
 #define RESP_AUT	"RAU"
 
+#define RESP_LST	"RLS"
+#define RESP_RTV	"RRT"
+#define RESP_UPL	"RUP"
+#define RESP_DEL	"RDL"
+#define RESP_REM	"RRM"
+
+#define RESP_VLD	"CNF"
+
 
 /* Protocol status */
 #define STATUS_OK	"OK"
 #define STATUS_NOK	"NOK"
 
-#define STATUS_EPD	"EPD"
+#define STATUS_EPD		"EPD"
 #define	STATUS_ELOG 	"ELOG"
 #define	STATUS_EUSER	"EUSER"
-#define	STATUS_EFOP	"EFOP"
+#define	STATUS_EFOP		"EFOP"
 
-#define STATUS_DUP	"DUP"
-#define	STATUS_FULL	"FULL"
-#define STATUS_INV	"INV"
+#define STATUS_DUP		"DUP"
+#define	STATUS_FULL		"FULL"
+#define STATUS_INV		"INV"
+
+#define FILE_NOT_AVAILABLE	"EOF"
 
 #define AUTH_ERROR	"0"
 
@@ -136,14 +140,11 @@ typedef char bool_t;
 #define FOP_X		'X'
 
 /* Folder properties */
-#define FILE_NAME_SIZE 24
+#define FILE_NAME_SIZE 		24
+#define MAX_FILES			15	// the maximum amount of files in a directory
 
 
 
-#define FILE_NOT_AVAILABLE	"EOF"
-
-#define RAND_NUM_MIN 1000
-#define RAND_NUM_MAX 9999
 
 
 /* Macro for logging debug messages. */
@@ -361,17 +362,5 @@ int randomNumber(int min, int max);
 size_t nDigits(int number);
 
 
-/*! \brief Creates a new file in a directory.
- *
- *  Creates a new file with the specified filename and copies the data buffer on to him.
- * 
- * 	\param  filename		the name of the new file.
- * 	\param 	data			a buffer containing the data to be stored on the file.
- * 	\param 	len				the size of the buffer.
- * 	\return TRUE if the file was successfully created, FALSE, otherwise
- */ 
-bool_t createFile(char* pathname, const char* data, int len);
-
-bool_t readFile(char* pathname, char* buf, int size);
 
 #endif 	/* COMMON_H */

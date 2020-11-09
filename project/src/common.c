@@ -143,15 +143,19 @@ bool_t isTIDValid(const char *buffer) {
 }
 
 
-
 // checks if the file name is valid
 bool_t isFileNameValid(const char *buffer) {
-	for (int i = 0; i < strlen(buffer); i++)
-		if (i > MAX_FILENAME_SIZE || (!isalnum((int)buffer[i]) && buffer[i] != '.' && buffer[i] != '-' 
-			&& buffer[i] != '_'))
+	size_t len = strlen(buffer);
+	for (int i = 0; i < len; i++) {
+		if (i >= FILE_NAME_SIZE || (!isalnum((int)buffer[i]) && buffer[i] != '.' 
+			&& buffer[i] != '-' && buffer[i] != '_'))
 			return FALSE;
-
-	return TRUE;
+	}
+		
+	
+	char *separatingDot = strrchr(buffer, '.');
+	return separatingDot != NULL && &buffer[len - 1]  <= separatingDot + 3 && &buffer[len - 1]  > separatingDot &&
+		isStringValid(separatingDot + 1, STR_ALPHA, STR_ALLLEN);
 }
 
 
@@ -218,47 +222,8 @@ int randomNumber(int min, int max) {
 
 // finds the number of digits of a given number
 size_t nDigits(int number) {
-	size_t nDigits = 0;
+	size_t nDigits = 1;
 	while ((number /= 10) != 0)
 		nDigits++;
 	return nDigits;
-}
-
-
-// creates a new file in a directory
-bool_t createFile(char* pathname, const char* data, int len) {
-	int fd = open(pathname, O_CREAT|O_WRONLY, 700);
-	if (fd < 0) {
-		_WARN("Failed to create file.\n\t - Error code: %d", errno);
-		return FALSE;
-	}
-	
-	if (write(fd, data, len) == -1) {
-		_WARN("Unable to write to file.\n\t - Error code: %d", errno);
-		return FALSE;
-	}
-
-	_LOG("[createFile] File Path:%s\n", pathname);
-		
-	close(fd);
-	return TRUE;
-}
-
-bool_t readFile(char* pathname, char* buf, int size) {
-	return FALSE;
-	// int fd = open(pathname, O_RDONLY);
-	// if (fd < 0) {
-	// 	if(errno == ENOENT)
-	// 		return FALSE;
-	// 	else
-	// 		_WARN("[readFile] Failed to open file.\n\t - Error code: %d", errno);
-	// 		return FALSE;
-	// }
-
-	// if(read(fd, buf, size) < 0)
-	// 	_WARN("[readFile] Failed to read file.\n\t - Error code: %d", errno);
-	
-	// buf[size+1] = '\0';		// for string manipulaiton
-	// return TRUE;
-
 }

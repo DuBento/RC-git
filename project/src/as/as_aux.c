@@ -2,6 +2,39 @@
 
 extern int verbosity;
 
+
+
+// remove msgs from waitingReply Queue for specified uid
+void _cleanQueueFromUID(List_t pdList, char *uid) {
+        ListIterator_t iter = listIteratorCreate(pdList);
+        while (!listIteratorEmpty(&iter)){
+                ListNode_t node = (ListNode_t) iter;
+                pdNode_t *nodeData = listIteratorNext(&iter);
+                if (!strcmp(nodeData->uid, uid))        // remove all with matching uid
+                        listRemove(pdList, node, NULL);
+        }
+}
+
+void _addMsgToQueue(List_t pdList, char* uid, char* msg) {
+        pdNode_t *newNode = (pdNode_t*) malloc(sizeof(pdNode_t));
+        newNode->nAttempts = 0;
+        strcpy(newNode->msg, msg);
+        strcpy(newNode->uid, uid);
+        listInsert(pdList, newNode);
+}
+
+bool_t inUserList(List_t userList, char* uid) {
+        ListIterator_t iter = listIteratorCreate(userList);
+        while (!listIteratorEmpty(&iter)){
+                ListNode_t node = (ListNode_t) iter;
+                userNode_t *nodeData = listIteratorNext(&iter);
+                if (!strcmp(nodeData->uid, uid))
+                        return TRUE;
+        }
+        return FALSE;
+}
+
+
 /* ====== */
 /* UDP    */
 /* ====== */
@@ -16,28 +49,6 @@ void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path) {
                 _WARN("Implementation issue. Trying to resend message to a Personal Device which is not registred.\
                         \nUID: %s.", node->uid);
 }
-
-
-// remove msgs from waitingReply Queue for specified uid
-void _cleanQueueFromUID(List_t list, char *uid) {
-        ListIterator_t iter = listIteratorCreate(list);
-        while (!listIteratorEmpty(&iter)){
-                ListNode_t node = (ListNode_t) iter;
-                pdNode_t *nodeData = listIteratorNext(&iter);
-                if (!strcmp(nodeData->uid, uid))        // remove all with matching uid
-                        listRemove(list, node, NULL);
-        }
-}
-
-void _addMsgToQueue(List_t list, char* uid, char* msg) {
-        pdNode_t *newNode = (pdNode_t*) malloc(sizeof(pdNode_t));
-        newNode->nAttempts = 0;
-        strcpy(newNode->msg, msg);
-        strcpy(newNode->uid, uid);
-        listInsert(list, newNode);
-}
-
-
 
 bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, char* path) {
         // parse buf
@@ -170,7 +181,7 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
 
         sscanf(buf, "%s %s", uid, status);
 
-        if (!isUIDValid(uid)) {
+        if (!isUIDValid(uid) || inUserList(userList, uid)) {
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
@@ -293,6 +304,11 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         char answer[BUFFER_SIZE];
         int msgLen;
 
+        if (nodeTCP->uid[0] == '\0'){
+                _VERBOSE("User app exit, no login made.\nIP: %s\t Port: %d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+                return FALSE;   // no login was made
+        }
+
         sprintf(dirname, "%s%s", USERDIR_PREFIX, nodeTCP->uid); 
 
 
@@ -308,6 +324,7 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(list, nodeTCP->uid);
 
+        _VERBOSE("User app exit. UID: %s.\nIP: %s\t Port: %d", nodeTCP->uid, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
         nodeTCP->uid[0] = '\0';         // also clears the uid
 
         return TRUE;
@@ -363,7 +380,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         int vc = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
         // VLC UID VC Fop [Fname]
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0') {
-                msgLen = sprintf(answer, "%s %s %s %c %s %c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c %s %c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 _addMsgToQueue(list, nodeTCP->uid, answer);
                 nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;
@@ -371,7 +388,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         }
 
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
-                msgLen = sprintf(answer, "%s %s %s %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 _addMsgToQueue(list, nodeTCP->uid, answer);
                 nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;

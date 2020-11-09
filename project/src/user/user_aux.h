@@ -31,10 +31,10 @@ typedef struct user_info_t {
 } userInfo_t;
 
 // tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
-static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.103\0", "59053\0"};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.103\0", "59053\0"};
 
 // Sigma testing as
 //static connectionInfo_t connectionInfo = {"79.169.11.135\0", "58053\0", TEJO_IP, TEJO_FS_PORT};

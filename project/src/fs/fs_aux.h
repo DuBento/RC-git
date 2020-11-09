@@ -28,6 +28,7 @@ typedef struct userRequest_t {
 	char fop;
 	void(*exeRequest)(struct userRequest_t*, const char*);
 
+	char replyHeader[4];
 	char uid[UID_SIZE + 1];
 	char tid[TID_SIZE + 1];
 	char *fileName;
@@ -38,10 +39,12 @@ typedef struct userRequest_t {
 
 
 
+
+
 /*! \brief Prepares a list request from the user.
  *
  *  Checks if a user requested a list of files and fills the request accordingly
- * 	(if all the parameters are correct)
+ * 	(if all the parameters are correct).
  * 
  * 	\param  userRequest		the pointer to the user request structure.
  * 	\param 	uid				the uid of the request.
@@ -54,7 +57,7 @@ bool_t fillListRequest(userRequest_t *userRequest, const char* uid, const char *
 /*! \brief Prepares a retreive request from the user.
  *
  *  Checks if a user requested a retreive of a file and fills the request accordingly
- * 	(if all the parameters are correct)
+ * 	(if all the parameters are correct).
  * 
  * 	\param  userRequest		the pointer to the user request structure.
  * 	\param 	uid				the uid of the request.
@@ -68,7 +71,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 /*! \brief Prepares a upload request from the user.
  *
  *  Checks if a user requested an upload of a file and fills the request accordingly
- * 	(if all the parameters are correct)
+ * 	(if all the parameters are correct).
  * 
  * 	\param  userRequest		the pointer to the user request structure.
  * 	\param 	uid				the uid of the request.
@@ -84,7 +87,7 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
 /*! \brief Prepares a delete request from the user.
  *
  *  Checks if a user requested a delete of a file and fills the request accordingly
- * 	(if all the parameters are correct)
+ * 	(if all the parameters are correct).
  * 
  * 	\param  userRequest		the pointer to the user request structure.
  * 	\param 	uid				the uid of the request.
@@ -98,7 +101,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
 /*! \brief Prepares a remove request from the user.
  *
  *  Checks if a user requested to remove all files and fills the request accordingly
- * 	(if all the parameters are correct)
+ * 	(if all the parameters are correct).
  * 
  * 	\param  userRequest		the pointer to the user request structure.
  * 	\param 	uid				the uid of the request.
@@ -106,6 +109,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
  * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
 bool_t fillRemoveRequest(userRequest_t *userRequest, const char* uid, const char *tid);
+
 
 
 
@@ -158,6 +162,19 @@ void deleteRequest(userRequest_t *userRequest, const char *filesPath);
  * 	\param  filesPath		the path to the files root directory.
  */
 void removeRequest(userRequest_t *userRequest, const char *filesPath);
+
+
+
+
+
+/*!	\brief Sends a validation request to the AS server.
+ *
+ * 	Sends a validation request to the AS server.
+ * 
+ *  \param 	asServer			the UDP connection with the AS server.
+ * 	\param 	userRequest			the request of the user to be validated.
+ */
+void validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest);
 
 
 

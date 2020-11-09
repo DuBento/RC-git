@@ -197,11 +197,12 @@ bool_t handleFSServer() {
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 LOG("about to receive fs message");
 
-_LOG("ptrs %x %x", fsConnection, buffer);
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
 
 	if (size == TCP_FLD_RCV) {
 		LOG("sizze on tcprcv is -1 on fs\n");
+		fsConnection = tcpDestroySocket(fsConnection);
+		return FALSE;
 	}
 LOG("Received fs message");
 	buffer[strlen(buffer)-1] = '\0';
@@ -217,7 +218,6 @@ _LOG("le arg %s", arg);
 
 	// Retrieve code response "RRT status [Fsize data]"	
 	else if (!strcmp(opcode, RESP_RTV)) {
-		
 		
 		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename);
 
@@ -279,8 +279,8 @@ void runUser() {
 		// handle AS server responses
 		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			//LOG("Yey as contacted us!");
-			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-			putStr(STR_RESPONSE, TRUE);		// string before the server output
+			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+			//putStr(STR_RESPONSE, TRUE);		// string before the server output
 			if (!handleASServer()) return;	
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;

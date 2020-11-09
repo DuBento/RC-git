@@ -93,6 +93,19 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len);
 
 
+/*! \brief Receives a TCP fixed size message.
+ *
+ *  Stores a TCP message in the specified buffer. This function will terminate once
+ *  len bytes are read or the timeout is reached.
+ *  \param  tcpConnection   socket from which the message will be received.
+ *  \param  buffer	        a buffer where the message will be stored.
+ *  \param  len		        the length of the specified buffer.
+ *  \return the number of bytes read.
+ */
+int tcpReceiveFixedMessage(TCPConnection_t *tcpConnection, char *buffer, int len);
+
+
+
 /*! \brief Sends a TCP message.
  *
  *  Sends the specified TCP message.

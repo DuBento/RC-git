@@ -7,17 +7,41 @@
 
 int exitCode = -1;
 static userInfo_t userInfo = {0};
+//static connectionInfo_t connectionInfo = {"", "57053\0", """, "58011\0"};
 static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
-// static connectionInfo_t connectionInfo = {"", "57053\0", "127.0.0.1\0", "58053\0"};
-static UDPConnection_t *asConnection = NULL;
 
-// fd to the socket in which PD acts as an UDP server
-static UDPConnection_t *pdConnection = NULL;
+static UDPConnection_t *asConnection = NULL;
+static UDPConnection_t *pdConnection = NULL;		// fd to the socket in which PD acts as an UDP server
 
 /* User commands */
 #define CMD_REG		"reg"		// register command
 #define CMD_EXIT	"exit"		// exit command
 
+
+
+
+
+bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize);
+
+/*! \brief Cleans the program on termination
+ *
+ *	Frees all the memory alocated by the program and cleans terminates all the 
+ *	required modules.
+ */
+void cleanPD() {
+	if (asConnection == NULL)
+			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			
+	if(userInfo.connected) {
+		req_unregisterUser(asConnection, &userInfo);
+		handleClient(asConnection, NULL, NULL);
+	}
+
+	if (asConnection != NULL)   udpDestroySocket(asConnection);
+	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
+	if (userInfo.uid != NULL) 	free(userInfo.uid);
+	if (userInfo.pass != NULL) 	free(userInfo.pass);
+}
 
 
 /*! \brief Set program to terminate on success.
@@ -140,27 +164,28 @@ bool_t handleUser(fd_set *fds, int *fdsSize) {
 
 /*! \brief Handles the server messages during the runtime.
  *
- *  Verifies which message was sent by the server and updates the program accordingly
+ *  Verifies which message was sent by the server and updates the program accordingly.
+ * 	This messages are the ones the server sends to the PD's UDP server.
  * 
  * \return TRUE if the message was well received from the server, FALSE otherwise.
  */
-bool_t handleServer(UDPConnection_t *udpConnec,  fd_set *fds, int *fdsSize) {
+bool_t handleServer(UDPConnection_t *udpConnec) {
 	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE];	
 	UDPConnection_t receiver;
 	int size = udpReceiveMessage(udpConnec, &receiver, buffer, BUFFER_SIZE);
-	sscanf(buffer, "%s", opcode);
+	int validArgs = sscanf(buffer, "%s", opcode);
 
 	// Validation code request "VLC"	
-	if (!strcmp(opcode, REQ_VLC))
+	if (validArgs == 1 && !strcmp(opcode, REQ_VLC))
 		return resp_valCode(udpConnec, &receiver, buffer, &userInfo);
 
-	else if (!strcmp(opcode, SERVER_ERR)) {
+	else if (validArgs == 1 && !strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
 	
 	else{
-		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
+		_WARN("Invalid opcode on the server response! Sending error...\n\tGot\t: %s", opcode);
 		return req_serverError(udpConnec);
 	}
 }
@@ -174,25 +199,25 @@ bool_t handleServer(UDPConnection_t *udpConnec,  fd_set *fds, int *fdsSize) {
 bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	char buffer[BUFFER_SIZE], opcode[BUFFER_SIZE], args[BUFFER_SIZE];	
 	int size = udpReceiveMessage(udpConnec, NULL, buffer, BUFFER_SIZE);
-	sscanf(buffer, "%s %s\n", opcode, args);
+	int validArgs = sscanf(buffer, "%s %s\n", opcode, args);
 
 	// Registration response "RRG"
-	if (!strcmp(opcode, RESP_REG)) {
+	if (validArgs == 2 && !strcmp(opcode, RESP_REG) && fds != NULL && fdsSize != NULL) {
 		if (resp_registerUser(args, &userInfo)) { // hable to register
 			removeSocketClient(fds, fdsSize);	// removes client socket
 			if (pdConnection == NULL) {
 				pdConnection = udpCreateServer(connectionInfo.pdip, connectionInfo.pdport);
 				addSocket(pdConnection, fds, fdsSize);
-				_LOG("server fd: %d, fdssize: %d", pdConnection->fd, *fdsSize);
+				_LOG("Server fd: %d, fdssize: %d", pdConnection->fd, *fdsSize);
 			}
 		}
 	}
 
 	// Unegistration response "RUN"
-	else if (!strcmp(opcode, RESP_UNR))
+	else if (validArgs == 2 && !strcmp(opcode, RESP_UNR))
 		return resp_unregisterUser(args, &userInfo);
 
-	else if (!strcmp(opcode, SERVER_ERR) && args[0] == '\0') {
+	else if (validArgs == 1 && !strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
@@ -204,24 +229,7 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 }
 
 
-/*! \brief Cleans the program on termination
- *
- *	Frees all the memory alocated by the program and cleans terminates all the 
- *	required modules.
- */
-void cleanPD() {
-	if (asConnection == NULL)
-			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
-			
-	if(userInfo.connected) {
-		req_unregisterUser(asConnection, &userInfo);
-		handleClient(asConnection, NULL, NULL);
-	}
-	if (asConnection != NULL)   udpDestroySocket(asConnection);
-	if (pdConnection != NULL)	udpDestroySocket(pdConnection);
-	free(userInfo.uid);
-	free(userInfo.pass);
-}
+
 
 
 
@@ -245,21 +253,21 @@ void runPD() {
 	bool_t waitingReply = FALSE;
 	int nRequestTries = 0;
 	
-	putStr(STR_INPUT, TRUE);		// string before the user input
+	putStr(STR_INPUT, TRUE);			// string before the user input
 	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
-		fd_set fdsTemp = fds;		// select is destructive
-		struct timeval tvTemp = tv;	// select is destructive
+		fd_set fdsTemp = fds;			// select is destructive
+		struct timeval tvTemp = tv;		// select is destructive
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
-		if (selRetv  == -1){
+		if (selRetv  == -1) {
 			if (errno == EINTR) break;	// return from signal
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 		}
 
-		// handle server responses
+		// handle server messages
 		if (pdConnection != NULL && FD_ISSET(pdConnection->fd, &fdsTemp)) {
 			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleServer(pdConnection,  &fds, &fdsSize);	
+			handleServer(pdConnection);	
 			putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
@@ -303,10 +311,10 @@ void runPD() {
 
 int main(int argc, char *argv[]) {
 	initSignal(&terminatePD, &abortPD);	// sets the termination signals
-	parseArgs(argc, argv);			// parses the execution arguments
+	parseArgs(argc, argv);				// parses the execution arguments
 
 	userInfo.connected = FALSE;
-
 	runPD();
+	
 	return 0;
 }
