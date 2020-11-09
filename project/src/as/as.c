@@ -88,6 +88,23 @@ char verbosity = FALSE;
 // 	return current;
 // }
 
+/*! \brief Set program to terminate on success.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void terminateAS() {
+	exitCode = EXIT_SUCCESS;
+}
+
+
+/*! \brief Set program to terminate on fatal errors.
+ *
+ *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
+ */
+void abortAS() {
+	exitCode = EXIT_FAILURE;
+}
+
 
 /* ======= */
 /* General */
@@ -121,9 +138,25 @@ void cleanListNodeTCP(void* nodeData) {
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
 }
 
+
+
+void cleanLogs(DIR* dir, char* path){
+	char file[2*FILE_SIZE+PATH_MAX];
+	struct dirent *ent;
+    	while ((ent = readdir(dir)) != NULL) {
+		sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
+		if (deleteFile(path, ent->d_name, file))
+			_VERBOSE("Deleted login file. %s", file);
+		sprintf(file, "%s%s", ent->d_name, REGFILE_SUFIX);
+		if (deleteFile(path, ent->d_name, file))
+			_VERBOSE("Deleted registration file. %s", file);
+	}
+}
+
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
+	cleanLogs(dir, dir_path);
 	listDestroy(userList, cleanListNodeTCP);
 	closedir(dir);
 	exit(flag);
@@ -239,7 +272,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 		_LOG("ret val:%d", selectRet);
 		// timeout expired
 		iter = listIteratorCreate(pdList);
-		if (selectRet == 0 && !listIteratorEmpty(&iter)) {
+		if (selectRet == 0) {
 			LOG("Inside timeouted");
 			while (!listIteratorEmpty(&iter)){
 				ListNode_t node = (ListNode_t) iter;
@@ -272,6 +305,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			newNode->uid[0] = '\0'; newNode->rid=0; newNode->vc=0; newNode->tid=0;	// set as clean
 			listInsert(userList, newNode);	// add to list pf tcp connections
 			addSocket(&newNode->tcpConn, &fds, &fds_size);	// add to select fd set
+			_VERBOSE("New user connection accepted.\nIP: %s\t Port: %d", tcpConnIp(&newNode->tcpConn), tcpConnPort(&newNode->tcpConn));
 		}
 
 		
@@ -300,26 +334,22 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 
 
 
-// void listDir(DIR* dir){
-// 	struct dirent *ent;
-//     	while ((ent = readdir(dir)) != NULL) {
-// 		printf("%s\n", ent->d_name);
-// 	}
-// }
-
 int main(int argc, char *argv[]) {
+	initSignal(&terminateAS, &abortAS);	// sets the termination signals
 	/* AS makes available two server applications? Does it mean 2 process? */
 	/* Default AS port. */        
 	connectionInfo_t connectionInfo = {"58053\0"};
 	parseArgs(argc, argv, &connectionInfo);
 	dir = initDir(argv[0], DIR_NAME, dir_path);
+	
+	pdList = listCreate();
+	userList = listCreate();
+	
 	// mount UDP server socket and pd logs
 	udpServer = udpCreateServer(NULL, connectionInfo.asport);
-	pdList = listCreate();
 
 	// mount TCP server socket and user logs
 	tcpServer = tcpCreateServer(NULL, connectionInfo.asport, SOMAXCONN);
-	userList = listCreate();
 	
 	waitMainEvent(tcpServer, udpServer, msgBuffer);
 
