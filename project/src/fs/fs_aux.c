@@ -82,9 +82,9 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
 
     if (userRequest->fileSize >= size)  {   // the static buffer wasn't big enough to hold the file's contents
         int remainingSize = userRequest->fileSize + 2 - size;
-        int newReadSize = tcpReceiveFixedMessage(userRequest->tcpConnection, &userRequest->data[size], remainingSize);
-        if (newReadSize != remainingSize)
-            return FALSE;
+        //int newReadSize = tcpReceiveFixedMessage(userRequest->tcpConnection, &userRequest->data[size], remainingSize);
+        //if (newReadSize != remainingSize)
+          //  return FALSE;
     }     
 
     if (userRequest->data[userRequest->fileSize] != '\n') {
