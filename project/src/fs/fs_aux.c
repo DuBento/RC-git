@@ -58,7 +58,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 
 
 // prepares a upload request from the user
-bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata) {
+bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata, int size) {
     if (!_fillBaseRequest(userRequest, uid, tid) || !isStringValid(fsize, STR_DIGIT, 0)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
@@ -69,22 +69,20 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     strcpy(userRequest->replyHeader, RESP_UPL);
     userRequest->fileSize = atoi(fsize);
 
-    int fdatalen = strlen(++fdata);
+    
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     userRequest->data     = (char*)malloc((userRequest->fileSize + 2) * sizeof(char));  // '\n' included for verifying the message
-    if (userRequest->fileName == NULL || userRequest->data == NULL || fdatalen > userRequest->fileSize + 1 || 
-        (fdata[fdatalen - 1] == '\n' && fdatalen <= userRequest->fileSize))
-    {
+    if (userRequest->fileName == NULL || userRequest->data == NULL) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " NOK\n", 8);
         return FALSE;
     }
 
     strcpy(userRequest->fileName, fname);
-    strncpy(userRequest->data, fdata, fdatalen);
+    memcpy(userRequest->data, fdata, size);
 
-    if (userRequest->fileSize >= fdatalen)  {   // the static buffer wasn't big enough to hold the file's contents
-        int remainingSize = userRequest->fileSize + 2 - fdatalen;
-        int newReadSize = tcpReceiveFixedMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], remainingSize);
+    if (userRequest->fileSize >= size)  {   // the static buffer wasn't big enough to hold the file's contents
+        int remainingSize = userRequest->fileSize + 2 - size;
+        int newReadSize = tcpReceiveFixedMessage(userRequest->tcpConnection, &userRequest->data[size], remainingSize);
         if (newReadSize != remainingSize)
             return FALSE;
     }     
