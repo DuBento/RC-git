@@ -94,9 +94,28 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 		
 	} while (sizeRead != len - 1);
 	
-	// Insert null char to be able to handle buffer content as a string.
-	buffer[sizeRead] = '\0';
-	_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
+	if (sizeRead != 0) {
+		buffer[sizeRead] = '\0';	// insert null char to be able to handle buffer content as a string.
+		_LOG("[TCP] Message received (%d bytes) - '%s'", sizeRead, buffer);
+	}		
+	return sizeRead;
+}
+
+
+// receives a TCP fixed size message
+int tcpReceiveFixedMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
+	int sizeRead = 0;
+	struct timeval old, new;
+	gettimeofday(&old, NULL);
+	do {
+		int newSizeRead = tcpReceiveMessage(tcpConnection, buffer + sizeRead, len - sizeRead);
+		if (newSizeRead == -1)	return -1;
+		if (newSizeRead > 0)	gettimeofday(&old, NULL);
+		gettimeofday(&new, NULL);
+		sizeRead += newSizeRead;
+		if (newSizeRead > 0) _LOG("%d == %d - 1 []", sizeRead, len);
+	} while (new.tv_sec - old.tv_sec < TIMEOUT || sizeRead == len - 1);
+
 	return sizeRead;
 }
 
