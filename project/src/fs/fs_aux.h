@@ -28,6 +28,7 @@ typedef struct userRequest_t {
 	char fop;
 	void(*exeRequest)(struct userRequest_t*, const char*);
 
+	char replyHeader[4];
 	char uid[UID_SIZE + 1];
 	char tid[TID_SIZE + 1];
 	char *fileName;
@@ -169,8 +170,7 @@ void removeRequest(userRequest_t *userRequest, const char *filesPath);
  * 
  *  \param 	asServer				the UDP connection with the AS server.
  * 	\param 	userRequest			the request of the user to be validated.
- * 	\return	TRUE if the validation request was sent on to the AS server, FALSE otherwise.
- * 
+ * 	\return	TRUE if the validation request was sent on to the AS server, FALSE otherwise. * 
  */
 bool_t validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest);
 

@@ -30,6 +30,7 @@ bool_t fillListRequest(userRequest_t *userRequest, const char* uid, const char *
     
     userRequest->fop = FOP_L;
     userRequest->exeRequest = listRequest;
+    strcpy(userRequest->replyHeader, RESP_LST);
     return TRUE;
 }
 
@@ -43,6 +44,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 
     userRequest->fop = FOP_R;
     userRequest->exeRequest = retreiveRequest;
+    strcpy(userRequest->replyHeader, RESP_RTV);
         
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
@@ -64,6 +66,7 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     
     userRequest->fop = FOP_U;
     userRequest->exeRequest = uploadRequest;
+    strcpy(userRequest->replyHeader, RESP_UPL);
     userRequest->fileSize = atoi(fsize);
 
     int fdatalen = strlen(++fdata);
@@ -101,6 +104,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
 
     userRequest->fop = FOP_D;
     userRequest->exeRequest = deleteRequest;
+    strcpy(userRequest->replyHeader, RESP_DEL);
 
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
@@ -122,6 +126,7 @@ bool_t fillRemoveRequest(userRequest_t *userRequest, const char* uid, const char
 
     userRequest->fop = FOP_X;
     userRequest->exeRequest = removeRequest;
+    strcpy(userRequest->replyHeader, RESP_REM);
     return  TRUE;
 }
 
@@ -225,8 +230,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // executes the delete request
 void deleteRequest(userRequest_t *userRequest, const char *filesPath) {
-    bool_t deleted = deleteFile(filesPath, userRequest->uid, userRequest->fileName);
-    if (deleted)
+    if (deleteFile(filesPath, userRequest->uid, userRequest->fileName))
         tcpSendMessage(userRequest->tcpConnection, RESP_DEL " OK\n", 7);
     else
         tcpSendMessage(userRequest->tcpConnection, RESP_DEL " NOK\n", 8);
@@ -235,8 +239,10 @@ void deleteRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // executes the remove request
 void removeRequest(userRequest_t *userRequest, const char *filesPath) {
-    deleteDirectory(filesPath, userRequest->uid);
-    tcpSendMessage(userRequest->tcpConnection, RESP_DEL " OK\n", 7);
+    if (deleteDirectory(filesPath, userRequest->uid))
+        tcpSendMessage(userRequest->tcpConnection, RESP_REM " OK\n", 7);
+    else
+        tcpSendMessage(userRequest->tcpConnection, RESP_REM " NOK\n", 8);
 }
 
 
@@ -245,5 +251,8 @@ void removeRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // sends a validation request to the AS server.
 bool_t validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
+    const size_t msgSize = 3 + 1 + UID_SIZE + 1 + TID_SIZE + 1 + 1;
+    char msg[msgSize];
+    sprintf(msg, "%s %s %s\n", REQ_VLD, userRequest->uid, userRequest->tid);
     return msgSize == udpSendMessage(asServer, msg, msgSize);
 }

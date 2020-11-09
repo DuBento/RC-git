@@ -140,6 +140,46 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 }
 
 
+/*! \brief Checks if a request is valid according to the AS reply 
+ *
+ *  Finds a request that matches the AS reply, finds out if it is valid and checks
+ *  if all of its parameters are well formated. If any of this goes wrong the request
+ *  is removed from the server.
+ */
+void handleASValidationReply() {
+	char buffer[BUFFER_SIZE];
+	int size = udpReceiveMessage(udpConnection, NULL, buffer, BUFFER_SIZE);	
+	char opcode[BUFFER_SIZE], uid[BUFFER_SIZE], tid[BUFFER_SIZE], fop, fname[BUFFER_SIZE];
+	int validArgs = sscanf(buffer, "%s %s %s %c %s\n", opcode, uid, tid, &fop, fname);
+
+	ListNode_t node = NULL;
+	ListIterator_t iterator = listIteratorCreate(userRequests);
+	while (!listIteratorEmpty(&iterator)) {
+		ListNode_t tempNode = (ListNode_t)iterator;
+		userRequest_t *tempRequest = (userRequest_t*)listIteratorNext(&iterator);
+		if (!strcmp(tid, tempRequest->tid)) {
+			node = tempNode;
+			break;
+		}
+	}
+
+	if (node == NULL) return;
+	userRequest_t *userRequest = (userRequest_t *)listValue(node);
+	if (!strcmp(opcode, RESP_VLD) && !strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
+		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
+			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
+			{
+				userRequest->exeRequest(userRequest, filesPath);
+				return;
+			}		
+	}
+
+	char msg[BUFFER_SIZE];
+	int msgSize = sprintf(msg, "%s INV\n", userRequest->replyHeader);
+	tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
+	listRemove(userRequests, node, cleanRequest);
+}
+
 
 /*! \brief Fills the information about a new user request.
  *
@@ -211,20 +251,16 @@ void processUserRequests(const struct timeval *oldTime) {
 			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
 			if (userRequest->nTries != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
 				if (userRequest->nTries == NREQUEST_TRIES) {
-					// sends message back to the user
 					_LOG("Maximum number of tries reached on request %s. Aborting...", userRequest->tid);
 					listRemove(userRequests, node, cleanRequest);
 					return;
 				}
 
-				// TEMP
-				userRequest->exeRequest(userRequest, filesPath);
-				listRemove(userRequests, node, cleanRequest);
-				
 				userRequest->nTries++;
 				userRequest->timeExpired = 0;
 				_LOG("Request update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				// sends the request on to the AS server
+				if (!validateRequest(udpConnection, userRequest))
+					listRemove(userRequests, node, cleanRequest);					
 			}
 		}
 }
@@ -261,10 +297,9 @@ void runFS() {
 		if (FD_ISSET(tcpConnection->fd, &fdsTemp))
 			handleUserConnection(&fds, &fdsSize);
 
-		// handle the as reply
-		if (FD_ISSET(udpConnection->fd, &fdsTemp)) {
-			// handle as reply
-		}
+		// handle the AS request validation reply
+		if (FD_ISSET(udpConnection->fd, &fdsTemp))
+			handleASValidationReply();
 
 		// handles the user's new requests
 		ListIterator_t iterator = listIteratorCreate(userRequests);
@@ -296,4 +331,4 @@ int main(int argc, char *argv[]) {
 	runFS();
 
 	return 0;
-}	
+}

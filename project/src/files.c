@@ -126,11 +126,14 @@ bool_t deleteFile(const char *filesPath, const char *dirname, const char *filena
 
 
 // deletes the specified directory.
-void deleteDirectory(const char *filesPath, const char *dirname) {
+bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 	char dirPath[PATH_MAX];
-	DIR *directory = initDir(filesPath, dirname, dirPath);
-	struct dirent *ent;
+	sprintf(dirPath, "%s/%s/", filesPath, dirname);
+	DIR *directory = opendir(dirPath);
+	if (!directory)
+		return FALSE;
 
+	struct dirent *ent;
 	while ((ent = readdir(directory)) != NULL) {
 		if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..")) {
 			char filePath[PATH_MAX];
