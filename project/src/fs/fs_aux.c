@@ -82,8 +82,11 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     strcpy(userRequest->fileName, fname);
     strncpy(userRequest->data, fdata, fdatalen);
 
-    if (userRequest->fileSize >= fdatalen)      // the static buffer wasn't big enough to hold the file's contents
-        tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], userRequest->fileSize + 2 - fdatalen);
+    if (userRequest->fileSize >= fdatalen)  {   // the static buffer wasn't big enough to hold the file's contents
+        int remainingSize = userRequest->fileSize + 2 - fdatalen;
+        if (tcpReceiveMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], remainingSize) == -1)
+            return FALSE;
+    }     
 
     if (userRequest->data[userRequest->fileSize] != '\n') {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
@@ -184,13 +187,14 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
     size_t msgSize = 3 + 1 + 2 + 1 + nDigits(fileSize) + 1 + fileSize + 1;
     char *msg = (char*)malloc((msgSize + 1) * sizeof(char));
     if (fileData == NULL || msg == NULL) {
-        if (fileData == NULL) free(fileData);
+        if (fileData != NULL)   free(fileData);
+        if (msg != NULL)        free(msg);
         tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
         return;
     }
 
     // formats and sends the message
-    int headerSize = sprintf(msg, "%s OK %lu\n", RESP_RTV, fileSize);
+    int headerSize = sprintf(msg, "%s OK %lu ", RESP_RTV, fileSize);
     memcpy(msg + headerSize, fileData, fileSize);
     msg[msgSize - 1] = '\n';
     msg[msgSize] = '\0';

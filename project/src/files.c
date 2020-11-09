@@ -144,4 +144,5 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 	
 	closedir(directory);
 	rmdir(dirPath);
+	return TRUE;
 }

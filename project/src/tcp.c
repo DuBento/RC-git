@@ -8,6 +8,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 	struct addrinfo *res = { 0 };
 	memset(&hints, '\0', sizeof(struct addrinfo));	
 	tcpConnection->fd = socket(AF_INET, SOCK_STREAM, 0);
+	
 	if (tcpConnection->fd == -1)
 		_FATAL("[TCP] Unable to create the socket!\n\t - Error code : %d %s", errno, strerror(errno));
 	
@@ -22,6 +23,7 @@ TCPConnection_t* tcpCreateSocket(const char *addrIP, const char *port, char mode
 
 	memcpy(&tcpConnection->addr, res->ai_addr, sizeof(struct sockaddr));
 	memcpy(&tcpConnection->addrlen, &res->ai_addrlen, sizeof(socklen_t));
+	fcntl(tcpConnection->fd, F_SETFL, O_NONBLOCK);
 	freeaddrinfo(res);
 	return tcpConnection;
 }
@@ -64,7 +66,8 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 	else {
 		newCon->addrlen = sizeof(newCon->addr);
 		newfd = accept(tcpConnection->fd, &newCon->addr, &newCon->addrlen);
-		newCon->fd = newfd;	
+		newCon->fd = newfd;
+		fcntl(newCon->fd, F_SETFL, O_NONBLOCK);
 	} 
 
 	if (newfd == -1)
@@ -78,17 +81,18 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	int sizeRead = 0;
 	do {
-		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
-		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(tcpConnection->fd, buffer, len-1);		// len-1, adding '\0' afterwards 
-		if (n == -1)
-			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
+		int n = read(tcpConnection->fd, buffer, len - 1);		// len-1, adding '\0' afterwards 
+		if (n == -1) {
+			if (errno == EWOULDBLOCK || errno == EAGAIN)	// end of file was reached
+				break;
+			else
+				_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));
+		}
+			
+		if (n == 0)	return -1;			// socket was disconected
+		sizeRead += n;	
 		
-		// disconnected socket
-		if (n == 0)	return -1;		
-		sizeRead += n;
-		
-	} while (buffer[sizeRead-1] != CHAR_END_MSG && len - 1 != sizeRead);
+	} while (sizeRead != len - 1);
 	
 	// Insert null char to be able to handle buffer content as a string.
 	buffer[sizeRead] = '\0';
@@ -102,8 +106,6 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len) 
 	int sizeWritten;
 	sizeWritten = 0;
 	do {
-		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
-		On error, -1 is returned, and errno is set appropriately.*/
 		int n = write(tcpConnection->fd, buffer + sizeWritten, len - sizeWritten);
 		if (n == -1)
 			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d %s", errno, strerror(errno));

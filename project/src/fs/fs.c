@@ -191,13 +191,21 @@ void handleASValidationReply() {
  *  \param 	fdsSize		a pointer to the size of the fds.
  */
 void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
-	userRequest_t *userRequest = (userRequest_t*)listValue(node);
-	char buffer[BUFFER_SIZE];
-	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
-
 	// removes this connection from the select
+	userRequest_t *userRequest = (userRequest_t*)listValue(node);
 	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
 	FD_CLR(userRequest->tcpConnection->fd, fds);
+
+	char buffer[BUFFER_SIZE];
+	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
+	if (size == -1) {
+		_LOG("User closed the comunication with the server!\n\tIP\t%s\n\tPORT\t:%d", 
+			tcpConnIp(userRequest->tcpConnection), tcpConnPort(userRequest->tcpConnection));
+		listRemove(userRequests, node, cleanRequest);
+		return;
+	}	
+		
+	
 
 	char opcode[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, tid[BUFFER_SIZE] = { 0 };
 	char fname[BUFFER_SIZE] = { 0 }, fsize[BUFFER_SIZE] = { 0 }, *fdata;
@@ -259,10 +267,12 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				userRequest->nTries++;
-				userRequest->timeExpired = 0;
-				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				validateRequest(udpConnection, userRequest);
+				userRequest->exeRequest(userRequest, filesPath);
+				listRemove(userRequests, node, cleanRequest);
+				//userRequest->nTries++;
+				//userRequest->timeExpired = 0;
+				//_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
+				//validateRequest(udpConnection, userRequest);
 			}
 		}
 }
