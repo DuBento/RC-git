@@ -12,7 +12,7 @@ void _cleanQueueFromUID(List_t pdList, char *uid) {
                 ListNode_t node = (ListNode_t) iter;
                 pdNode_t *nodeData = listIteratorNext(&iter);
                 if (!strcmp(nodeData->uid, uid))        // remove all with matching uid
-                        listRemove(pdList, node, NULL);
+                        listRemove(pdList, node, free);
         }
 }
 

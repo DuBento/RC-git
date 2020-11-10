@@ -58,7 +58,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
 
 
-void cleanListNodeTCP(void* nodeData) {
+void cleanListNodeUser(void* nodeData) {
 	userNode_t *nodeDataAS =  (userNode_t*) nodeData;
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
 	free(nodeDataAS);
@@ -68,7 +68,7 @@ void immediateExitAS() {
 	// no logs where made before runtime so no need to clear them
 	if (udpServer != NULL) 	udpDestroySocket(udpServer);
 	if (tcpServer != NULL) 	tcpDestroySocket(tcpServer);
-	if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
+	if (userList != NULL)	listDestroy(userList, cleanListNodeUser);
 	if (pdList != NULL)		listDestroy(pdList, free);
 	if (dir != NULL)		closedir(dir);
 }
@@ -77,7 +77,7 @@ void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
 	cleanLogs(dir, dir_path);
-	listDestroy(userList, cleanListNodeTCP);
+	listDestroy(userList, cleanListNodeUser);
 	listDestroy(pdList, free);
 	closedir(dir);
 	exit(flag);
@@ -271,7 +271,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 					LOG("connection closed");
 					// connection closed
 					removeSocket(conn, &fds, &fds_size);
-					listRemove(userList, node, cleanListNodeTCP);
+					listRemove(userList, node, cleanListNodeUser);
 				}
 			}
 		}
