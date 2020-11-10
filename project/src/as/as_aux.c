@@ -1,6 +1,7 @@
 #include "as_aux.h"
 
 extern int verbosity;
+extern char* dir_path;
 extern List_t pdList;
 extern List_t userList;
 extern char *dir_path;
@@ -48,21 +49,27 @@ userNode_t* _getUserNodeUID(List_t list, char* uid) {
 
 // deletes everything 
 void _removeUID(userNode_t* node) {
-
+        char dirname[FILE_SIZE];
+        sprintf(dirname, "%s%s", DIR_NAME, node->uid);
+        _cleanLogFile(dirname, REGFILE_SUFIX);  // unregisters PD
+        USER_CLEAR(node);       // unlog user
 
 }
 
+void _cleanLogFile(char* dir_name, const char* fileType) {
+	char file[2*FILE_SIZE+PATH_MAX];
+        sprintf(file, "%s%s", dir_name, fileType);
+        if (deleteFile(dir_path, dir_name, file))
+                _VERBOSE("Deleted registration file. %s", file);
+}
 
 void cleanLogs(DIR* dir, char* path){
-	char file[2*FILE_SIZE+PATH_MAX];
 	struct dirent *ent;
     	while ((ent = readdir(dir)) != NULL) {
-		// sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
+		_cleanLogFile(ent->d_name, REGFILE_SUFIX);
+                // sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
 		// if (deleteFile(path, ent->d_name, file))
-		// 	_VERBOSE("Deleted login file. %s", file);
-		sprintf(file, "%s%s", ent->d_name, REGFILE_SUFIX);
-		if (deleteFile(path, ent->d_name, file))
-			_VERBOSE("Deleted registration file. %s", file);
+		// 	_VERBOSE("Deleted login file. %s", file);	
 	}
 }
 
@@ -84,6 +91,7 @@ void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path) {
 bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
+        INIT_BUF(pass);
         // dir and file manipulation
         char *stored_pass;
         char dirname[FILE_SIZE+BUFFER_SIZE];
@@ -267,7 +275,7 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         }else
                 msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, FOP_E, CHAR_END_MSG);
 
-        tcpSendMessage(tcpConn, buf, msgLen);
+        udpSendMessage_specifyConn(udpConn, receiver, buf, msgLen);
         
         node->tid = -1;  // one time only tid, set as clean
         
@@ -296,6 +304,7 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc,
 bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
+        INIT_BUF(pass);
         // dir and file manipulation
         char *stored_pass;
         char dirname[FILE_SIZE+BUFFER_SIZE];
@@ -378,7 +387,7 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         char answer[BUFFER_SIZE];
         int msgLen;
 
-        if (nodeTCP->uid[0] == '\0'){
+        if (!USER_LOGEDIN(nodeTCP)){
                 _VERBOSE("User app exit, no login made.\nIP: %s\t Port: %d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
                 return FALSE;   // no login was made
         }
@@ -399,7 +408,7 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         _cleanQueueFromUID(list, nodeTCP->uid);
 
         _VERBOSE("User app exit. UID: %s.\nIP: %s\t Port: %d", nodeTCP->uid, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
-        nodeTCP->uid[0] = '\0';         // also clears the uid
+        USER_CLEAR(nodeTCP);         // also clears the uid
 
         return TRUE;
 }
@@ -424,7 +433,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 req_serverErrorTCP(tcpConn, answer);
                 return FALSE;
         }
-        else if (nodeTCP->uid[0] == '\0')         // user not loged in
+        else if (!USER_LOGEDIN(nodeTCP))         // user not loged in
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_ELOG, CHAR_END_MSG);
 
         else if (!strcmp(getFileOp(fop), "\0"))       // no known file op
