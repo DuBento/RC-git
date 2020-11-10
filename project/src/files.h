@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "list.h"
+#include "tcp.h"
 
 
 /*! \brief Initialize a directory on the specified path.
@@ -93,5 +94,8 @@ bool_t deleteFile(const char *filesPath, const char *dirname, const char *filena
  *  \return TRUE if the directory was deleted, FALSE if it didn't exist
  */
 bool_t deleteDirectory(const char *filesPath, const char *dirname);
+
+
+bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int size);
 
 #endif 	/* FILES */

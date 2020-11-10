@@ -1,8 +1,9 @@
 #include "as_aux.h"
 
 extern int verbosity;
-
-
+extern List_t pdList;
+extern List_t userList;
+extern char *dir_path;
 
 // remove msgs from waitingReply Queue for specified uid
 void _cleanQueueFromUID(List_t pdList, char *uid) {
@@ -34,6 +35,36 @@ bool_t inUserList(List_t userList, char* uid) {
         return FALSE;
 }
 
+userNode_t* _getUserNodeUID(List_t list, char* uid) {
+        ListIterator_t iter = listIteratorCreate(list);
+        while (!listIteratorEmpty(&iter)){
+                ListNode_t node = (ListNode_t) iter;
+                userNode_t *nodeData = listIteratorNext(&iter);
+                if (!strcmp(nodeData->uid, uid))
+                        return nodeData;
+        }
+        return NULL;
+}
+
+// deletes everything 
+void _removeUID(userNode_t* node) {
+
+
+}
+
+
+void cleanLogs(DIR* dir, char* path){
+	char file[2*FILE_SIZE+PATH_MAX];
+	struct dirent *ent;
+    	while ((ent = readdir(dir)) != NULL) {
+		// sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
+		// if (deleteFile(path, ent->d_name, file))
+		// 	_VERBOSE("Deleted login file. %s", file);
+		sprintf(file, "%s%s", ent->d_name, REGFILE_SUFIX);
+		if (deleteFile(path, ent->d_name, file))
+			_VERBOSE("Deleted registration file. %s", file);
+	}
+}
 
 /* ====== */
 /* UDP    */
@@ -133,7 +164,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
         // dir and file manipulation
         char dirname[FILE_SIZE+BUFFER_SIZE];
-        char reg_path[2*FILE_SIZE+BUFFER_SIZE];
+        char reg_file[2*FILE_SIZE+BUFFER_SIZE];
         DIR *dir;
         // response
         char answer[BUFFER_SIZE];
@@ -154,10 +185,10 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         }
 
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        sprintf(reg_path, "%s%s/%s%s", path, dirname, dirname, REGFILE_SUFIX);
+        sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
 
         // tries to delete password file
-        if (!deleteFile(path, dirname, reg_path))
+        if (!deleteFile(path, dirname, reg_file))
                 if(errno == ENOENT){
                         _WARN("PD: %s was not registered. Sending server error...", uid);
                         msgLen = sprintf(answer, "%s %s%c", RESP_UNR, STATUS_NOK, CHAR_END_MSG);
@@ -181,7 +212,7 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
 
         sscanf(buf, "%s %s", uid, status);
 
-        if (!isUIDValid(uid) || inUserList(userList, uid)) {
+        if (!isUIDValid(uid) || !inUserList(userList, uid)) {
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
@@ -198,11 +229,52 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
                         }
                 }
         }
+        _LOG("STATUS: %s", status);
         if (!strcmp(status, STATUS_NOK) || !strcmp(status, STATUS_OK))
                 resp_fileOP(userList, uid, status);
         else
                 req_serverErrorUDP(udpConn, receiver, buf);
 }
+
+bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, List_t userlist) {
+        char uid[BUFFER_SIZE], tid[BUFFER_SIZE];
+        int msgLen;
+
+        sscanf(buf, "%s %s", uid, tid);
+
+        // checks
+        if (!isUIDValid(uid) || !isTIDValid(tid)) {
+                req_serverErrorUDP(udpConn, receiver, buf);
+                return FALSE;
+        }
+
+        // find user in log list
+        userNode_t *node = _getUserNodeUID(userlist, uid); 
+
+        if(node == NULL) {      // user not loged
+                req_serverErrorUDP(udpConn, receiver, buf);
+                return FALSE;
+        }
+
+        TCPConnection_t *tcpConn = &node->tcpConn;
+
+        if (node->tid != -1 && node->tid == atoi(tid)){
+                if (node->fop == FOP_X)
+                        _removeUID(node);
+                if (node->fname[0] != '\0')
+                        msgLen = sprintf(buf, "%s %s %d %c %s%c", RESP_VLD, node->uid, node->tid, node->fop, node->fname, CHAR_END_MSG);
+                msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
+        }else
+                msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, FOP_E, CHAR_END_MSG);
+
+        tcpSendMessage(tcpConn, buf, msgLen);
+        
+        node->tid = -1;  // one time only tid, set as clean
+        
+        return TRUE;
+}
+
+
 
 // send server error UDP
 bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc, char *msgBuffer) {
@@ -228,7 +300,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         char *stored_pass;
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char login_file[2*FILE_SIZE+BUFFER_SIZE], pass_file[2*FILE_SIZE+BUFFER_SIZE];
-        DIR *dir;
+        // DIR *dir;
         // response
         TCPConnection_t *tcpConn = &nodeTCP->tcpConn;
         char answer[BUFFER_SIZE];
@@ -246,15 +318,15 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        dir = initDir(path, dirname, NULL);
-        // check if connection not already established (login file)
-        sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
-        if (inDir(dir, login_file)) { 
-                _WARN("User: %s tried to login twice. Sending not ok status...", uid);
-                msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
-                tcpSendMessage(tcpConn, answer, msgLen);
-                return FALSE;
-        }
+        // dir = initDir(path, dirname, NULL);
+        // // check if connection not already established (login file)
+        // sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
+        // if (inDir(dir, login_file)) { 
+        //         _WARN("User: %s tried to login twice. Sending not ok status...", uid);
+        //         msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
+        //         tcpSendMessage(tcpConn, answer, msgLen);
+        //         return FALSE;
+        // }
 
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
@@ -269,8 +341,10 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
                 }
                 free(stored_pass);
         }       
-        else {  // no file to be read, first time connection
-                _storePassPD(path, dirname, pass_file, pass); // create file
+        else {  // no file to be read, login in without PD first registered
+                msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
+                tcpSendMessage(tcpConn, answer, msgLen);
+                return FALSE;
         }
         
         _VERBOSE("Loging User:\nuid: %s\npass: %s\nFrom IP:%s\tPORT:%d",
@@ -278,7 +352,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         
         // log uid in list node
         strcpy(nodeTCP->uid, uid);
-        _loginUser(path, dirname, login_file, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+        // _loginUser(path, dirname, login_file, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // reply to User
         msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_OK, CHAR_END_MSG);
@@ -312,14 +386,14 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         sprintf(dirname, "%s%s", USERDIR_PREFIX, nodeTCP->uid); 
 
 
-        sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
-        _LOG("LOGIN FILE %s", login_file);
+        // sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
+        // _LOG("LOGIN FILE %s", login_file);
         // tries to delete login file
-        if (!deleteFile(path, dirname, login_file))
-                if(errno == ENOENT){
-                        _FATAL("User: %s was not registered. Internal error.", nodeTCP->uid);
-                        return FALSE;
-                }
+        // if (!deleteFile(path, dirname, login_file))
+        //         if(errno == ENOENT){
+        //                 _FATAL("User: %s was not registered. Internal error.", nodeTCP->uid);
+        //                 return FALSE;
+        //         }
         
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(list, nodeTCP->uid);
@@ -350,11 +424,12 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 req_serverErrorTCP(tcpConn, answer);
                 return FALSE;
         }
+        else if (nodeTCP->uid[0] == '\0')         // user not loged in
+                msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_ELOG, CHAR_END_MSG);
+
         else if (!strcmp(getFileOp(fop), "\0"))       // no known file op
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EFOP, CHAR_END_MSG);
                 
-        else if (nodeTCP->uid[0] == '\0')         // user not loged in
-                msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_ELOG, CHAR_END_MSG);
                
         else if (strcmp(nodeTCP->uid, uid))    // uid dont match
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EUSER, CHAR_END_MSG);
@@ -379,19 +454,26 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
 
         int vc = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
         // VLC UID VC Fop [Fname]
-        if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0') {
-                msgLen = sprintf(answer, "%s %s %d %c %s %c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
+        if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0' && isFileNameValid(fname)) {
+                // reply
+                msgLen = sprintf(answer, "%s %s %d %c %s%c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
+                // store info
+                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc; nodeTCP->fop = fop;
+                strcpy(nodeTCP->fname, fname);
+                // log msg for waiting queue
                 _addMsgToQueue(list, nodeTCP->uid, answer);
-                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;
                 return TRUE;
         }
 
         if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
+                // reply
                 msgLen = sprintf(answer, "%s %s %d %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
+                // store info
+                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc; nodeTCP->fop = fop; nodeTCP->fname[0] = '\0';
+                // log msg for waiting queue
                 _addMsgToQueue(list, nodeTCP->uid, answer);
-                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc;
                 return TRUE;
         }
 
@@ -431,6 +513,7 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
 
         sscanf(buf, "%s %s %s", uid, rid, vc);
 
+        // _LOG("Auth => UID: %s\tRID: %s\t VC: %s", uid, rid, vc);
         // checks
         if (!isUIDValid(uid) || !isRIDValid(rid) || !isVCValid(vc)) {
                 req_serverErrorTCP(tcpConn, buf);
@@ -440,7 +523,7 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
         else if (!strcmp(nodeTCP->uid, uid) && nodeTCP->rid == atoi(rid) && nodeTCP->vc == atoi(vc)) {
                 int tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
                 nodeTCP->tid = tid;
-                nodeTCP->rid = 0; nodeTCP->vc = 0;      // clear vc and rid, one time usage
+                nodeTCP->rid = -1; nodeTCP->vc = -1;      // clear vc and rid, one time usage
                 msgLen = sprintf(answer, "%s %d%c", RESP_AUT, tid, CHAR_END_MSG);
         } else 
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);

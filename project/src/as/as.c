@@ -30,64 +30,6 @@ List_t pdList;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
 
-// /* ========================== */
-// /* Linked list Implementation */
-// /* ========================== */
-// void pushHead(int key, struct addrinfo data) {
-// 	//create a new node
-// 	udpNode_t *new = (udpNode_t*) malloc(sizeof(udpNode_t));
-
-// 	// fill in the values
-// 	new->id = key;
-// 	new->addr = data;
-// 	new->next = listHead;
-	
-// 	// updates head	
-// 	listHead = new;
-// }
-
-// udpNode_t* delete(int key) {
-// 	udpNode_t* current = listHead;
-// 	udpNode_t* previous = NULL;
-		
-// 	// If empty
-// 	if(listHead == NULL) return NULL;
-
-// 	while(current->id != key) {
-// 		//if enf of list
-// 		if(current->next == NULL) return NULL;
-// 		else {
-// 			// move forward
-// 			previous = current;
-// 			current = current->next;
-// 		}
-// 	}
-
-// 	// if match is list head
-// 	if(current == listHead) 
-// 		listHead = listHead->next;
-// 	else 
-// 		previous->next = current->next; //update
-		
-// 	return current;	
-// }
-
-// udpNode_t* find(int key) {
-// 	// Start search from head
-// 	udpNode_t* current = listHead;
-
-// 	// If empty
-// 	if(listHead == NULL) return NULL;
-
-// 	// loop through queue until key match
-// 	while(current->id != key) {
-// 		if(current->next == NULL) return NULL;
-// 		current = current->next;
-// 	}      
-		
-// 	return current;
-// }
-
 /*! \brief Set program to terminate on success.
  *
  *	Termination handle called by the SIGINT and SIGTERM signals.
@@ -140,19 +82,6 @@ void cleanListNodeTCP(void* nodeData) {
 
 
 
-void cleanLogs(DIR* dir, char* path){
-	char file[2*FILE_SIZE+PATH_MAX];
-	struct dirent *ent;
-    	while ((ent = readdir(dir)) != NULL) {
-		sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
-		if (deleteFile(path, ent->d_name, file))
-			_VERBOSE("Deleted login file. %s", file);
-		sprintf(file, "%s%s", ent->d_name, REGFILE_SUFIX);
-		if (deleteFile(path, ent->d_name, file))
-			_VERBOSE("Deleted registration file. %s", file);
-	}
-}
-
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
@@ -168,20 +97,26 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	char opcode[BUFFER_SIZE];
 	UDPConnection_t recvConnoc;
 	n = udpReceiveMessage(udpConnec, &recvConnoc, msgBuf, BUFFER_SIZE);
-	// TODO setClean();
 
 	sscanf(msgBuf, "%s", opcode);
 
+	// PD
 	// Registration Request
-	if (!strcmp(opcode, REQ_REG)){
+	if (!strcmp(opcode, REQ_REG))
 		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG), dir_path);
-	}// Unregistration Request
-	else if (!strcmp(opcode, REQ_UNR)){
+	
+	// Unregistration Request
+	else if (!strcmp(opcode, REQ_UNR))
 		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR), dir_path, pdList);                
-	}
+
 	// Validation Code received "RVC"
 	else if (!strcmp(opcode, RESP_VLC))
 		resp_validationCode(udpConnec, &recvConnoc, userList, pdList, msgBuf+strlen(REQ_UNR));
+		
+	// FS
+	else if (!strcmp(opcode, REQ_VLD))
+		req_authOP(udpConnec, &recvConnoc, msgBuf+strlen(REQ_VLD), userList);
+	// General
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
@@ -213,7 +148,7 @@ bool_t handleTCP(userNode_t *tcpNode, char *msgBuf) {
 	
 	// Authorize Op
 	else if (!strcmp(opcode, REQ_AUT))
-		req_auth(tcpNode, msgBuf);
+		req_auth(tcpNode, msgBuf+strlen(REQ_AUT));
 	
 	// Error
 	else if (!strcmp(opcode, SERVER_ERR)) {
@@ -269,11 +204,9 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
 		}
 		
-		_LOG("ret val:%d", selectRet);
 		// timeout expired
 		iter = listIteratorCreate(pdList);
 		if (selectRet == 0) {
-			LOG("Inside timeouted");
 			while (!listIteratorEmpty(&iter)){
 				ListNode_t node = (ListNode_t) iter;
 				pdNode_t *nodeData = listIteratorNext(&iter);
@@ -287,10 +220,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 					_WARN("No response received from sent message.\nUID:%s\nCommunication error.", nodeData->uid);
 				}
 			}
-			LOG("BEFORE CONTINUE");
 			continue;	// run select again
-			LOG("AFTER CONTINUE");
-
 		}       
 
 		// handle PD interaction
@@ -312,7 +242,6 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 		// Handle all tcp cliente connections
 		iter = listIteratorCreate(userList);
 		while (!listIteratorEmpty(&iter)){
-			puts("inloop");
 			ListNode_t node = (ListNode_t) iter;
 			userNode_t *nodeData = listIteratorNext(&iter);
 			TCPConnection_t *conn = &nodeData->tcpConn;
@@ -336,6 +265,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 
 int main(int argc, char *argv[]) {
 	initSignal(&terminateAS, &abortAS);	// sets the termination signals
+	srand(time(NULL));					// set seed for random number
 	/* AS makes available two server applications? Does it mean 2 process? */
 	/* Default AS port. */        
 	connectionInfo_t connectionInfo = {"58053\0"};

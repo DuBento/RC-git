@@ -139,6 +139,7 @@ typedef char bool_t;
 #define FOP_D		'D'
 #define FOP_X		'X'
 
+#define FOP_E		'E'		// error
 /* Folder properties */
 #define FILE_NAME_SIZE 		24
 #define MAX_FILES			15	// the maximum amount of files in a directory
