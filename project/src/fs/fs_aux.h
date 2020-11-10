@@ -81,7 +81,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
  * 	\param	fdata			the contents of the firt buffer.
  * 	\return TRUE if the fill was successfull, FALSE otherwise.
  */
-bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata);
+bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata, int size);
 
 
 /*! \brief Prepares a delete request from the user.

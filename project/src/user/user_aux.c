@@ -371,7 +371,7 @@ bool_t resp_login(userInfo_t *userInfo, char *status) {
 		printf(MSG_SUC_LOG"\n");
 		return TRUE;
 	} else if (!strcmp(status, STATUS_NOK)) {
-		printf(MSG_FLD_LOG_PSW"\n"
+		printf(MSG_FLD_LOG_PSW" "MSG_TRY_AGAIN"\n"
 			MSG_HELP_REGPD"\n");
 	} else if (!strcmp(status, SERVER_ERR)) {
 		printf(MSG_FLD_AUT "\n"
@@ -457,29 +457,29 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 		printf(MSG_AS MSG_FLD_VLD MSG_TID".\n");
 	} else if (!strcmp(status, SERVER_ERR)) {
 		printf(MSG_ERR_INV_REQ"\n");
-	}
-	
-	numFiles = (int) strtol(status, (char**)NULL, 10);
-	if (numFiles == 0) {
-		printf(MSG_FLD"get number of files on list operation.\n");
-	}
-	
-	data += 2*SEPARATOR_SIZE+nDigits(numFiles) ;	// shift pointer: space + numDigits(numFiles)
-	
-	// Display list of files to user.	
-	printf(LST_TABLE_HDR);
-	
-	for(int i = 1; i <= numFiles; i++) {
-		if (sscanf(data, "%s %s", fname, fsize) == SSCANF_FAILURE) {
-			printf(MSG_FLD"get fname or fsize from list operation.\n");
+	} else if (!strcmp(status, STATUS_OK)) {
+		
+		numFiles = (int) strtol(status, (char**)NULL, 10);
+		if (numFiles == 0) {
+			printf(MSG_FLD"get number of files on list operation.\n");
 		}
-		// Display file to user.
-		fnameLen = strlen(fname);
-		printf("%d.\t%s%*c%s\n", i, fname,
-			FILE_NAME_SIZE-fnameLen,' ',fsize);
-		data += fnameLen +SEPARATOR_SIZE+strlen(fsize)+SEPARATOR_SIZE;
-	}
 
+		data += SEPARATOR_SIZE+nDigits(numFiles) ;	// shift pointer: space + numDigits(numFiles)
+
+		// Display list of files to user.	
+		printf(LST_TABLE_HDR);
+
+		for(int i = 1; i <= numFiles; i++) {
+			if (sscanf(data, "%s %s", fname, fsize) == SSCANF_FAILURE) {
+				printf(MSG_FLD"get fname or fsize from list operation.\n");
+			}
+			// Display file to user.
+			fnameLen = strlen(fname);
+			printf("%d.\t%s%*c%s\n", i, fname,
+				FILE_NAME_SIZE-fnameLen,' ',fsize);
+			data += fnameLen +SEPARATOR_SIZE+strlen(fsize)+SEPARATOR_SIZE;
+		}
+	}
 	// Close TCP connection with FS (update variable outside).
 	*fsConnection = tcpDestroySocket(fsconnection);
 	return TRUE;
@@ -523,13 +523,13 @@ _LOG("retrv %s", response);
 		strcpy(fdata, data);
 
 		// We still need to get the rest of the file, damnit
-		if (datalen < fsize) {
-			tcpReceiveMessage(fsconnection, fdata+datalen, fsize-datalen+2);
-		}
+		//if (datalen < fsize) {
+		//	tcpReceiveMessage(fsconnection, fdata+datalen, fsize-datalen+2);
+		//}
 		
-		if (!storeFile(CURRENT_DIR, CURRENT_DIR, fname, fdata, (ssize_t) fsize)) {
-			printf(MSG_FLD "store file %s.\n", fname);
-		}
+		//if (!storeFile(CURRENT_DIR, CURRENT_DIR, fname, fdata, (ssize_t) fsize)) {
+		//	printf(MSG_FLD "store file %s.\n", fname);
+		//}
 
 		printf("Retrieve request of file %s successeful.\n", *filename);
 		

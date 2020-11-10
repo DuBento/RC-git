@@ -204,8 +204,6 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		listRemove(userRequests, node, cleanRequest);
 		return;
 	}	
-		
-	
 
 	char opcode[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, tid[BUFFER_SIZE] = { 0 };
 	char fname[BUFFER_SIZE] = { 0 }, fsize[BUFFER_SIZE] = { 0 }, *fdata;
@@ -223,7 +221,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		successOnFill = fillRetreiveRequest(userRequest, uid, tid, fname);
 
 	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL) && (fdata = findNthCharOccurence(buffer, ' ', 5)) != NULL)
-		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize, fdata);
+		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize, ++fdata, (&buffer[BUFFER_SIZE] - &buffer[size]));
 
 	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size] != '\n')
 		successOnFill = fillDeleteRequest(userRequest, uid, tid, fname);

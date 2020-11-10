@@ -179,10 +179,9 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		printf(MSG_ERR_INV_REQ"\n.");
-		return FALSE;
+//		return FALSE;
 	} else {
 		printf(MSG_ERR_COM MSG_AS ".\n");
-		return FALSE;
 	}
 	return TRUE;
 }
