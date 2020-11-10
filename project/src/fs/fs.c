@@ -148,6 +148,9 @@ void handleASValidationReply() {
 	char opcode[BUFFER_SIZE], uid[BUFFER_SIZE], tid[BUFFER_SIZE], fop, fname[BUFFER_SIZE];
 	int validArgs = sscanf(buffer, "%s %s %s %c %s\n", opcode, uid, tid, &fop, fname);
 
+	if (strcmp(opcode, RESP_VLD))
+		return;
+
 	ListNode_t node = NULL;
 	ListIterator_t iterator = listIteratorCreate(userRequests);
 	while (!listIteratorEmpty(&iterator)) {
@@ -161,7 +164,7 @@ void handleASValidationReply() {
 
 	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
-	if (!strcmp(opcode, RESP_VLD) && !strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
+	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
 			{
