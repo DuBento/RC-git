@@ -271,10 +271,10 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         if (node->tid != -1 && node->tid == atoi(tid)){
                 if (node->fop == FOP_X)
                         _removeUID(node);
-                _LOG("FNAME: %s", node->fname);
                 if (node->fname[0] != '\0')
                         msgLen = sprintf(buf, "%s %s %d %c %s%c", RESP_VLD, node->uid, node->tid, node->fop, node->fname, CHAR_END_MSG);
-                msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
+                else 
+                        msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
         }else
                 msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, FOP_E, CHAR_END_MSG);
 
