@@ -87,6 +87,7 @@ void exitAS(int flag) {
 	tcpDestroySocket(tcpServer);
 	cleanLogs(dir, dir_path);
 	listDestroy(userList, cleanListNodeTCP);
+	listDestroy(pdList, free);
 	closedir(dir);
 	exit(flag);
 }

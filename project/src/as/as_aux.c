@@ -1,10 +1,9 @@
 #include "as_aux.h"
 
 extern int verbosity;
-extern char* dir_path;
 extern List_t pdList;
 extern List_t userList;
-extern char *dir_path;
+extern char dir_path[PATH_MAX];
 
 // remove msgs from waitingReply Queue for specified uid
 void _cleanQueueFromUID(List_t pdList, char *uid) {
@@ -91,7 +90,7 @@ void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path) {
 bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
-        INIT_BUF(pass);
+        INIT_BUF(uid); INIT_BUF(pass); INIT_BUF(pdip); INIT_BUF(pdport);
         // dir and file manipulation
         char *stored_pass;
         char dirname[FILE_SIZE+BUFFER_SIZE];
@@ -122,6 +121,8 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
                 udpSendMessage_specifyConn(udpConn, receiver, answer, msgLen);
                 return FALSE;
         }
+        
+        closedir(dir);
 
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
@@ -132,6 +133,7 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
                                 uid, pass, stored_pass);
                         msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_NOK, CHAR_END_MSG);
                         udpSendMessage_specifyConn(udpConn, receiver, answer, msgLen);
+                        free(stored_pass);
                         return FALSE;
                 }
                 free(stored_pass);
@@ -269,6 +271,7 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         if (node->tid != -1 && node->tid == atoi(tid)){
                 if (node->fop == FOP_X)
                         _removeUID(node);
+                _LOG("FNAME: %s", node->fname);
                 if (node->fname[0] != '\0')
                         msgLen = sprintf(buf, "%s %s %d %c %s%c", RESP_VLD, node->uid, node->tid, node->fop, node->fname, CHAR_END_MSG);
                 msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);

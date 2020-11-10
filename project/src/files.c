@@ -68,6 +68,7 @@ List_t listFiles(const char *filesPath, const char *dirname) {
 			fclose(file);
 
 			char *filename = (char*)malloc((FILE_NAME_SIZE + 1 + nDigits(len) + 1 + 1) * sizeof(char));
+			if (filename == NULL) FATAL("[Files] Failed to allocate memory.");
 			sprintf(filename, "%.24s %lu ", ent->d_name, len);
 			listInsert(list, filename);
 		}
@@ -94,6 +95,7 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 	fseek(file, 0L, SEEK_SET);
 
 	*contents = (char*)malloc((len + 1) * sizeof(char));
+	if (contents == NULL) FATAL("[Files] Failed to allocate memory.");
 	size_t read = fread(*contents, sizeof(char), len, file);
 	fclose(file);
 	return read;
