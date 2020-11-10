@@ -63,6 +63,26 @@ void cleanListNodeTCP(void* nodeData) {
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
 }
 
+void immediateExitAS() {
+	// no logs where made before runtime so no need to clear them
+	if (udpServer != NULL) 	udpDestroySocket(udpServer);
+	if (tcpServer != NULL) 	tcpDestroySocket(tcpServer);
+	if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
+	if (pdList != NULL)		listDestroy(pdList, free);
+	if (dir != NULL)		closedir(dir);
+}
+
+void exitAS(int flag) {
+	udpDestroySocket(udpServer);
+	tcpDestroySocket(tcpServer);
+	cleanLogs(dir, dir_path);
+	listDestroy(userList, cleanListNodeTCP);
+	listDestroy(pdList, free);
+	closedir(dir);
+	exit(flag);
+}
+
+
 
 /*! \brief Set program to terminate on success.
  *
@@ -70,12 +90,7 @@ void cleanListNodeTCP(void* nodeData) {
  */
 void terminateAS() {
 	if (exitCode == INIT_RUNTIME) {
-		// no logs where made before runtime so no need to clear them
-		if (tcpServer != NULL) 	udpDestroySocket(udpServer);
-		if (udpServer != NULL) 	tcpDestroySocket(tcpServer);
-		if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
-		if (pdList != NULL)		listDestroy(pdList, free);
-		if (dir != NULL)		closedir(dir);
+		immediateExitAS();
 		exit(EXIT_SUCCESS);
 	}
 	exitCode = EXIT_SUCCESS;
@@ -88,28 +103,12 @@ void terminateAS() {
  */
 void abortAS() {
 	if (exitCode == INIT_RUNTIME) {
-		// no logs where made before runtime so no need to clear them
-		if (tcpServer != NULL) 	udpDestroySocket(udpServer);
-		if (udpServer != NULL) 	tcpDestroySocket(tcpServer);
-		if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
-		if (pdList != NULL)		listDestroy(pdList, free);
-		if (dir != NULL)		closedir(dir);
+		immediateExitAS();
 		exit(EXIT_FAILURE);
 	}
 	exitCode = EXIT_FAILURE;
 }
 
-
-
-void exitAS(int flag) {
-	udpDestroySocket(udpServer);
-	tcpDestroySocket(tcpServer);
-	cleanLogs(dir, dir_path);
-	listDestroy(userList, cleanListNodeTCP);
-	listDestroy(pdList, free);
-	closedir(dir);
-	exit(flag);
-}
 
 /* Handle UDP Responses (Incoming Messages) */
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
