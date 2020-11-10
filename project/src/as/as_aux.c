@@ -50,6 +50,7 @@ userNode_t* _getUserNodeUID(List_t list, char* uid) {
 void _removeUID(userNode_t* node) {
         char dirname[FILE_SIZE];
         sprintf(dirname, "%s%s", DIR_NAME, node->uid);
+        _cleanQueueFromUID(pdList, node->uid);  // clears queue
         _cleanLogFile(dirname, REGFILE_SUFIX);  // unregisters PD
         USER_CLEAR(node);       // unlog user
 
@@ -269,8 +270,10 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         TCPConnection_t *tcpConn = &node->tcpConn;
 
         if (node->tid != -1 && node->tid == atoi(tid)){
-                if (node->fop == FOP_X)
+                if (node->fop == FOP_X){
+                        msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                         _removeUID(node);
+                }
                 if (node->fname[0] != '\0')
                         msgLen = sprintf(buf, "%s %s %d %c %s%c", RESP_VLD, node->uid, node->tid, node->fop, node->fname, CHAR_END_MSG);
                 else 
@@ -307,7 +310,7 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc,
 bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
-        INIT_BUF(pass);
+        INIT_BUF(uid); INIT_BUF(pass);
         // dir and file manipulation
         char *stored_pass;
         char dirname[FILE_SIZE+BUFFER_SIZE];

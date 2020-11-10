@@ -20,32 +20,15 @@ typedef struct connectionInfo_t {
 } connectionInfo_t;
 
 /* ========== GLOBAL ============= */
-int exitCode = -1;
-DIR *dir;
+int exitCode = INIT_RUNTIME;
+DIR *dir = NULL;
 char dir_path[PATH_MAX];
-TCPConnection_t *tcpServer;
-UDPConnection_t *udpServer;
-List_t userList;
-List_t pdList;
+TCPConnection_t *tcpServer = NULL;
+UDPConnection_t *udpServer = NULL;
+List_t userList = NULL;
+List_t pdList = NULL;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
-
-/*! \brief Set program to terminate on success.
- *
- *	Termination handle called by the SIGINT and SIGTERM signals.
- */
-void terminateAS() {
-	exitCode = EXIT_SUCCESS;
-}
-
-
-/*! \brief Set program to terminate on fatal errors.
- *
- *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
- */
-void abortAS() {
-	exitCode = EXIT_FAILURE;
-}
 
 
 /* ======= */
@@ -78,6 +61,42 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 void cleanListNodeTCP(void* nodeData) {
 	userNode_t *nodeDataAS =  (userNode_t*) nodeData;
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
+}
+
+
+/*! \brief Set program to terminate on success.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void terminateAS() {
+	if (exitCode == INIT_RUNTIME) {
+		// no logs where made before runtime so no need to clear them
+		if (tcpServer != NULL) 	udpDestroySocket(udpServer);
+		if (udpServer != NULL) 	tcpDestroySocket(tcpServer);
+		if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
+		if (pdList != NULL)		listDestroy(pdList, free);
+		if (dir != NULL)		closedir(dir);
+		exit(EXIT_SUCCESS);
+	}
+	exitCode = EXIT_SUCCESS;
+}
+
+
+/*! \brief Set program to terminate on fatal errors.
+ *
+ *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
+ */
+void abortAS() {
+	if (exitCode == INIT_RUNTIME) {
+		// no logs where made before runtime so no need to clear them
+		if (tcpServer != NULL) 	udpDestroySocket(udpServer);
+		if (udpServer != NULL) 	tcpDestroySocket(tcpServer);
+		if (userList != NULL)	listDestroy(userList, cleanListNodeTCP);
+		if (pdList != NULL)		listDestroy(pdList, free);
+		if (dir != NULL)		closedir(dir);
+		exit(EXIT_FAILURE);
+	}
+	exitCode = EXIT_FAILURE;
 }
 
 
@@ -193,6 +212,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 	
+	exitCode = RUNTIME;			// tells signal handler how to behave
 	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
 		// because select is destructive
 		ready_fds = fds;

@@ -32,6 +32,9 @@ typedef char bool_t;
 #define DEFAULT_FS_PORT	"59053\0"
 #define	DEFAULT_AS_PORT	"58053\0"
 
+/* Signal handler */
+#define INIT_RUNTIME	-2
+#define RUNTIME			-1
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
