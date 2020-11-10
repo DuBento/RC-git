@@ -61,6 +61,7 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 void cleanListNodeTCP(void* nodeData) {
 	userNode_t *nodeDataAS =  (userNode_t*) nodeData;
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
+	free(nodeDataAS);
 }
 
 void immediateExitAS() {
