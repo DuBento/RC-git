@@ -22,6 +22,8 @@ typedef struct user_node {
 	short vc;
 	short rid;
 	short tid;
+	char fop;
+	char fname[FILE_NAME_SIZE+1];
 }userNode_t;
 
 
@@ -36,12 +38,16 @@ typedef struct pd_node {
 // remove and adds msgs from waitingReply Queue for specified uid
 void _cleanQueueFromUID(List_t list, char *uid);
 void _addMsgToQueue(List_t ist, char* uid, char* msg);
+bool_t inUserList(List_t userList, char* uid);
+userNode_t* _getUserNodeUID(List_t list, char* uid);
+void cleanLogs(DIR* dir, char* path);
 
 // PD
 void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path);
 bool_t req_registerPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path);
 bool_t req_unregisterPD(UDPConnection_t *udpConnec, UDPConnection_t *receiver, char* buf, char* path, List_t list);
 bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, List_t userList, List_t pdList, char* buf);
+bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, List_t userlist);
 bool_t req_serverErrorUDP(UDPConnection_t *udpConnec, UDPConnection_t *recvConnoc, char *msgBuffer);
 // User
 bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path);
