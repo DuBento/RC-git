@@ -34,11 +34,13 @@ typedef struct user_info_t {
 //static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
-static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.103\0", "51000\0"};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
 
 // Sigma testing as
-//static connectionInfo_t connectionInfo = {"85.243.147.216\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
+//static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
 
+// Sigma testing BOTH
+static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
 
 
 static userInfo_t userInfo = { 0 };
@@ -98,6 +100,9 @@ static userInfo_t userInfo = { 0 };
 #define	MSG_VC		"Validation Code (VC)"
 
 #define MSG_NOT_RESP	" not responding."
+#define MSG_SORRY	"Sorry for the inconvenience."
+#define MSG_SHUTDOWN	"Shutting down..."
+#define	MSG_THANKS	"Thanks. :)"
 
 #define	MSG_ERR_COM	"Error in communication with "
 #define	MSG_ERR_INV_REQ	"Invalid request!"
@@ -125,7 +130,7 @@ static userInfo_t userInfo = { 0 };
 
 #define MSG_HELP_CORRVC	"\t-> Have you written the correct VC?"
 #define	MSG_HELP_DUPVC	"\t-> Have you already inserted this VC?"
-#define MSG_HELP_REGPD 	"\t-> Have you registered your Personal Device (PD)?"
+#define MSG_HELP_REGPD 	"\t-> Have you successefully registered your Personal Device (PD)?"
 #define	MSG_HELP_MSGPD	"\t-> Have you received any message in your Personal Device (PD)?"
 #define	MSG_HELP_VLDUID	"\t-> Is your username valid?"
 #define	MSG_HELP_VLDPSW "\t-> Is your password valid?"
@@ -133,6 +138,7 @@ static userInfo_t userInfo = { 0 };
 #define MSG_HELP_UPCASE	"\t-> Have you written a File Operation with uppercase?"
 #define	MSG_HELP_FNAME	"\t-> Have you written file name, if needed?"
 #define MSG_HELP_PRVLOG	"\t-> Have you logged in before?"
+#define	MSG_HELP_NOFILE	"\t-> Have you ever uploaded a file successefully?"
 
 #define CURRENT_DIR	"./"
 #define	LST_TABLE_HDR	"#\tFile Name\t\tSize\n\n"
@@ -371,7 +377,7 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status, char **filename);
+bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status, char **filename, int tcpMsgSize);
 
 
 /*! \brief Brief function description here
@@ -431,7 +437,7 @@ bool_t resp_delete(TCPConnection_t **fsConnection, char *status);
  * \param  Parameter description
  * \return Return parameter description
  */
-bool_t resp_remove(TCPConnection_t **fsConnection, char *status);
+bool_t resp_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, char *status);
 
 
 #endif 	/* USER_AUX */

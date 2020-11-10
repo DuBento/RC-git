@@ -149,32 +149,43 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 
 
 //
-bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int size) {
-	FILE *file = fopen(filePath, "w");
-	if (file == NULL)
+bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int fdataSize) {
+	FILE *file = fopen(filePath, "w+");
+	if (file == NULL) {
+LOG("a");
 		return FALSE;
+	}
+		
 
-	int sizeRead;
-	if (size == fileSize + 1) {
-		if (fdata[size - 1] == '\n')
-			sizeRead = fwrite(fdata, sizeof(char), size - 1, file);
-		else {
+	int sizeStored = 0;
+	if (fdataSize == fileSize + 1) {
+		if (fdata[fdataSize - 1] == '\n') {
+			sizeStored = fwrite(fdata, sizeof(char), fileSize, file);
 			fclose(file);
+_LOG("b %d %d", sizeStored, fileSize);
+
+			return sizeStored == fileSize;
+		} else {
+			// last byte of array is not \n
+			fclose(file);
+
+LOG("c");
 			return FALSE;
 		}			
 	}
 	else
-		sizeRead = fwrite(fdata, sizeof(char), size, file);
+		sizeStored = fwrite(fdata, sizeof(char), fdataSize, file);
 
-	while (sizeRead != fileSize + 1) {
+	while (sizeStored != fileSize + 1) {
 		char buffer[BUFFER_SIZE] = { 0 };
 		int newRead = tcpReceiveMessage(tcpConnection, buffer, BUFFER_SIZE);
-		sizeRead += newRead;
-		if (sizeRead == fileSize + 1) {
-			if (buffer[newRead - 1] == '\n')
+		sizeStored += newRead;
+		if (sizeStored + newRead == fileSize + 1) {
+			if (buffer[newRead - 1] == '\n') {
 				newRead--;
-			else {
+			} else {
 				fclose(file);
+LOG("d");
 				return FALSE;
 			}
 		}
@@ -182,6 +193,7 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 		fwrite(buffer, sizeof(char), newRead, file);
 	}
 
-	fclose(file);
-	return sizeRead == fileSize;
+	fclose(file);	
+LOG("e");
+	return sizeStored == fileSize + 1;
 }

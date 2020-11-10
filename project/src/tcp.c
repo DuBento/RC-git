@@ -85,7 +85,7 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
 		
 		// disconnected socket
-	//	if (n == 0)	return -1;		
+		if (n == 0)	return -1;		
 		sizeRead += n;
 		
 	} while (buffer[sizeRead-1] != CHAR_END_MSG && len - 1 != sizeRead);

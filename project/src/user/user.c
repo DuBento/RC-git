@@ -35,6 +35,7 @@ void cleanUser() {
  */
 void terminateUser() {
 	cleanUser();
+	printf(MSG_THANKS" "MSG_SHUTDOWN"\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -45,6 +46,7 @@ void terminateUser() {
  */
 void abortUser() {
 	cleanUser();
+	printf(MSG_SHUTDOWN"\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -84,7 +86,6 @@ void parseArgs(int argc, char *argv[]) {
 	_LOG("connectionInfo settings:\nASIP\t: %s\nASport\t: %s\nFSIP\t: %s\nFSport\t: %s\n", 
 		connectionInfo.asip, connectionInfo.asport, connectionInfo.fsip, connectionInfo.fsport);
 }
-
 
 
 /*! \brief Handles the user input during the runtime.
@@ -163,6 +164,13 @@ bool_t handleASServer() {
 	int size;
 	
 	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
+
+	if (size == TCP_FLD_RCV) {
+		LOG("sizze on tcprcv is -1 on fs\n");
+		asConnection = tcpDestroySocket(asConnection);
+		return FALSE;
+	}
+
 	sscanf(buffer, "%s %s", opcode, arg);
 _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 	// Login response "RLO"
@@ -181,7 +189,7 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 		printf(MSG_ERR_INV_REQ"\n.");
 //		return FALSE;
 	} else {
-		printf(MSG_ERR_COM MSG_AS ".\n");
+		printf(MSG_ERR_COM MSG_AS ". "MSG_SORRY"\n");
 	}
 	return TRUE;
 }
@@ -218,7 +226,7 @@ _LOG("le arg %s", arg);
 	// Retrieve code response "RRT status [Fsize data]"	
 	else if (!strcmp(opcode, RESP_RTV)) {
 		
-		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename);
+		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename, size);
 
 	}
 	// Upload response " RUP status"
@@ -230,10 +238,10 @@ _LOG("le arg %s", arg);
 		userInfo.fsConnected = !resp_delete(&fsConnection, arg);
 
 	//	Remove response RRM status
-	else if (!strcmp(opcode, RESP_REM))
-		userInfo.fsConnected = !resp_remove(&fsConnection, arg);
-
-	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
+	else if (!strcmp(opcode, RESP_REM)) {
+		userInfo.fsConnected = !resp_remove(&fsConnection, &userInfo, arg);
+		terminateUser();
+	} else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		WARN(MSG_ERR_INV_REQ"\n");
 	}
 	return TRUE;
@@ -280,7 +288,10 @@ void runUser() {
 			//LOG("Yey as contacted us!");
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
-			if (!handleASServer()) return;	
+			if (!handleASServer()) {
+				printf(MSG_ERR_COM MSG_AS". "MSG_SORRY"\n");	
+				return; 
+			}	
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
@@ -290,7 +301,10 @@ void runUser() {
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
 			LOG("Yey fs contacted us!");
-			if (!handleFSServer()) return;
+			if (!handleFSServer()) {
+				printf(MSG_ERR_COM MSG_FS". "MSG_SORRY"\n");	
+				return; 
+			}
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
