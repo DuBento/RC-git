@@ -58,7 +58,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 
 
 // prepares a upload request from the user
-bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize, const char *fdata) {
+bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize) {
     if (!_fillBaseRequest(userRequest, uid, tid) || !isStringValid(fsize, STR_DIGIT, 0)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
@@ -67,34 +67,14 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     userRequest->fop = FOP_U;
     userRequest->exeRequest = uploadRequest;
     strcpy(userRequest->replyHeader, RESP_UPL);
-    userRequest->fileSize = atoi(fsize);
-
-    int fdatalen = strlen(++fdata);
+    
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
-    userRequest->data     = (char*)malloc((userRequest->fileSize + 2) * sizeof(char));  // '\n' included for verifying the message
-    if (userRequest->fileName == NULL || userRequest->data == NULL || fdatalen > userRequest->fileSize + 1 || 
-        (fdata[fdatalen - 1] == '\n' && fdatalen <= userRequest->fileSize))
-    {
+    if (userRequest->fileName == NULL || !isFileNameValid(fname)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " NOK\n", 8);
         return FALSE;
     }
 
     strcpy(userRequest->fileName, fname);
-    strncpy(userRequest->data, fdata, fdatalen);
-
-    if (userRequest->fileSize >= fdatalen)  {   // the static buffer wasn't big enough to hold the file's contents
-        int remainingSize = userRequest->fileSize + 2 - fdatalen;
-        int newReadSize = tcpReceiveFixedMessage(userRequest->tcpConnection, &userRequest->data[fdatalen], remainingSize);
-        if (newReadSize != remainingSize)
-            return FALSE;
-    }     
-
-    if (userRequest->data[userRequest->fileSize] != '\n') {
-        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
-        return FALSE;
-    }
-    
-    userRequest->data[userRequest->fileSize] = '\0';
     return  TRUE;   
 }
 
@@ -207,31 +187,18 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // executes the upload request
 void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
-    // checks if the file is already in the directory
-    DIR *userDir = initDir(filesPath, userRequest->uid, NULL);
-    if (inDir(userDir, userRequest->fileName)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
-        closedir(userDir);
-        return;
-    }
-    closedir(userDir);
+    char filePath[PATH_MAX];
+	sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
 
     // checks if the directory is full
     List_t userFiles = listFiles(filesPath, userRequest->uid);
-    if (listSize(userFiles) >= MAX_FILES) {
+    if (listSize(userFiles) > MAX_FILES) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " FULL\n", 9);
+        remove(filePath);
         listDestroy(userFiles, free);
         return;
     }
-    listDestroy(userFiles, free);
-    
-    // cheks if the filename is valid
-    if (!isFileNameValid(userRequest->fileName)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " NOK\n", 8);
-        return;
-    }
-
-    storeFile(filesPath, userRequest->uid, userRequest->fileName, userRequest->data, userRequest->fileSize);
+    listDestroy(userFiles, free);    
     tcpSendMessage(userRequest->tcpConnection, RESP_UPL " OK\n", 7);
 }
 

@@ -28,7 +28,6 @@ void cleanRequest(void* request) {
 	userRequest_t *userRequest = (userRequest_t*)request;
 	if (userRequest->tcpConnection != NULL) tcpCloseConnection(userRequest->tcpConnection);
 	if (userRequest->fileName != NULL)		free(userRequest->fileName);
-	if (userRequest->data != NULL)			free(userRequest->data);
 	free(userRequest);
 }
 
@@ -127,7 +126,6 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 
 	userRequest->nTries = -1;
 	userRequest->fileName = NULL;
-	userRequest->data = NULL;
 	
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
@@ -199,13 +197,11 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	char buffer[BUFFER_SIZE];
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
 	if (size == -1) {
-		_LOG("User closed the comunication with the server!\n\tIP\t%s\n\tPORT\t:%d", 
+		_LOG("User closed the comunication with the server!\n\tIP\t:%s\n\tPORT\t:%d", 
 			tcpConnIp(userRequest->tcpConnection), tcpConnPort(userRequest->tcpConnection));
 		listRemove(userRequests, node, cleanRequest);
 		return;
 	}	
-		
-	
 
 	char opcode[BUFFER_SIZE] = { 0 }, uid[BUFFER_SIZE] = { 0 }, tid[BUFFER_SIZE] = { 0 };
 	char fname[BUFFER_SIZE] = { 0 }, fsize[BUFFER_SIZE] = { 0 }, *fdata;
@@ -222,8 +218,25 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	else if (validArgs == 4 && !strcmp(opcode, REQ_RTV) && buffer[size] != '\n')
 		successOnFill = fillRetreiveRequest(userRequest, uid, tid, fname);
 
-	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL) && (fdata = findNthCharOccurence(buffer, ' ', 5)) != NULL)
-		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize, fdata);
+	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL)) {
+		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize);
+		if (successOnFill) {
+			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
+			char filePath[PATH_MAX];
+			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
+
+			DIR *userDir = initDir(filesPath, userRequest->uid, NULL);
+    		if (inDir(userDir, userRequest->fileName)) {
+        		tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
+       			closedir(userDir);
+        		successOnFill = FALSE;
+    		}
+			else {
+				closedir(userDir);
+				storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
+			}
+		}		
+	}
 
 	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size] != '\n')
 		successOnFill = fillDeleteRequest(userRequest, uid, tid, fname);
