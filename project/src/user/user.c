@@ -1,7 +1,5 @@
 #include "../common.h"
 #include "user_aux.h"
-#include <string.h>
-
 
 static TCPConnection_t *asConnection = NULL;
 static TCPConnection_t *fsConnection = NULL; //it's quite probable this one can get out of here and just be local	
@@ -35,7 +33,7 @@ void cleanUser() {
  */
 void terminateUser() {
 	cleanUser();
-	printf(MSG_THANKS" "MSG_SHUTDOWN"\n");
+	printf(MSG_SHUTDOWN" "MSG_THANKS"\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -73,11 +71,10 @@ void parseArgs(int argc, char *argv[]) {
 			if (ipPortSwitch == ARG_IP) {
 				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
-				}
-			else if (ipPortSwitch == ARG_PORT) {
+			} else if (ipPortSwitch == ARG_PORT) {
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
-				ARG_USAGE_PORT " (x -> digit)", argv[i + 1]) }
-			else
+				ARG_USAGE_PORT " (x -> digit)", argv[i + 1]) 
+			} else
 				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
 		}
 	}
@@ -189,7 +186,7 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 		printf(MSG_ERR_INV_REQ"\n.");
 //		return FALSE;
 	} else {
-		printf(MSG_ERR_COM MSG_AS ". "MSG_SORRY"\n");
+		printf(MSG_ERR_COM MSG_AS ".\n"MSG_SORRY"\n");
 	}
 	return TRUE;
 }
@@ -212,7 +209,7 @@ LOG("about to receive fs message");
 		return FALSE;
 	}
 LOG("Received fs message");
-	buffer[strlen(buffer)-1] = '\0';
+//	buffer[strlen(buffer)-1] = '\0';
 	_LOG("Le fs buffer %s", buffer);
 _LOG("le le size %d", size);
 
@@ -289,7 +286,7 @@ void runUser() {
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
 			if (!handleASServer()) {
-				printf(MSG_ERR_COM MSG_AS". "MSG_SORRY"\n");	
+				printf(MSG_ERR_COM MSG_AS".\n"MSG_SORRY"\n");	
 				return; 
 			}	
 			//putStr(STR_INPUT, TRUE);		// string before the user input
@@ -302,7 +299,7 @@ void runUser() {
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
 			LOG("Yey fs contacted us!");
 			if (!handleFSServer()) {
-				printf(MSG_ERR_COM MSG_FS". "MSG_SORRY"\n");	
+				printf(MSG_ERR_COM MSG_FS".\n"MSG_SORRY"\n");	
 				return; 
 			}
 			//putStr(STR_INPUT, TRUE);		// string before the user input

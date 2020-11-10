@@ -34,13 +34,13 @@ typedef struct user_info_t {
 //static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
+static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
 
 // Sigma testing as
 //static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing BOTH
-static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
+//static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
 
 
 static userInfo_t userInfo = { 0 };
@@ -118,6 +118,7 @@ static userInfo_t userInfo = { 0 };
 #define MSG_SUC_AUT	"Authentication successeful."
 #define	MSG_SUC_REQ	"Request successefully made, you smart ass."
 #define	MSG_SUC_REM	"Remotion successeful! You're free!! :D"
+#define	MSG_SUC_UPL	"Upload successeful."
 
 #define MSG_FLD		"Failed to "
 #define MSG_FLD_AUT	"Authentication near Authentication Server (AS) failed."
@@ -139,6 +140,7 @@ static userInfo_t userInfo = { 0 };
 #define	MSG_HELP_FNAME	"\t-> Have you written file name, if needed?"
 #define MSG_HELP_PRVLOG	"\t-> Have you logged in before?"
 #define	MSG_HELP_NOFILE	"\t-> Have you ever uploaded a file successefully?"
+#define MSG_HELP_PREVRQ	"\t-> Have you made a request before?"
 
 #define CURRENT_DIR	"./"
 #define	LST_TABLE_HDR	"#\tFile Name\t\tSize\n\n"

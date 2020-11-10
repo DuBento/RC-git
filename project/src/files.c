@@ -94,7 +94,11 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 	fseek(file, 0L, SEEK_SET);
 
 	*contents = (char*)malloc((len + 1) * sizeof(char));
+	if (*contents == NULL) FATAL("[Files] Failed to allocate memory.");
 	size_t read = fread(*contents, sizeof(char), len, file);
+	//size_t read = fgets(*contents, len, file);
+	(*contents)[read] = '\0';
+	
 	fclose(file);
 	return read;
 }
@@ -156,7 +160,7 @@ LOG("a");
 		return FALSE;
 	}
 		
-
+_LOG("fdataszize %d\t%d", fdataSize, (int)fdata[fdataSize-1]);
 	int sizeStored = 0;
 	if (fdataSize == fileSize + 1) {
 		if (fdata[fdataSize - 1] == '\n') {

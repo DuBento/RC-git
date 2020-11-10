@@ -223,7 +223,7 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	tcpConnect(fsconnection);
 
 	// Get data
-	fileSize = retreiveFile(".","\0",filename, &data);
+	fileSize = retreiveFile(".","\0", filename, &data);
 	if (fileSize == 0 || data == NULL) {
 		printf("Failed to retreive file from dir.\n");
 		// Close FS TCP connection
@@ -237,7 +237,7 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 			+SEPARATOR_SIZE;
 
 
-_LOG("upload buufer data %s le file size %d", data, fileSize);
+//_LOG("upload buufer data %s le file size %d", data, fileSize);
 
 	// Send message to FS: UPL UID TID Fname Fsize data
 	msgBuffer = (char*) malloc((expectedMsgSize+1)*sizeof(char));
@@ -449,7 +449,8 @@ _LOG("fkng status %s", status);
 		printf(MSG_FILES_DNE " in the " MSG_FS".\n"
 		"\n");
 	} else if (!strcmp(status, STATUS_INV)) {
-		printf(MSG_AS MSG_FLD_VLD MSG_TID".\n");
+		printf(MSG_AS MSG_FLD_VLD MSG_TID".\n"
+			MSG_HELP_PREVRQ"\n");
 	} else if (!strcmp(status, SERVER_ERR)) {
 		printf(MSG_ERR_INV_REQ"\n");
 	} else {
@@ -487,7 +488,7 @@ bool_t resp_retrieve(TCPConnection_t **fsConnection, char *response, char **file
 	TCPConnection_t *fsconnection;
 	fsconnection = *fsConnection;
 	char *data, status[BUFFER_SIZE], size[BUFFER_SIZE], *fname/*, *fdata*/;
-	int fsize, datalen, statuslen, sizelen;
+	int fsize, /*datalen, */statuslen, sizelen;
 
 //todo confirm if \n comes at the end of the string
 _LOG("retrv %s", response);
@@ -512,13 +513,19 @@ _LOG("retrv %s", response);
 		// shift pointer to reach beginning of already received data
 		data += sizelen + SEPARATOR_SIZE;
 	//	datalen = strlen(data);
-_LOG("xxxxxxxxxxxxxxxxxxxxxxxxxxxx%d",&data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
-		sizelen+SEPARATOR_SIZE)]-data);
+
 		if (!storeFileFromTCP(fsconnection, fname, fsize, data, 
 		&data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
-		sizelen+SEPARATOR_SIZE)]-data));
+		sizelen+SEPARATOR_SIZE)]-data)) {
 			printf(MSG_FLD "store file.\n");
 
+			// Close down FS TCP connection.
+			*fsConnection = tcpDestroySocket(fsconnection);
+			free(fname);
+			//free(fdata);
+			*filename = NULL;
+			return TRUE;
+		}
 
 		// Pointer that will contain *all* file data
 		//fdata = (char*) malloc ((fsize+2*SEPARATOR_SIZE)*sizeof(char));
@@ -562,11 +569,11 @@ bool_t resp_upload(TCPConnection_t **fsConnection, char *status) {
 	TCPConnection_t *fsconnection;
 	fsconnection = *fsConnection;
 	if (!strcmp(status, STATUS_OK))
-		printf ("Upload successeful.\n");
+		printf (MSG_SUC_UPL"\n");
 	//else if (!strcmp(status, STATUS_NOK))
 	//	printf (MSG_UID MSG_DNE " in the " MSG_FS ".\n"); does not make any sense
 	else if (!strcmp(status, STATUS_DUP))
-		printf ("The file already existed in the "MSG_FS".\n");
+		printf ("The file already exists in the "MSG_FS".\n");
 	else if (!strcmp(status, STATUS_FULL))
 		printf("You have reached "MSG_MAXFILES" stored in the"MSG_FS".\n");
 	else if (!strcmp(status, STATUS_INV))
@@ -611,7 +618,7 @@ bool_t resp_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, c
 	TCPConnection_t *fsconnection;
 	fsconnection = *fsConnection;
 	if (!strcmp(status, STATUS_OK))
-		printf(MSG_SUC_REM" "MSG_THANKS"\n");
+		printf(MSG_SUC_REM"\n");
 	else if (!strcmp(status, STATUS_NOK))
 		printf(MSG_UID" %s "MSG_DNE"\n", userInfo->uid);
 	else if (!strcmp(status, STATUS_INV))
