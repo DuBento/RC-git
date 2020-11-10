@@ -166,6 +166,7 @@ void handleASValidationReply() {
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
 			{
 				userRequest->exeRequest(userRequest, filesPath);
+				listRemove(userRequests, node, cleanRequest);
 				return;
 			}		
 	}
@@ -223,19 +224,13 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];
-			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
-
-			DIR *userDir = initDir(filesPath, userRequest->uid, NULL);
-    		if (inDir(userDir, userRequest->fileName)) {
-        		tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
-       			closedir(userDir);
-        		successOnFill = FALSE;
-    		}
-			else {
-				closedir(userDir);
-				storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
-			}
-		}		
+			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, "~~temp~~");
+			DIR *directory = initDir(filesPath, userRequest->uid, NULL);
+			closedir(directory);
+			successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
+			if (!successOnFill)
+				tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);				
+		}
 	}
 
 	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size] != '\n')
@@ -251,6 +246,8 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		
 	if (!successOnFill)
 		listRemove(userRequests, node, cleanRequest);
+	else
+		validateRequest(udpConnection, userRequest);
 }
 
 
@@ -280,12 +277,12 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				userRequest->exeRequest(userRequest, filesPath);
-				listRemove(userRequests, node, cleanRequest);
-				//userRequest->nTries++;
-				//userRequest->timeExpired = 0;
-				//_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				//validateRequest(udpConnection, userRequest);
+				//userRequest->exeRequest(userRequest, filesPath);
+				//listRemove(userRequests, node, cleanRequest);
+				userRequest->nTries++;
+				userRequest->timeExpired = 0;
+				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
+				validateRequest(udpConnection, userRequest);
 			}
 		}
 }
