@@ -15,7 +15,7 @@
 #define FILE_SIZE       32
 
 
-#define INIT_BUF(buf) buf[0] = '\0'; buf[BUFER_SIZE-1] = '\0';
+#define INIT_BUF(buf) buf[0] = '\0'; buf[BUFFER_SIZE-1] = '\0';
 #define USER_CLEAR(node) node->uid[0] = '\0'
 #define USER_LOGEDIN(node) node->uid[0] != '\0'
 
