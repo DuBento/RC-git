@@ -13,7 +13,7 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
     if (!isUIDValid(uid) || !isTIDValid(tid))
 		return FALSE;
 
-	userRequest->timeExpired = TIMEOUT + 1.0;
+	userRequest->timeExpired = 0;
     userRequest->nTries = 0;
     strcpy(userRequest->uid, uid);
 	strcpy(userRequest->tid, tid);
@@ -48,7 +48,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
     
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " ERR\n", 8);
         return FALSE;
     }   
 
@@ -59,7 +59,7 @@ bool_t fillRetreiveRequest(userRequest_t *userRequest, const char* uid, const ch
 
 // prepares a upload request from the user
 bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char *tid, const char *fname, const char *fsize) {
-    if (!_fillBaseRequest(userRequest, uid, tid) || !isStringValid(fsize, STR_DIGIT, 0)) {
+    if (!_fillBaseRequest(userRequest, uid, tid) || !isStringValid(fsize, STR_DIGIT, STR_ALLLEN)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
     }
@@ -69,12 +69,12 @@ bool_t fillUploadRequest(userRequest_t *userRequest, const char* uid, const char
     strcpy(userRequest->replyHeader, RESP_UPL);
     
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
-    if (userRequest->fileName == NULL || !isFileNameValid(fname)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " NOK\n", 8);
+    if (userRequest->fileName == NULL) {
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         return FALSE;
     }
-
     strcpy(userRequest->fileName, fname);
+
     return  TRUE;   
 }
 
@@ -92,7 +92,7 @@ bool_t fillDeleteRequest(userRequest_t *userRequest, const char* uid, const char
 
     userRequest->fileName = (char*)malloc((strlen(fname) + 1) * sizeof(char));
     if (userRequest->fileName == NULL) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " ERR\n", 8);
         return FALSE;
     }   
     
@@ -139,7 +139,7 @@ void listRequest(userRequest_t *userRequest, const char *filesPath) {
     // alocates memory for the message
     char *msg = (char*)malloc((msgSize + 1) * sizeof(char));
     if (msg == NULL) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " ERR\n", 8);
         listDestroy(files, free);
         return;
     }
@@ -163,14 +163,30 @@ void listRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // executes the retreive request
 void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
+    // checks if the user is registed on the FS
+    char dirPath[PATH_MAX];
+    sprintf(dirPath, "%s/%s", filesPath, userRequest->uid);
+    DIR *directory = opendir(dirPath);
+    if (directory == NULL ){
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
+        return;
+    }
+    closedir(directory);
+
+    // checks if the file exists and reads its contents
     char *fileData = NULL;
     size_t fileSize = retreiveFile(filesPath, userRequest->uid, userRequest->fileName, &fileData);
     size_t msgSize = 3 + 1 + 2 + 1 + nDigits(fileSize) + 1 + fileSize + 1;
+    if (fileData == NULL) {
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " EOF\n", 8);
+        return;
+    }
+
+    // allocates memory for the message
     char *msg = (char*)malloc((msgSize + 1) * sizeof(char));
-    if (fileData == NULL || msg == NULL) {
-        if (fileData != NULL)   free(fileData);
-        if (msg != NULL)        free(msg);
-        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " NOK\n", 8);
+    if (msg == NULL) {
+        free(fileData);
+        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " ERR\n", 8);
         return;
     }
 
@@ -187,28 +203,55 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
 
 // executes the upload request
 void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
-    char filePath[PATH_MAX];
-	sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
+    char newFilePath[PATH_MAX], tempFilePath[PATH_MAX];
+    sprintf(newFilePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
+	DIR* directory = initDir(filesPath, userRequest->uid, tempFilePath);
+
+    // verifies duplicate files
+    if (inDir(directory, userRequest->fileName)) {
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
+        remove(tempFilePath);
+        closedir(directory);
+        return;
+    }
+    closedir(directory);
+
+    // updates the name of the file to the final one
+    if (!rename(tempFilePath, newFilePath)) {
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 9);
+        remove(tempFilePath);
+        return;
+    }
 
     // checks if the directory is full
     List_t userFiles = listFiles(filesPath, userRequest->uid);
     if (listSize(userFiles) > MAX_FILES) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " FULL\n", 9);
-        remove(filePath);
+        remove(newFilePath);
         listDestroy(userFiles, free);
         return;
     }
-    listDestroy(userFiles, free);    
+
     tcpSendMessage(userRequest->tcpConnection, RESP_UPL " OK\n", 7);
 }
 
 
 // executes the delete request
 void deleteRequest(userRequest_t *userRequest, const char *filesPath) {
+    // checks if the user is registed on the FS
+    char dirPath[PATH_MAX];
+    sprintf(dirPath, "%s/%s", filesPath, userRequest->uid);
+    DIR *directory = opendir(dirPath);
+    if (directory == NULL ){
+        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " NOK\n", 8);
+        return;
+    }
+    closedir(directory);
+
     if (deleteFile(filesPath, userRequest->uid, userRequest->fileName))
         tcpSendMessage(userRequest->tcpConnection, RESP_DEL " OK\n", 7);
     else
-        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " NOK\n", 8);
+        tcpSendMessage(userRequest->tcpConnection, RESP_DEL " EOF\n", 8);
 }
 
 
