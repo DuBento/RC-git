@@ -33,10 +33,14 @@ TCPConnection_t* tcpCreateServer(const char *addrIP, const char *port, int nConn
 	if (bind(tcpConnection->fd, &tcpConnection->addr, tcpConnection->addrlen)) {
 		free(tcpConnection);
 		_FATAL("[TCP] Unable to bind the server.\n\t - Error: %s", strerror(errno));
+		return NULL;
 	}
 		
-	if (listen(tcpConnection->fd, nConnections))
+	if (listen(tcpConnection->fd, nConnections)) {
+		free(tcpConnection);
 		_FATAL("[TCP] Unable to set the listed fd for the server.\n\t - Error code: %d %s", errno, strerror(errno));
+		return NULL;
+	}
 
 	return tcpConnection;
 }
