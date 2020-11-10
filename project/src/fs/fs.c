@@ -164,6 +164,7 @@ void handleASValidationReply() {
 
 	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
+	userRequest->nTries = -1;
 	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 

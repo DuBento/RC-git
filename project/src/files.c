@@ -96,6 +96,7 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 
 	*contents = (char*)malloc((len + 1) * sizeof(char));
 	if (*contents == NULL) FATAL("[Files] Failed to allocate memory.");
+	
 	size_t read = fread(*contents, sizeof(char), len, file);
 	fclose(file);
 	return read;
@@ -152,7 +153,8 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 
 //
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int fdataSize) {
-	FILE *file = fopen(filePath, "w");
+	_LOG("Message: [%s] ======", fdata);
+	FILE *file = fopen(filePath, "wb");
 	if (file == NULL) {
 		return FALSE;
 	}
@@ -161,9 +163,10 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 	int sizeStored = 0;
 	if (fdataSize == fileSize + 1) {
 		if (fdata[fdataSize - 1] == '\n') {
-			sizeStored = fwrite(fdata, sizeof(char), fileSize + 1, file);
+			sizeStored = fwrite(fdata, sizeof(char), fileSize, file);
+			_LOG("Size stored: %d\nFilesize: %d\n", sizeStored, fileSize);
 			fclose(file);
-			return sizeStored == fileSize + 1;
+			return sizeStored == fileSize;
 		} else {
 			fclose(file);
 			return FALSE;

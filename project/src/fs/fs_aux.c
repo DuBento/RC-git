@@ -14,7 +14,7 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
 		return FALSE;
 
 	userRequest->timeExpired = 0;
-    userRequest->nTries = 0;
+    userRequest->nTries = 1;
     strcpy(userRequest->uid, uid);
 	strcpy(userRequest->tid, tid);
     return TRUE;
@@ -195,6 +195,7 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
     memcpy(msg + headerSize, fileData, fileSize);
     msg[msgSize - 1] = '\n';
     msg[msgSize] = '\0';
+    _LOG("Sending message: [%s]\nFile data:[%s]\nFile size:%lu", msg, fileData, fileSize);
     tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
     free(fileData);
     free(msg);
