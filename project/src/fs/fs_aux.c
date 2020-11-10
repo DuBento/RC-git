@@ -217,6 +217,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     closedir(directory);
 
     // updates the name of the file to the final one
+    _LOG("%s->%s\n", tempFilePath, newFilePath);
     if (!rename(tempFilePath, newFilePath)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 9);
         remove(tempFilePath);
@@ -231,6 +232,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
         listDestroy(userFiles, free);
         return;
     }
+    listDestroy(userFiles, free);
 
     tcpSendMessage(userRequest->tcpConnection, RESP_UPL " OK\n", 7);
 }
