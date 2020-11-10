@@ -235,7 +235,7 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
                 if (!strcmp(nodeData->uid, uid)){       // matching uid
                         sscanf(nodeData->msg, "%s", op);
                         if (!strcmp(op, REQ_VLC)){
-                                listRemove(pdList, node, NULL);
+                                listRemove(pdList, node, free);
                                 break;  // remove the first
                         }
                 }
