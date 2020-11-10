@@ -12,7 +12,7 @@ void _cleanQueueFromUID(List_t pdList, char *uid) {
                 ListNode_t node = (ListNode_t) iter;
                 pdNode_t *nodeData = listIteratorNext(&iter);
                 if (!strcmp(nodeData->uid, uid))        // remove all with matching uid
-                        listRemove(pdList, node, NULL);
+                        listRemove(pdList, node, free);
         }
 }
 
@@ -235,12 +235,12 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
                 if (!strcmp(nodeData->uid, uid)){       // matching uid
                         sscanf(nodeData->msg, "%s", op);
                         if (!strcmp(op, REQ_VLC)){
-                                listRemove(pdList, node, NULL);
+                                listRemove(pdList, node, free);
                                 break;  // remove the first
                         }
                 }
         }
-        _LOG("STATUS: %s", status);
+
         if (!strcmp(status, STATUS_NOK) || !strcmp(status, STATUS_OK))
                 resp_fileOP(userList, uid, status);
         else
@@ -309,12 +309,14 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc,
 
 bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         // parse buf
-        char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
+        char uid[BUFFER_SIZE], pass[BUFFER_SIZE]={0};
         INIT_BUF(uid); INIT_BUF(pass);
         // dir and file manipulation
-        char *stored_pass;
+        int size;
+        char *stored_pass = NULL;
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char login_file[2*FILE_SIZE+BUFFER_SIZE], pass_file[2*FILE_SIZE+BUFFER_SIZE];
+        pass_file[0] = '\0';
         // DIR *dir;
         // response
         TCPConnection_t *tcpConn = &nodeTCP->tcpConn;
@@ -346,7 +348,9 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
 
-        if (retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
+        if (size = retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
+                // stored_pass[size-1] = '\0';
+                _LOG("PASS, %s. Stored %s.", pass, stored_pass);
                 if (strcmp(stored_pass, pass) != 0){        // check given password dont match
                         _WARN("Login: Passwords don't match:\nuid: %s\npass: %s\tstored pass:%s\nSending error...",
                                 uid, pass, stored_pass);
@@ -422,7 +426,8 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
 
 bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *udpConn, List_t list) {
         // parse buf
-        char uid[BUFFER_SIZE], rid[BUFFER_SIZE], fop, fname[BUFFER_SIZE]={0};
+        char uid[BUFFER_SIZE], rid[BUFFER_SIZE], fop=0, fname[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(fname);
         // response
         TCPConnection_t *tcpConn = &nodeTCP->tcpConn;
         UDPConnection_t udpRecv;

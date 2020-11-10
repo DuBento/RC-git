@@ -98,6 +98,7 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 	if (*contents == NULL) FATAL("[Files] Failed to allocate memory.");
 	
 	size_t read = fread(*contents, sizeof(char), len, file);
+	(*contents)[len] = '\0';
 	fclose(file);
 	return read;
 }
