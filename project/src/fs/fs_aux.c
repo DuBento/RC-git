@@ -205,8 +205,9 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
 void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     char newFilePath[PATH_MAX], tempFilePath[PATH_MAX];
     sprintf(newFilePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
-	DIR* directory = initDir(filesPath, userRequest->uid, tempFilePath);
+    sprintf(tempFilePath, "%s/%s/%s", filesPath, userRequest->uid, "~~temp~~");
 
+	DIR* directory = initDir(filesPath, userRequest->uid, NULL);
     // verifies duplicate files
     if (inDir(directory, userRequest->fileName)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
@@ -217,9 +218,8 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     closedir(directory);
 
     // updates the name of the file to the final one
-    _LOG("%s->%s\n", tempFilePath, newFilePath);
-    if (!rename(tempFilePath, newFilePath)) {
-        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 9);
+    if (rename(tempFilePath, newFilePath)) {
+        tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
         remove(tempFilePath);
         return;
     }
