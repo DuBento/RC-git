@@ -152,7 +152,7 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 
 //
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int fdataSize) {
-	FILE *file = fopen(filePath, "w+");
+	FILE *file = fopen(filePath, "w");
 	if (file == NULL) {
 		return FALSE;
 	}
@@ -161,9 +161,9 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 	int sizeStored = 0;
 	if (fdataSize == fileSize + 1) {
 		if (fdata[fdataSize - 1] == '\n') {
-			sizeStored = fwrite(fdata, sizeof(char), fileSize, file);
+			sizeStored = fwrite(fdata, sizeof(char), fileSize + 1, file);
 			fclose(file);
-			return sizeStored == fileSize;
+			return sizeStored == fileSize + 1;
 		} else {
 			fclose(file);
 			return FALSE;
