@@ -174,6 +174,13 @@ void handleASValidationReply() {
 			}		
 	}
 
+	// checks if the request was an upload and removes the temporary file, if so
+	if (userRequest->fop == FOP_U) {
+		char filePath[PATH_MAX];
+		sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
+		remove(filePath);
+	}
+
 	char msg[BUFFER_SIZE];
 	int msgSize = sprintf(msg, "%s INV\n", userRequest->replyHeader);
 	tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
@@ -227,7 +234,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];
-			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, "~~temp~~");
+			sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
 			DIR *directory = initDir(filesPath, userRequest->uid, NULL);
 			closedir(directory);
 			successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));

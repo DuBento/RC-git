@@ -29,6 +29,8 @@ typedef struct userRequest_t {
 	void(*exeRequest)(struct userRequest_t*, const char*);
 
 	char replyHeader[4];
+	int fsid;
+
 	char uid[UID_SIZE + 1];
 	char tid[TID_SIZE + 1];
 	char *fileName;
