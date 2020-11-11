@@ -169,6 +169,8 @@ void handleASValidationReply() {
 			{
 				userRequest->nTries = -1;
 				userRequest->exeRequest(userRequest, filesPath);
+				free(userRequest->tcpConnection);
+				userRequest->tcpConnection = NULL;
 				listRemove(userRequests, node, cleanRequest);
 				return;
 			}		
@@ -231,7 +233,6 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 
 	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL)) {
 		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize);
-		_LOG("%s\n", buffer);
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];

@@ -112,5 +112,20 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname);
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int size);
 
 
+/*! \brief Creates a new file and stores its data.
+ *
+ *  Creates a new file with the specified file path and writes the data from the 'fdata' buffer
+ *  followed by the data in the TCP socket. This function is used read the file data sent by
+ *  another program.
+ * 
+ *  \param  tcpConnection       the tcp connection to read the remaining of the file's data.
+ *  \param  filePath            the path to the file.
+ *  \param  header              the beggining of the tcp message.
+ *  \param  headerSize          the size of the header.
+ *  \return TRUE if the file was created and written successfully, FALSE otherwise.
+ */
+bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, const char *fdata, int fdataSize);
+
+
 
 #endif 	/* FILES */

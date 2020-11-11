@@ -174,33 +174,16 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
         return;
     }
     closedir(directory);
+    char filePath[PATH_MAX];
+    sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
 
-    // checks if the file exists and reads its contents
-    char *fileData = NULL;
-    size_t fileSize = retreiveFile(filesPath, userRequest->uid, userRequest->fileName, &fileData);
-    size_t msgSize = 3 + 1 + 2 + 1 + nDigits(fileSize) + 1 + fileSize + 1;
-    if (fileData == NULL) {
+    // formats the message and sends it
+    char header[BUFFER_SIZE] = { 0 };
+    int headerSize = sprintf(header, "%s OK", RESP_RTV);
+    if (!sendFileThroughTCP(userRequest->tcpConnection, filePath, header, headerSize)) {
         tcpSendMessage(userRequest->tcpConnection, RESP_RTV " EOF\n", 8);
         return;
     }
-
-    // allocates memory for the message
-    char *msg = (char*)malloc((msgSize + 1) * sizeof(char));
-    if (msg == NULL) {
-        free(fileData);
-        tcpSendMessage(userRequest->tcpConnection, RESP_RTV " ERR\n", 8);
-        return;
-    }
-
-    // formats and sends the message
-    int headerSize = sprintf(msg, "%s OK %lu ", RESP_RTV, fileSize);
-    memcpy(msg + headerSize, fileData, fileSize);
-    msg[msgSize - 1] = '\n';
-    msg[msgSize] = '\0';
-    _LOG("Sending message: [%s]\nFile data:[%s]\nFile size:%lu", msg, fileData, fileSize);
-    tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
-    free(fileData);
-    free(msg);
 }
 
 
@@ -229,7 +212,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
 
     // checks if the directory is full
     List_t userFiles = listFiles(filesPath, userRequest->uid);
-    if (listSize(userFiles) == MAX_FILES) {
+    if (listSize(userFiles) > MAX_FILES) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " FULL\n", 9);
         remove(newFilePath);
         listDestroy(userFiles, free);

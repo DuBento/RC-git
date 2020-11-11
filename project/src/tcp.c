@@ -82,7 +82,7 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	int sizeRead = 0;
 	do {
-		int n = read(tcpConnection->fd, buffer, len - sizeRead - 1);		// len-1, adding '\0' afterwards 
+		int n = read(tcpConnection->fd, buffer + sizeRead, len - sizeRead - 1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
 		

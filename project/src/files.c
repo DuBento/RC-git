@@ -97,7 +97,7 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 	*contents = (char*)malloc((len + 1) * sizeof(char));
 	if (*contents == NULL) FATAL("[Files] Failed to allocate memory.");
 	
-	size_t read = fread(*contents, sizeof(char), len, file);
+	size_t read = fread(*contents, 1, len, file);
 	(*contents)[read] = '\0';
 	fclose(file);
 	return read;
@@ -179,7 +179,7 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 		char buffer[BUFFER_SIZE] = { 0 };
 		int newRead = tcpReceiveMessage(tcpConnection, buffer, BUFFER_SIZE);
 		sizeStored += newRead;
-		if (sizeStored + newRead == fileSize + 1) {
+		if (sizeStored == fileSize + 1) {
 			if (buffer[newRead - 1] == '\n') {
 				newRead--;
 			} else {
@@ -193,4 +193,34 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 
 	fclose(file);	
 	return sizeStored == fileSize + 1;
+}
+
+
+// reads a file and sends its data
+bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, const char *header, int headerSize) {
+	FILE *file = fopen(filePath, "r");
+	if (file == NULL) {
+		return FALSE;
+	}
+
+	fseek(file, 0L, SEEK_END);
+	size_t fileSize = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+
+	char msg[BUFFER_SIZE];
+	int msgSize = sprintf(msg, "%s %lu ", header, fileSize);
+	tcpSendMessage(tcpConnection, msg, msgSize);
+
+	int fileSizeSent = 0;
+	while (fileSizeSent != fileSize) {
+		char buffer[BUFFER_SIZE];
+		int readSize = (BUFFER_SIZE - 1 < fileSize - fileSizeSent ? BUFFER_SIZE : fileSize - fileSizeSent);
+		fileSizeSent += fread(buffer, 1, readSize, file);
+		buffer[readSize] = '\0';
+		tcpSendMessage(tcpConnection, buffer, readSize);
+	}
+
+	tcpSendMessage(tcpConnection, "\n\0", 1);
+	fclose(file);
+	return fileSizeSent == fileSize;
 }
