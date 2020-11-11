@@ -96,8 +96,9 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 
 	*contents = (char*)malloc((len + 1) * sizeof(char));
 	if (*contents == NULL) FATAL("[Files] Failed to allocate memory.");
+	
 	size_t read = fread(*contents, sizeof(char), len, file);
-	(*contents)[len] = '\0';
+	(*contents)[read] = '\0';
 	fclose(file);
 	return read;
 }
@@ -151,20 +152,20 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 }
 
 
-//
+// creates a new file and stores its data
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int fdataSize) {
 	FILE *file = fopen(filePath, "w");
 	if (file == NULL) {
 		return FALSE;
 	}
-		
-
+	
+	// read the file data contained in the first tcp read
 	int sizeStored = 0;
 	if (fdataSize == fileSize + 1) {
 		if (fdata[fdataSize - 1] == '\n') {
-			sizeStored = fwrite(fdata, sizeof(char), fileSize + 1, file);
+			sizeStored = fwrite(fdata, sizeof(char), fileSize, file);
 			fclose(file);
-			return sizeStored == fileSize + 1;
+			return sizeStored == fileSize;
 		} else {
 			fclose(file);
 			return FALSE;
@@ -173,6 +174,7 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 	else
 		sizeStored = fwrite(fdata, sizeof(char), fdataSize, file);
 
+	// reads the remaining file data from the tcp socket
 	while (sizeStored != fileSize + 1) {
 		char buffer[BUFFER_SIZE] = { 0 };
 		int newRead = tcpReceiveMessage(tcpConnection, buffer, BUFFER_SIZE);

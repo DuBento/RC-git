@@ -13,8 +13,10 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
     if (!isUIDValid(uid) || !isTIDValid(tid))
 		return FALSE;
 
+    static int fsidgen = 0;
+    userRequest->fsid = fsidgen++;
 	userRequest->timeExpired = 0;
-    userRequest->nTries = 0;
+    userRequest->nTries = 1;
     strcpy(userRequest->uid, uid);
 	strcpy(userRequest->tid, tid);
     return TRUE;
@@ -195,6 +197,7 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
     memcpy(msg + headerSize, fileData, fileSize);
     msg[msgSize - 1] = '\n';
     msg[msgSize] = '\0';
+    _LOG("Sending message: [%s]\nFile data:[%s]\nFile size:%lu", msg, fileData, fileSize);
     tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
     free(fileData);
     free(msg);
@@ -205,7 +208,7 @@ void retreiveRequest(userRequest_t *userRequest, const char *filesPath) {
 void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
     char newFilePath[PATH_MAX], tempFilePath[PATH_MAX];
     sprintf(newFilePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
-    sprintf(tempFilePath, "%s/%s/%s", filesPath, userRequest->uid, "~~temp~~");
+    sprintf(tempFilePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
 
 	DIR* directory = initDir(filesPath, userRequest->uid, NULL);
     // verifies duplicate files

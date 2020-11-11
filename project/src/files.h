@@ -31,7 +31,7 @@ DIR* initDir(const char* path, const char* dirname, char* outPath);
 bool_t inDir(DIR* dir, char* filename);
 
 
-/*! Lists all the files in the specified directory.
+/*! \brief Lists all the files in the specified directory.
  *
  *  Stores up to FILE_NAME_SIZE characters of each file of the specifiied directory
  *  in the specified buffer and returns the number of characters of the buffer.
@@ -44,7 +44,7 @@ bool_t inDir(DIR* dir, char* filename);
 List_t listFiles(const char *filesPath, const char *dirname);
 
 
-/*! Returns the specified file's content.
+/*! \brief Returns the specified file's content.
  *
  *  Returns a pointer to a dynamically allocated buffer with the content of the specified
  *  file (null terminated string).
@@ -58,7 +58,7 @@ List_t listFiles(const char *filesPath, const char *dirname);
 size_t retreiveFile(const char *filesPath, const char *dirname, const char *filename, char**contents);
 
 
-/*! Creates a new file on the directory with the specified contents.
+/*! \brief Creates a new file on the directory with the specified contents.
  *
  *  Creates a new file on the specified directory and stores the contents in it. 
  *  If there is already a file in the directory, it will be overwritten.
@@ -73,7 +73,7 @@ size_t retreiveFile(const char *filesPath, const char *dirname, const char *file
 bool_t storeFile(const char *filesPath, const char *dirname, const char *filename, const char *contents, size_t len);
 
 
-/*! Deletes the specified file.
+/*! \brief Deletes the specified file.
  *
  *  Deletes the specified file from the specified directory.
  * 
@@ -85,7 +85,7 @@ bool_t storeFile(const char *filesPath, const char *dirname, const char *filenam
 bool_t deleteFile(const char *filesPath, const char *dirname, const char *filename);
 
 
-/*! Deletes the specified directory.
+/*! \brief Deletes the specified directory.
  *
  *  Deletes the specified directory and all the files stored within.
  * 
@@ -96,6 +96,21 @@ bool_t deleteFile(const char *filesPath, const char *dirname, const char *filena
 bool_t deleteDirectory(const char *filesPath, const char *dirname);
 
 
+/*! \brief Creates a new file and stores its data.
+ *
+ *  Creates a new file with the specified file path and writes the data from the 'fdata' buffer
+ *  followed by the data in the TCP socket. This function is used read the file data sent by
+ *  another program.
+ * 
+ *  \param  tcpConnection       the tcp connection to read the remaining of the file's data.
+ *  \param  filePath            the path to the file.
+ *  \param  fileSize            the size of the file (in bytes).
+ *  \param  fdata               a portion of the file data read on the first tcp read.
+ *  \param  fdataSize           the size of the file data read on the first tcp read.
+ *  \return TRUE if the file was created and written successfully, FALSE otherwise.
+ */
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int size);
+
+
 
 #endif 	/* FILES */

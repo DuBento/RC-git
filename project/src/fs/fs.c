@@ -71,7 +71,6 @@ void abortFS() {
  *
  * 	\param 	argc The number of execution arguments.
  * 	\param 	argv An array with the execution arguments.
- * 	\param 	info The instance that stores the connection settings.
  */
 void parseArgs(int argc, char *argv[]) {
 	// checks the number of arguments   
@@ -164,6 +163,7 @@ void handleASValidationReply() {
 
 	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
+	userRequest->nTries = -1;
 	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
@@ -172,6 +172,13 @@ void handleASValidationReply() {
 				listRemove(userRequests, node, cleanRequest);
 				return;
 			}		
+	}
+
+	// checks if the request was an upload and removes the temporary file, if so
+	if (userRequest->fop == FOP_U) {
+		char filePath[PATH_MAX];
+		sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
+		remove(filePath);
 	}
 
 	char msg[BUFFER_SIZE];
@@ -227,7 +234,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];
-			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, "~~temp~~");
+			sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
 			DIR *directory = initDir(filesPath, userRequest->uid, NULL);
 			closedir(directory);
 			successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
@@ -280,8 +287,6 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				//userRequest->exeRequest(userRequest, filesPath);
-				//listRemove(userRequests, node, cleanRequest);
 				userRequest->nTries++;
 				userRequest->timeExpired = 0;
 				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
