@@ -237,7 +237,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 					resendMessagePD(udpServer, nodeData, dir_path);	//handle no reponse to prev msg
 				else{
 					nTry = 0;
-					listRemove(pdList, node, NULL);
+					listRemove(pdList, node, free);
 					_WARN("No response received from sent message.\nUID:%s\nCommunication error.", nodeData->uid);
 				}
 			}
