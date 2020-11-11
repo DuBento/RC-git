@@ -71,7 +71,6 @@ void abortFS() {
  *
  * 	\param 	argc The number of execution arguments.
  * 	\param 	argv An array with the execution arguments.
- * 	\param 	info The instance that stores the connection settings.
  */
 void parseArgs(int argc, char *argv[]) {
 	// checks the number of arguments   
@@ -281,8 +280,6 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				//userRequest->exeRequest(userRequest, filesPath);
-				//listRemove(userRequests, node, cleanRequest);
 				userRequest->nTries++;
 				userRequest->timeExpired = 0;
 				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
