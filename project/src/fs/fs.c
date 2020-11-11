@@ -123,8 +123,8 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 	if (userRequest == NULL || userRequest->tcpConnection == NULL)
 		FATAL("Unable to allocate memory for the user request!");
 
-	userRequest->nTries = -1;
 	userRequest->fileName = NULL;
+	userRequest->nTries = -1;
 	
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
@@ -163,11 +163,11 @@ void handleASValidationReply() {
 
 	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
-	userRequest->nTries = -1;
 	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
 			{
+				userRequest->nTries = -1;
 				userRequest->exeRequest(userRequest, filesPath);
 				listRemove(userRequests, node, cleanRequest);
 				return;
@@ -205,7 +205,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
 	FD_CLR(userRequest->tcpConnection->fd, fds);
 
-	char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE] = { 0 };
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
 	if (size == -1) {
 		_LOG("User closed the comunication with the server!\n\tIP\t:%s\n\tPORT\t:%d", 
@@ -231,6 +231,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 
 	else if (validArgs == 5 && !strcmp(opcode, REQ_UPL)) {
 		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize);
+		_LOG("%s\n", buffer);
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];
@@ -287,7 +288,6 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				userRequest->nTries++;
 				userRequest->timeExpired = 0;
 				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
 				validateRequest(udpConnection, userRequest);

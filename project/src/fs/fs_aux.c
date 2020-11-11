@@ -15,8 +15,8 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
 
     static int fsidgen = 0;
     userRequest->fsid = fsidgen++;
+    userRequest->nTries = 0;
 	userRequest->timeExpired = 0;
-    userRequest->nTries = 1;
     strcpy(userRequest->uid, uid);
 	strcpy(userRequest->tid, tid);
     return TRUE;
@@ -229,7 +229,7 @@ void uploadRequest(userRequest_t *userRequest, const char *filesPath) {
 
     // checks if the directory is full
     List_t userFiles = listFiles(filesPath, userRequest->uid);
-    if (listSize(userFiles) > MAX_FILES) {
+    if (listSize(userFiles) == MAX_FILES) {
         tcpSendMessage(userRequest->tcpConnection, RESP_UPL " FULL\n", 9);
         remove(newFilePath);
         listDestroy(userFiles, free);
@@ -278,4 +278,5 @@ void validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
     char msg[msgSize];
     sprintf(msg, "%s %s %s\n", REQ_VLD, userRequest->uid, userRequest->tid);
     udpSendMessage(asServer, msg, msgSize);
+    userRequest->nTries++;
 }

@@ -82,8 +82,6 @@ int tcpAcceptConnection(TCPConnection_t *tcpConnection, TCPConnection_t *newCon)
 int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	int sizeRead = 0;
 	do {
-		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
-		Otherwise, the functions shall return -1 and set errno to indicate the error. */
 		int n = read(tcpConnection->fd, buffer, len - sizeRead - 1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
@@ -106,8 +104,6 @@ int tcpSendMessage(TCPConnection_t *tcpConnection, const char *buffer, int len) 
 	int sizeWritten;
 	sizeWritten = 0;
 	do {
-		/* On success, the number of bytes written is returned (zero indicates nothing was written). 
-		On error, -1 is returned, and errno is set appropriately.*/
 		int n = write(tcpConnection->fd, buffer + sizeWritten, len - sizeWritten);
 		if (n == -1)
 			_FATAL("[TCP] Unable to send the message!\n\t - Error code: %d %s", errno, strerror(errno));
