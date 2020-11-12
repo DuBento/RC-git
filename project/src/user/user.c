@@ -93,17 +93,20 @@ void parseArgs(int argc, char *argv[]) {
  * \return TRUE if the message was well sent on to the server, FALSE otherwise.
  */
 bool_t handleUser() {
-	char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE] = {0};
+for(int i = 0; i < BUFFER_SIZE; i++) {
+	buffer[i] = '\0';
+}
 	
 	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
 
 	char cmd[BUFFER_SIZE] = { 0 }, input1[BUFFER_SIZE] = { 0 }, 
 	input2[BUFFER_SIZE] = { 0 };
-	sscanf(buffer, "%s %s %s", cmd, input1, input2);
 
-	//_LOG("[handleUser] cmd: %s\n input1: %s\n input2: %s", cmd, input1, input2);
-
+_LOG("buffer %s\t%d\t\tbuffer0 %x", buffer, cmd[0], buffer[0]);
+	sscanf(buffer, "%s %s %s\n", cmd, input1, input2);
+_LOG("depois do scanf %d", cmd[0]);
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
 		return req_login(asConnection, &userInfo, input1, input2);
@@ -147,6 +150,13 @@ bool_t handleUser() {
 		terminateUser();
 			 
 	else {
+_LOG("cmd %s CMD_EXIT %s condition %d", cmd, CMD_EXIT, strcmp(cmd, CMD_EXIT) );
+int lencmd = strlen(cmd);
+int lenexit = strlen(CMD_EXIT);
+_LOG("len 1 %d, len 2 %d", lencmd, lenexit);
+for (int i = 0; i < lencmd; i++) {
+	_LOG("1st %c", cmd[i]);
+}
 		WARN(MSG_ERR_INV_CMD" "MSG_OP_IGN"\n");
 		return FALSE;
 	}
@@ -163,7 +173,6 @@ bool_t handleASServer() {
 	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
 
 	if (size == TCP_FLD_RCV) {
-		LOG("sizze on tcprcv is -1 on fs\n");
 		asConnection = tcpDestroySocket(asConnection);
 		return FALSE;
 	}
@@ -264,7 +273,7 @@ void runUser() {
 	bool_t waitingReply = FALSE;
 	int nRequestTries = 0;
 	
-	/*putStr(STR_INPUT, TRUE);*/		// string before the user input
+	//putStr(STR_INPUT, TRUE);		// string before the user input
 	while (TRUE) {
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
@@ -273,7 +282,7 @@ void runUser() {
 		if (userInfo.fsConnected) {
 			FD_SET(fsConnection->fd, &fdsTemp);
 			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
-		}
+		}	
 
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
 		if (selRetv  == -1)
@@ -296,7 +305,7 @@ void runUser() {
 		// handle FS server responses
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
-			LOG("Yey fs contacted us!");
+			//LOG("Yey fs contacted us!");
 			if (!handleFSServer()) {
 				printf(MSG_ERR_COM MSG_FS".\n"MSG_SORRY"\n");	
 				return; 
@@ -307,6 +316,7 @@ void runUser() {
 
 		// handle stdin
 		if (FD_ISSET(STDIN_FILENO, &fdsTemp)) {
+			//putStr(STR_INPUT, TRUE);
 			waitingReply = handleUser();
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 		}
@@ -319,13 +329,13 @@ void runUser() {
 
 			} else if (userInfo.asConnected) {
 				WARN(MSG_AS " not responding. "
-				"Trying to recontact...\n");
+				MSG_RECONTACT"\n");
 				waitingReply = req_resendLastMessage(asConnection);	// todo to change to fs also
 				++nRequestTries;
 
 			} else if (userInfo.fsConnected) {
 				WARN(MSG_FS " not responding. "
-				"Trying to recontact...\n");
+				MSG_RECONTACT"\n");
 				waitingReply = req_resendLastMessage(fsConnection);	// todo to change to fs also
 				++nRequestTries;
 			}

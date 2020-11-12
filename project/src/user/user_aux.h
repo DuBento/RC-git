@@ -106,6 +106,7 @@ static userInfo_t userInfo = { 0 };
 #define MSG_SORRY	"Sorry for the inconvenience."
 #define MSG_SHUTDOWN	"Shutting down..."
 #define	MSG_THANKS	"Thanks. :)"
+#define MSG_RECONTACT	"Trying to recontact..."
 
 #define	MSG_ERR_COM	"Error in communication with "
 #define	MSG_ERR_INV_REQ	"Invalid request!"

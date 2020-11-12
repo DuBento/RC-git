@@ -267,7 +267,7 @@ bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	msgSize = sprintf(msgBuffer, "%s %s %.4d %s\n", REQ_DEL, userInfo->uid, 
 	tid, filename);
 	if (msgSize == SSCANF_FAILURE) {
-		printf("Failed to prepare delete message to FS.");
+		printf("Failed to prepare delete message to "MSG_FS".\n");
 	}
 	
 	return sendUserMessage(fsconnection, msgBuffer, msgSize);

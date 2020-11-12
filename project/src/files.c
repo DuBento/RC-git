@@ -156,7 +156,6 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname) {
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int fdataSize) {
 	FILE *file = fopen(filePath, "w+");
 	if (file == NULL) {
-LOG("a");
 		return FALSE;
 	}
 		
@@ -166,14 +165,10 @@ _LOG("fdataszize %d\t%d", fdataSize, (int)fdata[fdataSize-1]);
 		if (fdata[fdataSize - 1] == '\n') {
 			sizeStored = fwrite(fdata, sizeof(char), fileSize, file);
 			fclose(file);
-_LOG("b %d %d", sizeStored, fileSize);
-
 			return sizeStored == fileSize;
 		} else {
 			// last byte of array is not \n
 			fclose(file);
-
-LOG("c");
 			return FALSE;
 		}			
 	}
@@ -183,14 +178,12 @@ LOG("c");
 	while (sizeStored != fileSize + 1) {
 		char buffer[BUFFER_SIZE] = { 0 };
 		int newRead = tcpReceiveMessage(tcpConnection, buffer, BUFFER_SIZE);
-_LOG("newread %d", newRead);
 		sizeStored += newRead;
-		if (sizeStored + newRead == fileSize + 1) {
+		if (sizeStored == fileSize + 1) {
 			if (buffer[newRead - 1] == '\n') {
 				newRead--;
 			} else {
 				fclose(file);
-LOG("d");
 				return FALSE;
 			}
 		}
@@ -221,7 +214,7 @@ bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, 
 
 	int fileSizeSent = 0;
 	while (fileSizeSent != fileSize) {
-		char buffer[BUFFER_SIZE];
+		char buffer[BUFFER_SIZE] = {0};
 		int readSize = (BUFFER_SIZE - 1 < fileSize - fileSizeSent ? BUFFER_SIZE : fileSize - fileSizeSent);
 		fileSizeSent += fread(buffer, 1, readSize, file);
 		buffer[readSize] = '\0';
