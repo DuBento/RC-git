@@ -169,7 +169,7 @@ bool_t handleASServer() {
 	}
 
 	sscanf(buffer, "%s %s", opcode, arg);
-_LOG("AS contact: opcode %s, arg %s", opcode, arg);
+
 	// Login response "RLO"
 	if (!strcmp(opcode, RESP_LOG))
 		userInfo.loggedIn = resp_login(&userInfo, arg);
@@ -204,7 +204,6 @@ LOG("about to receive fs message");
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
 
 	if (size == TCP_FLD_RCV) {
-		LOG("sizze on tcprcv is -1 on fssss\n");
 		fsConnection = tcpDestroySocket(fsConnection);
 		return FALSE;
 	}
@@ -319,13 +318,13 @@ void runUser() {
 				waitingReply = FALSE;
 
 			} else if (userInfo.asConnected) {
-				WARN(MSG_AS " not responding "
+				WARN(MSG_AS " not responding. "
 				"Trying to recontact...\n");
 				waitingReply = req_resendLastMessage(asConnection);	// todo to change to fs also
 				++nRequestTries;
 
 			} else if (userInfo.fsConnected) {
-				WARN(MSG_FS " not responding "
+				WARN(MSG_FS " not responding. "
 				"Trying to recontact...\n");
 				waitingReply = req_resendLastMessage(fsConnection);	// todo to change to fs also
 				++nRequestTries;

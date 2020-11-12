@@ -54,14 +54,7 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo,
 		return FALSE;
 	}
 
-	//sizeSent = tcpSendMessage(asConnection,  msgBuffer, msgSize);
-	//if (msgSize != sizeSent) {
-	//	WARN("A problem may have occured while sending the registration request \
-	//	because the whole message was not sent!");
-	//	return FALSE;
-	//}
 	if (!sendUserMessage(asConnection, msgBuffer, msgSize)) return TRUE;
-
 
 	// Adjust size.
 	if (!userInfo->loggedIn /*&& userInfo->uid == NULL && userInfo->pass == NULL*/) {
@@ -85,8 +78,7 @@ int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo,
 	// A random natural number of 4 digits is added as a request identifier RID.
 	rid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
 
-	//If the operation is retrieve (R), upload (U) or delete (D) also the file name Fname is sent. 
-	
+	// If the operation is retrieve (R), upload (U) or delete (D), the file name Fname is sent. 
 	if ((!strcmp(fop, FOP_STR_R))|| (!strcmp(fop, FOP_STR_U))|| 
 	(!strcmp(fop, FOP_STR_D)) ) {
 		
@@ -124,8 +116,6 @@ bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo,
 	mssgSize = sizeSent = 0;
 	char mssgBuffer[BUFFER_SIZE];
 
-//_LOG("At req val user %s %s", userInfo->uid, userInfo->pass);
-
 	if (rid == RID_INVALID) {
 		printf("Make sure you're logged in and make a request first in "
 		"order to send a "MSG_VC".\n");
@@ -138,15 +128,6 @@ bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo,
 	if (mssgSize < SPRINTF_THRSHLD)
 		WARN(MSG_FLD"write val message to buffer.");
 	
-	//_LOG("Le buffer %s", mssgBuffer);
-	//sizeSent = tcpSendMessage(asConnection, mssgBuffer, mssgSize);
-
-	//if (mssgSize != sizeSent) {
-	//	WARN("A problem may have occured while sending the request request!");
-	//	return FALSE;
-	//}
-	//return TRUE;
-
 	if (!isVCValid(vc)) {
 		printf(MSG_VC MSG_INC_FORMAT"\n");
 	}
@@ -178,13 +159,6 @@ bool_t req_list(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	}
 
 	return sendUserMessage(fsconnection, msgBuffer, msgSize);
-//	sizeSent = tcpSendMessage (fsconnection,  msgBuffer, msgSize);
-//	if (msgSize != sizeSent) {
-//		printf("A problem may have occured while sending the list " 
-//		"request because the whole message was not sent!");
-//		return FALSE;
-//	}
-//	return TRUE;
 }
 
 
@@ -248,74 +222,23 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 
 
 	msgSize = sizeSent = fileSize = filenameSize = 0;
-	//msgBuffer = data = NULL;
 
 	// Establish TCP connection with FS (update ptr outside).
 	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
 	connectionInfo.fsport);
 	tcpConnect(fsconnection);
 
-	// Get data
-//	fileSize = retreiveFile(".","\0", filename, &data);
-//	if (fileSize == 0) {
-//		printf("Failed to retreive file from dir.\n");
-		// Close FS TCP connection
-//		*fsConnection = tcpDestroySocket(fsconnection);
-//		if (data != NULL) free(data);
-//		return FALSE;
-//	}
-	//todo how to check this function?
-//	expectedMsgSize = CMD_PRT_SIZE+SEPARATOR_SIZE+UID_SIZE+SEPARATOR_SIZE
-//			+TID_SIZE+SEPARATOR_SIZE+strlen(filename)
-//			+SEPARATOR_SIZE+nDigits(fileSize)+SEPARATOR_SIZE+fileSize
-//			+SEPARATOR_SIZE;
-
-
-//_LOG("upload buufer data %s le file size %d", data, fileSize);
-
-	// Send message to FS: UPL UID TID Fname Fsize data
-//	msgBuffer = (char*) malloc((expectedMsgSize+1)*sizeof(char));
-
-//	if (msgBuffer == NULL) {
-//		printf(MSG_FLD "allocate buffer to send upload message.\n");
-//		free(data);
-		// Close FS TCP connection
-//		*fsConnection = tcpDestroySocket(fsconnection);
-//		return TRUE; // because connection is on - tbd change FALSE
-//	}
-	
-
+	// Prepare message header
 	msgSize = sprintf(msgBuffer, "%s %s %.4d %s", REQ_UPL, userInfo->uid, 
 	tid, filename/*, fileSize*/);
-_LOG("msg size %d", msgSize);
-//	memcpy(msgBuffer + msgSize, data, fileSize);
 
+	// Get data
 	if (!sendFileThroughTCP(fsconnection, filename, msgBuffer, msgSize)) {
 		
 		printf("File %s" MSG_DNE".\n", filename);
 		*fsConnection = tcpDestroySocket(fsconnection);
 		return FALSE;
 	}
-
-	// Insert end char to respect protocol.
-//	msgBuffer[expectedMsgSize-1] = PRT_TERM_CHAR;
-
-	//if (expectedMsgSize > msgSize) {
-	//	printf(MSG_FLD"prepare upload message to "MSG_FS".\n.");
-	//}
-
-//	sendUserMessage(fsconnection, msgBuffer, expectedMsgSize);
-	//sizeSent = tcpSendMessage(fsconnection, msgBuffer, msgSize);
-	//if (msgSize != sizeSent) {
-	//	printf("A problem may have occured while sending the upload " 
-	//	"request because the whole message was not sent!");
-	//	free(msgBuffer);
-	//	free(data);
-		// disconnect from fs here?
-	//	return TRUE; // because connection is on - tbd change FALSE
-	//}
-//	free(msgBuffer);
-//	free(data);
 	return TRUE;
 }
 
@@ -348,14 +271,6 @@ bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	}
 	
 	return sendUserMessage(fsconnection, msgBuffer, msgSize);
-	
-	//sizeSent = tcpSendMessage(fsconnection,  msgBuffer, msgSize);
-	//if (msgSize != sizeSent) {
-	//	printf("A problem may have occured while sending the delete " 
-	//	"request because the whole message was not sent!");
-	//	return FALSE;
-	//}
-	//return TRUE;
 }
 
 
@@ -381,13 +296,6 @@ bool_t req_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, co
 	}
 
 	return sendUserMessage(fsconnection, msgBuffer, msgSize);
-	//sizeSent = tcpSendMessage(fsconnection,  msgBuffer, msgSize);
-	//if (msgSize != sizeSent) {
-	//	printf("A problem may have occured while sending the remove " 
-	//	"request because the whole message was not sent!");
-	//	return FALSE;
-	//}
-	//return TRUE;
 }
 
 
@@ -412,6 +320,9 @@ bool_t resp_login(userInfo_t *userInfo, char *status) {
 	} else if (!strcmp(status, STATUS_NOK)) {
 		printf(MSG_FLD_LOG_PSW" "MSG_TRY_AGAIN"\n"
 			MSG_HELP_REGPD"\n");
+
+
+		return TRUE;
 	} else if (!strcmp(status, SERVER_ERR)) {
 		printf(MSG_FLD_AUT "\n"
 			MSG_HELP_VLDUID"\n"
@@ -428,24 +339,24 @@ bool_t resp_login(userInfo_t *userInfo, char *status) {
 
 bool_t resp_request(char *status) {
 
-		if (!strcmp(status, STATUS_OK))
-			printf(MSG_SUC_REQ"\n");
-		else if (!strcmp(status, STATUS_ELOG))
-			printf(MSG_FLD_LOG "\n"
-			MSG_HELP_REGPD"\n");
-		else if (!strcmp(status, STATUS_EPD))
-			printf(MSG_AS MSG_FLD_CONTACT MSG_PD"\n"
-			MSG_HELP_REGPD"\n");
-		else if (!strcmp(status, STATUS_EUSER))
-			printf(MSG_FLD_UID".\n");
-		else if (!strcmp(status, STATUS_EFOP))
-			printf(MSG_ERR_INV_FOP"\n"
-				MSG_HELP_UPCASE"\n"
-				MSG_HELP_VLDFOP"\n");
-		else if (!strcmp(status, SERVER_ERR))
-			printf(MSG_ERR_INV_FMT "\n"
-				MSG_HELP_PRVLOG"\n"
-				MSG_HELP_FNAME"\n");	
+	if (!strcmp(status, STATUS_OK))
+		printf(MSG_SUC_REQ"\n");
+	else if (!strcmp(status, STATUS_ELOG))
+		printf(MSG_FLD_LOG "\n"
+		MSG_HELP_REGPD"\n");
+	else if (!strcmp(status, STATUS_EPD))
+		printf(MSG_AS MSG_FLD_CONTACT MSG_PD"\n"
+		MSG_HELP_REGPD"\n");
+	else if (!strcmp(status, STATUS_EUSER))
+		printf(MSG_FLD_UID".\n");
+	else if (!strcmp(status, STATUS_EFOP))
+		printf(MSG_ERR_INV_FOP"\n"
+			MSG_HELP_UPCASE"\n"
+			MSG_HELP_VLDFOP"\n");
+	else if (!strcmp(status, SERVER_ERR))
+		printf(MSG_ERR_INV_FMT "\n"
+			MSG_HELP_PRVLOG"\n"
+			MSG_HELP_FNAME"\n");	
 
 	// DO NOT close connection to AS
 	return TRUE;
@@ -522,8 +433,7 @@ _LOG("data %s", data);
 _LOG("fkng status %s", status);
 
 	if (!strcmp(status, FILE_NOT_AVAILABLE)) {
-		printf(MSG_FILES_DNE " in the " MSG_FS".\n"
-		"\n");
+		printf(MSG_FILES_DNE " in the " MSG_FS".\n");
 	} else if (!strcmp(status, STATUS_INV)) {
 		printf(MSG_AS MSG_FLD_VLD MSG_TID".\n"
 			MSG_HELP_PREVRQ"\n");
@@ -607,22 +517,6 @@ _LOG("difference %d", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR
 			*filename = NULL;
 			return TRUE;
 		}
-
-		// Pointer that will contain *all* file data
-		//fdata = (char*) malloc ((fsize+2*SEPARATOR_SIZE)*sizeof(char));
-		
-		// Copy the first part (what we've already captured in the buffer).
-		//strcpy(fdata, data);
-
-		// We still need to get the rest of the file, damnit
-		//if (datalen < fsize) {
-		//	tcpReceiveMessage(fsconnection, fdata+datalen, fsize-datalen+2);
-		//}
-		
-		//if (!storeFile(CURRENT_DIR, CURRENT_DIR, fname, fdata, (ssize_t) fsize)) {
-		//	printf(MSG_FLD "store file %s.\n", fname);
-		//}
-
 		printf("Retrieve request of file %s successeful.\n", *filename);
 		
 	} else if (!strcmp(status, FILE_NOT_AVAILABLE)) {
