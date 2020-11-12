@@ -244,10 +244,12 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			continue;	// run select again
 		}       
 
+		// string before the server output
+		putStr(STR_RESPONSE, TRUE);
+
 		// handle PD interaction
-		if (FD_ISSET(udp_server->fd , &ready_fds)){
+		if (FD_ISSET(udp_server->fd , &ready_fds))
 			handleUDP(udp_server, msgBuf);
-		}
 
 		// handle User new connection
 		if (FD_ISSET(tcp_server->fd, &ready_fds)){

@@ -101,7 +101,7 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Regestring Personal Device:\n\tFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Registering Personal Device:\n\tFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
         
         // parse buf
         sscanf(buf, "%s %s %s %s", uid, pass, pdip, pdport);
@@ -186,7 +186,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         
-        _VERBOSE("Unregestring Personal Device:\t\nFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Unregistering Personal Device:\t\nFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
         
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
@@ -256,6 +256,8 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         char uid[BUFFER_SIZE], tid[BUFFER_SIZE];
         int msgLen;
 
+        _VERBOSE("Authorizing File Op:\n\tFS IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+
         sscanf(buf, "%s %s", uid, tid);
 
         // checks
@@ -263,6 +265,8 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
+
+        _VERBOSE("\tuid: %s\n\ttid: %s", uid, tid);
 
         // find user in log list
         userNode_t *node = _getUserNodeUID(userlist, uid); 
@@ -279,10 +283,11 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                         _removeUID(node);
                 }
-                else if (node->fname[0] != '\0')
+                else if (node->fname[0] != '\0')        // op with filename
                         msgLen = sprintf(buf, "%s %s %d %c %s%c", RESP_VLD, node->uid, node->tid, node->fop, node->fname, CHAR_END_MSG);
                 else 
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
+                VERBOSE("\t## Valid ##");
         }else
                 msgLen = sprintf(buf, "%s %s %s %c%c", RESP_VLD, node->uid, tid, FOP_E, CHAR_END_MSG);
 
@@ -303,6 +308,8 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc,
                 WARN("A problem may have occured while sending the registration request!");
                 return FALSE;
         }
+
+        _VERBOSE("Error Sent:\n\tIP:%s\tPORT:%d", udpConnIp(recvConnoc), udpConnPort(recvConnoc));
         return TRUE;
 }
 
@@ -327,6 +334,8 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         char answer[BUFFER_SIZE];
         int msgLen;
         
+        _VERBOSE("Login User:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         // Checks
@@ -336,6 +345,8 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
         }
+
+        _VERBOSE("\tuid: %s\n\tpass: %s", uid, pass);
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
@@ -364,9 +375,6 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
                 return FALSE;
         }
         
-        _VERBOSE("Loging User:\nuid: %s\npass: %s\nFrom IP:%s\tPORT:%d",
-                                uid, pass, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
-        
         // log uid in list node
         strcpy(nodeTCP->uid, uid);
         // _loginUser(path, dirname, login_file, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
@@ -374,6 +382,9 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         // reply to User
         msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_OK, CHAR_END_MSG);
         tcpSendMessage(tcpConn, answer, msgLen);
+        
+        VERBOSE("\t## Valid ##");
+        
         return TRUE;
 }
 
@@ -406,7 +417,7 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(list, nodeTCP->uid);
 
-        _VERBOSE("User app exit. UID: %s.\nIP: %s\t Port: %d", nodeTCP->uid, tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+        _VERBOSE("User app exited.\nFrom\tIP:%s\tPORT:%d\n\tUID: %s", tcpConnIp(tcpConn), tcpConnPort(tcpConn), nodeTCP->uid);
         USER_CLEAR(nodeTCP);         // also clears the uid
 
         return TRUE;
@@ -424,6 +435,8 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         int msgLen;
 
         answer[0]='\0';         // reducing code size
+
+        _VERBOSE("User request file op:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
 
         // UID RID Fop [Fname]
         sscanf(buf, "%s %s %c %s", uid, rid, &fop, fname);
@@ -449,6 +462,8 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 return FALSE;
         }
 
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tfop: %c\n\tfname: %s", uid, rid, fop, fname);
+
         // Try to send request to PD
         bool_t val = _getUDPConnPD(nodeTCP->uid, path, &udpRecv);
         
@@ -472,6 +487,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 strcpy(nodeTCP->fname, fname);
                 // log msg for waiting queue
                 _addMsgToQueue(list, nodeTCP->uid, answer);
+                VERBOSE("\t## Valid ##");
                 return TRUE;
         }
 
@@ -483,6 +499,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 nodeTCP->rid = atoi(rid); nodeTCP->vc = vc; nodeTCP->fop = fop; nodeTCP->fname[0] = '\0';
                 // log msg for waiting queue
                 _addMsgToQueue(list, nodeTCP->uid, answer);
+                VERBOSE("\t## Valid ##");
                 return TRUE;
         }
 
@@ -503,6 +520,7 @@ bool_t resp_fileOP(List_t list, char* uid, char* status) {
                 if (!strcmp(nodeData->uid, uid)){       // matching uid
                         msgLen = sprintf(answer, "%s %s%c", RESP_REQ, status, CHAR_END_MSG);
                         tcpSendMessage(&nodeData->tcpConn, answer, msgLen);
+                        VERBOSE("\t## Valid ##");
                         return TRUE;     
                 }
         }
@@ -520,15 +538,15 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
         int msgLen;
         answer[0]='\0';         // reducing code size
 
+        _VERBOSE("User request authorization:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+
         sscanf(buf, "%s %s %s", uid, rid, vc);
 
-        // _LOG("Auth => UID: %s\tRID: %s\t VC: %s", uid, rid, vc);
         // checks
         if (!isUIDValid(uid) || !isRIDValid(rid) || !isVCValid(vc)) {
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
         }
-
         else if (!strcmp(nodeTCP->uid, uid) && nodeTCP->rid == atoi(rid) && nodeTCP->vc == atoi(vc)) {
                 int tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
                 nodeTCP->tid = tid;
@@ -538,6 +556,10 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);
 
         tcpSendMessage(tcpConn, answer, msgLen);
+
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %c", uid, rid, vc);
+        VERBOSE("\t## Valid ##");
+
         return TRUE;
 }
 
@@ -575,5 +597,6 @@ bool_t _getUDPConnPD(char *uid, char* path, UDPConnection_t *conn) {
 bool_t req_serverErrorTCP(TCPConnection_t *tcpConn, char *msgBuffer) {
         int msgSize = sprintf(msgBuffer, "%s%c", SERVER_ERR, CHAR_END_MSG);
         tcpSendMessage(tcpConn, msgBuffer, msgSize);
+        _VERBOSE("Error Sent:\n\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
         return TRUE;
 }
