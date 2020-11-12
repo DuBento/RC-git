@@ -124,7 +124,6 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 		FATAL("Unable to allocate memory for the user request!");
 
 	userRequest->fileName = NULL;
-	userRequest->nTries = -1;
 	
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
@@ -167,7 +166,6 @@ void handleASValidationReply() {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
 			{
-				userRequest->nTries = -1;
 				userRequest->exeRequest(userRequest, filesPath);
 				free(userRequest->tcpConnection);
 				userRequest->tcpConnection = NULL;
@@ -263,40 +261,6 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 }
 
 
-/*! \brief Processes all the currently active requests
- *
- *  Sends the operation requests to the as everytime the waiting time expires. If the request
- *  was already sent NREQUEST_TRIES times, sends an error to the user.
- * 
- * 	\param oldTime		the time stamp before the select was activated.
- */
-void processUserRequests(const struct timeval *oldTime) {
-		struct timeval newTime;
-		gettimeofday(&newTime, NULL);
-		float timeExpired = newTime.tv_sec - oldTime->tv_sec; 
-
-		ListIterator_t iterator = listIteratorCreate(userRequests);
-		while (!listIteratorEmpty(&iterator)) {
-			ListNode_t node = (ListNode_t)iterator;
-			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
-			if (userRequest->nTries != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
-				if (userRequest->nTries == NREQUEST_TRIES) {
-					_LOG("Maximum number of tries reached on request %s. Destoying the request...", userRequest->tid);
-					char msg[BUFFER_SIZE];
-					int msgSize = sprintf(msg, "%s ERR\n", userRequest->replyHeader);
-					tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
-					listRemove(userRequests, node, cleanRequest);
-					return;
-				}
-
-				userRequest->timeExpired = 0;
-				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				validateRequest(udpConnection, userRequest);
-			}
-		}
-}
-
-
 
 
 
@@ -342,8 +306,6 @@ void runFS() {
 			if (FD_ISSET(userConnection->fd, &fdsTemp))
 				handleUserRequest(node, &fds, &fdsSize);
 		}
-
-		processUserRequests(&currentTime);	// processes the current requests stored on the server
 	}
 }
 
