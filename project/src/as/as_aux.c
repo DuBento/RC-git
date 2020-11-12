@@ -139,11 +139,12 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
                         free(stored_pass);
                         return FALSE;
                 }
-                free(stored_pass);
         }       
         else {  // no file to be read, first time connection
                 _storePassPD(path, dirname, pass_file, pass); // create file
         }
+
+        free(stored_pass);      // if null op not perfomed
         
         _VERBOSE("\tuid: %s\n\tpass: %s\n\tPDip: %s\n\tPDport: %s", uid, pass, pdip, pdport);
         
@@ -561,6 +562,7 @@ bool_t _getUDPConnPD(char *uid, char* path, UDPConnection_t *conn) {
         }
         else {
                 // no reg file available, PD not registred
+                free(stored_data);      // if null op not perfomed
                 conn = NULL;
                 return  FALSE;
         }       
