@@ -101,6 +101,8 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
         char answer[BUFFER_SIZE];
         int msgLen;
         
+        _VERBOSE("Regestring Personal Device:\n\tFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        
         // parse buf
         sscanf(buf, "%s %s %s %s", uid, pass, pdip, pdport);
         // Checks
@@ -143,8 +145,7 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
                 _storePassPD(path, dirname, pass_file, pass); // create file
         }
         
-        _VERBOSE("Regestring Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nFrom IP:%s\tPORT:%d",
-                                uid, pass, pdip, pdport, udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("\tuid: %s\n\tpass: %s\n\tPDip: %s\n\tPDport: %s", uid, pass, pdip, pdport);
         
         _registerPD(path, dirname, reg_file, pdip, pdport);
 
@@ -184,8 +185,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         
-        _VERBOSE("Unregestring Personal Device:\nuid: %s\npass: %s\nFrom IP:%s\tPORT:%d",
-                uid, pass, udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Unregestring Personal Device:\t\nFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
         
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
@@ -210,6 +210,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(list, uid);
         
+        _VERBOSE("\tuid: %s\n\tpass: %s", uid, pass);
 
         // reply to PD
         msgLen = sprintf(answer, "%s %s%c", RESP_UNR, STATUS_OK, CHAR_END_MSG);
@@ -221,9 +222,13 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
         // parse buf
         char uid[BUFFER_SIZE], status[BUFFER_SIZE], op[BUFFER_SIZE];
 
+        _VERBOSE("Received validation code response from Personal Device:\t\nFrom IP:%s\tPORT:%d", 
+                udpConnIp(receiver), udpConnPort(receiver));
+
+
         sscanf(buf, "%s %s", uid, status);
 
-        if (!isUIDValid(uid) || !inUserList(userList, uid)) {
+        if (!isUIDValid(uid) || !inUserList(userList, uid) || !isStatusValid(status)) {
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
@@ -241,10 +246,9 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
                 }
         }
 
-        if (!strcmp(status, STATUS_NOK) || !strcmp(status, STATUS_OK))
-                resp_fileOP(userList, uid, status);
-        else
-                req_serverErrorUDP(udpConn, receiver, buf);
+        _VERBOSE("\tuid: %s\n\tstatus: %s", uid, status);
+        resp_fileOP(userList, uid, status);
+        
 }
 
 bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, List_t userlist) {
@@ -312,7 +316,6 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE]={0};
         INIT_BUF(uid); INIT_BUF(pass);
         // dir and file manipulation
-        int size;
         char *stored_pass = NULL;
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char login_file[2*FILE_SIZE+BUFFER_SIZE], pass_file[2*FILE_SIZE+BUFFER_SIZE];
@@ -335,20 +338,12 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        // dir = initDir(path, dirname, NULL);
-        // // check if connection not already established (login file)
-        // sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
-        // if (inDir(dir, login_file)) { 
-        //         _WARN("User: %s tried to login twice. Sending not ok status...", uid);
-        //         msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
-        //         tcpSendMessage(tcpConn, answer, msgLen);
-        //         return FALSE;
-        // }
-
+       
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
 
-        if (size = retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
+
+        if (retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
                 // stored_pass[size-1] = '\0';
                 _LOG("PASS, %s. Stored %s.", pass, stored_pass);
                 if (strcmp(stored_pass, pass) != 0){        // check given password dont match
@@ -361,6 +356,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
                 free(stored_pass);
         }       
         else {  // no file to be read, login in without PD first registered
+                free(stored_pass);      // if null op not perfomed
                 msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
                 tcpSendMessage(tcpConn, answer, msgLen);
                 return FALSE;
@@ -405,15 +401,6 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
         sprintf(dirname, "%s%s", USERDIR_PREFIX, nodeTCP->uid); 
 
 
-        // sprintf(login_file, "%s%s", dirname, LOGINFILE_SUFIX);
-        // _LOG("LOGIN FILE %s", login_file);
-        // tries to delete login file
-        // if (!deleteFile(path, dirname, login_file))
-        //         if(errno == ENOENT){
-        //                 _FATAL("User: %s was not registered. Internal error.", nodeTCP->uid);
-        //                 return FALSE;
-        //         }
-        
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(list, nodeTCP->uid);
 

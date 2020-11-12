@@ -142,6 +142,10 @@ bool_t isTIDValid(const char *buffer) {
 		return isStringValid(buffer, STR_DIGIT, TID_SIZE);
 }
 
+bool_t isStatusValid(const char *buffer) {
+	return !strcmp(buffer, STATUS_NOK) || !strcmp(buffer, STATUS_OK);
+}
+
 
 // checks if the file name is valid
 bool_t isFileNameValid(const char *buffer) {

@@ -288,11 +288,19 @@ bool_t isTIDValid(const char *buffer);
  *
  *  Checks if the file name is a string containing only characters and '-', '.', '_'
  * 	with a maximum size of 24 characters
- * 	\param  buffer	the buffer containing the fil ename.
+ * 	\param  buffer	the buffer containing the file name.
  * 	\return TRUE if the file name is valid, FALSE otherwise.
  */
 bool_t isFileNameValid(const char *buffer);
 
+
+/*! \brief Checks if the status is valid.
+ *
+ *  Checks if the status is either OK or NOK
+ * 	\param  buffer	teh buffer containing the status
+ * 	\return TRUE if the status is valid, FALSE otherwise.
+ */
+bool_t isStatusValid(const char *buffer);
 
 
 /*! \brief Reads an input line from the user.
