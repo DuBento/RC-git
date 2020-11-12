@@ -352,6 +352,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
                                 uid, pass, stored_pass);
                         msgLen = sprintf(answer, "%s %s%c", RESP_LOG, STATUS_NOK, CHAR_END_MSG);
                         tcpSendMessage(tcpConn, answer, msgLen);
+                        free(stored_pass);
                         return FALSE;
                 }
                 free(stored_pass);
