@@ -25,6 +25,7 @@ typedef struct userRequest_t {
 	TCPConnection_t *tcpConnection;
 	char fop;
 	void(*exeRequest)(struct userRequest_t*, const char*);
+	float timeExpired;
 
 	char replyHeader[4];
 	int fsid;

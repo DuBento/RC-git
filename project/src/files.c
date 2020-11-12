@@ -213,8 +213,8 @@ bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, 
 
 	int fileSizeSent = 0;
 	while (fileSizeSent != fileSize) {
-		char buffer[BUFFER_SIZE];
-		int readSize = (BUFFER_SIZE - 1 < fileSize - fileSizeSent ? BUFFER_SIZE : fileSize - fileSizeSent);
+		char buffer[BUFFER_SIZE] = {0};
+		int readSize = (BUFFER_SIZE - 1 < fileSize - fileSizeSent ? BUFFER_SIZE - 1 : fileSize - fileSizeSent);
 		fileSizeSent += fread(buffer, 1, readSize, file);
 		buffer[readSize] = '\0';
 		tcpSendMessage(tcpConnection, buffer, readSize);

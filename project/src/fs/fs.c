@@ -261,6 +261,34 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 }
 
 
+/*! \brief Processes all the currently active requests
+ *
+ *  Sends the operation requests to the as everytime the waiting time expires. If the request
+ *  was already sent NREQUEST_TRIES times, sends an error to the user.
+ * 
+ * 	\param oldTime		the time stamp before the select was activated.
+ */
+void checkUserRequestTimeouts(const struct timeval *oldTime) {
+		struct timeval newTime;
+		gettimeofday(&newTime, NULL);
+		float timeExpired = newTime.tv_sec - oldTime->tv_sec; 
+
+		ListIterator_t iterator = listIteratorCreate(userRequests);
+		while (!listIteratorEmpty(&iterator)) {
+			ListNode_t node = (ListNode_t)iterator;
+			userRequest_t *userRequest = (userRequest_t*)listIteratorNext(&iterator);
+			if (userRequest->timeExpired != -1 && (userRequest->timeExpired += timeExpired) > TIMEOUT) {
+					_LOG("No reply from AS! Destoying the request...\n\t-TID\t:%s", userRequest->tid);
+					char msg[BUFFER_SIZE];
+					int msgSize = sprintf(msg, "%s INV\n", userRequest->replyHeader);
+					tcpSendMessage(userRequest->tcpConnection, msg, msgSize);
+					listRemove(userRequests, node, cleanRequest);
+					return;
+			}
+		}
+}
+
+
 
 
 
@@ -306,6 +334,8 @@ void runFS() {
 			if (FD_ISSET(userConnection->fd, &fdsTemp))
 				handleUserRequest(node, &fds, &fdsSize);
 		}
+
+		checkUserRequestTimeouts(&currentTime);
 	}
 }
 
