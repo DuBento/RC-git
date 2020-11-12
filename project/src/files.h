@@ -98,4 +98,6 @@ bool_t deleteDirectory(const char *filesPath, const char *dirname);
 
 bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, int fileSize, const char *fdata, int size);
 
+bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, const char *header, int headerSize);
+
 #endif 	/* FILES */

@@ -183,6 +183,7 @@ LOG("c");
 	while (sizeStored != fileSize + 1) {
 		char buffer[BUFFER_SIZE] = { 0 };
 		int newRead = tcpReceiveMessage(tcpConnection, buffer, BUFFER_SIZE);
+_LOG("newread %d", newRead);
 		sizeStored += newRead;
 		if (sizeStored + newRead == fileSize + 1) {
 			if (buffer[newRead - 1] == '\n') {
@@ -200,4 +201,34 @@ LOG("d");
 	fclose(file);	
 LOG("e");
 	return sizeStored == fileSize + 1;
+}
+
+
+// reads a file and sends its data
+bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, const char *header, int headerSize) {
+	FILE *file = fopen(filePath, "r");
+	if (file == NULL) {
+		return FALSE;
+	}
+
+	fseek(file, 0L, SEEK_END);
+	size_t fileSize = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+
+	char msg[BUFFER_SIZE];
+	int msgSize = sprintf(msg, "%s %lu ", header, fileSize);
+	tcpSendMessage(tcpConnection, msg, msgSize);
+
+	int fileSizeSent = 0;
+	while (fileSizeSent != fileSize) {
+		char buffer[BUFFER_SIZE];
+		int readSize = (BUFFER_SIZE - 1 < fileSize - fileSizeSent ? BUFFER_SIZE : fileSize - fileSizeSent);
+		fileSizeSent += fread(buffer, 1, readSize, file);
+		buffer[readSize] = '\0';
+		tcpSendMessage(tcpConnection, buffer, readSize);
+	}
+
+	tcpSendMessage(tcpConnection, "\n\0", 1);
+	fclose(file);
+	return fileSizeSent == fileSize;
 }

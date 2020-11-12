@@ -34,13 +34,13 @@ typedef struct user_info_t {
 //static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing fs
-static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
+//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
 
 // Sigma testing as
 //static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
 
 // Sigma testing BOTH
-//static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
+static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
 
 
 static userInfo_t userInfo = { 0 };
@@ -98,6 +98,9 @@ static userInfo_t userInfo = { 0 };
 #define MSG_TID		"Transaction ID (TID)"
 #define MSG_UID		"User ID (UID)"
 #define	MSG_VC		"Validation Code (VC)"
+#define	MSG_PASS	"Password"
+#define	MSG_FNAME	"File name"
+#define MSG_FOP		"File Operation (Fop)"
 
 #define MSG_NOT_RESP	" not responding."
 #define MSG_SORRY	"Sorry for the inconvenience."
@@ -116,7 +119,7 @@ static userInfo_t userInfo = { 0 };
 
 #define MSG_SUC_LOG	"Login successeful. Congrats lad."
 #define MSG_SUC_AUT	"Authentication successeful."
-#define	MSG_SUC_REQ	"Request successefully made, you smart ass."
+#define	MSG_SUC_REQ	"Request successefully made."
 #define	MSG_SUC_REM	"Remotion successeful! You're free!! :D"
 #define	MSG_SUC_UPL	"Upload successeful."
 
@@ -128,6 +131,8 @@ static userInfo_t userInfo = { 0 };
 #define MSG_FLD_UID	"Your UID is incorrect."
 #define MSG_FLD_CONTACT	" has failed to contact "
 #define MSG_FLD_VLD 	" has failed to validate "
+
+#define MSG_INC_FORMAT	" not in correct format."
 
 #define MSG_HELP_CORRVC	"\t-> Have you written the correct VC?"
 #define	MSG_HELP_DUPVC	"\t-> Have you already inserted this VC?"

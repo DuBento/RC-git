@@ -80,13 +80,15 @@ int tcpReceiveMessage(TCPConnection_t *tcpConnection, char *buffer, int len) {
 	do {
 		/* Upon successful completion, read() and pread() shall return a non-negative integer indicating the number of bytes actually read. 
 		Otherwise, the functions shall return -1 and set errno to indicate the error. */
-		int n = read(tcpConnection->fd, buffer, len-sizeRead-1);		// len-1, adding '\0' afterwards 
+		int n = read(tcpConnection->fd, buffer+sizeRead, len-sizeRead-1);		// len-1, adding '\0' afterwards 
 		if (n == -1)
 			_FATAL("[TCP] Unable to read the message!\n\t - Error code: %d %s", errno, strerror(errno));	
 		
 		// disconnected socket
 		if (n == 0)	return -1;		
 		sizeRead += n;
+_LOG("sizeread %d n %d", sizeRead, n);		
+_LOG("buffer[sizeread-1] %d", buffer[sizeRead-1]);
 		
 	} while (buffer[sizeRead-1] != CHAR_END_MSG && len - 1 != sizeRead);
 	

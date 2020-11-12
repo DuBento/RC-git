@@ -204,7 +204,7 @@ LOG("about to receive fs message");
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
 
 	if (size == TCP_FLD_RCV) {
-		LOG("sizze on tcprcv is -1 on fs\n");
+		LOG("sizze on tcprcv is -1 on fssss\n");
 		fsConnection = tcpDestroySocket(fsConnection);
 		return FALSE;
 	}
