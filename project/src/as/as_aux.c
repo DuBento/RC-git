@@ -565,6 +565,10 @@ bool_t req_auth(userNode_t *node, char* buf) {
 
         tcpSendMessage(tcpConn, answer, msgLen);
 
+<<<<<<< HEAD
+=======
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s", uid, rid, vc);
+>>>>>>> fs
         VERBOSE("\t## Valid ##");
         return TRUE;
 }

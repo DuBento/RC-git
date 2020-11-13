@@ -90,11 +90,9 @@ void parseArgs(int argc, char *argv[]) {
 				verbosity = TRUE;
 		else {
 			if (ipPortSwitch == ARG_IP)
-				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
-				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
+				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "	ARG_USAGE_IP " (x -> digit)", argv[i + 1])
 			else if (ipPortSwitch == ARG_PORT)
-				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
-				ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
+				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: " ARG_USAGE_PORT " (x -> digit)", argv[i + 1])
 			else
 				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-q','-n', '-p', '-v'");
 		}
@@ -122,9 +120,10 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 	userRequest_t *userRequest = (userRequest_t*)malloc(sizeof(userRequest_t));
 	userRequest->tcpConnection = (TCPConnection_t*)malloc(sizeof(TCPConnection_t));
 	if (userRequest == NULL || userRequest->tcpConnection == NULL)
-		FATAL("Unable to allocate memory for the user request!");
+		FATAL("Unable to allocate memory for the user request! Terminating the server...");
 
 	userRequest->fileName = NULL;
+	userRequest->timeExpired = -1;
 		
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
@@ -147,9 +146,10 @@ void handleASValidationReply() {
 	char opcode[BUFFER_SIZE], uid[BUFFER_SIZE], tid[BUFFER_SIZE], fop, fname[BUFFER_SIZE];
 	int validArgs = sscanf(buffer, "%s %s %s %c %s\n", opcode, uid, tid, &fop, fname);
 
-	if (strcmp(opcode, RESP_VLD))
-		return;
-
+	if (strcmp(opcode, RESP_VLD)) {
+		FATAL("Invalid reply from AS! Terminating the server...");
+	}
+		
 	ListNode_t node = NULL;
 	ListIterator_t iterator = listIteratorCreate(userRequests);
 	while (!listIteratorEmpty(&iterator)) {
@@ -161,7 +161,9 @@ void handleASValidationReply() {
 		}
 	}
 
-	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
+	if (!node)		// no request with the specified tid is on the list (ignores the message)
+		FATAL("Invalid reply from AS! Terminating the server...");
+
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
 	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
@@ -169,7 +171,7 @@ void handleASValidationReply() {
 			{
 				userRequest->exeRequest(userRequest, filesPath);
 				free(userRequest->tcpConnection);
-				userRequest->tcpConnection = NULL;
+				userRequest->tcpConnection = NULL;		// the server doesn't close the socket, so that the user can finish downloading
 				listRemove(userRequests, node, cleanRequest);
 				return;
 			}		
@@ -179,7 +181,8 @@ void handleASValidationReply() {
 	if (userRequest->fop == FOP_U) {
 		char filePath[PATH_MAX];
 		sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
-		remove(filePath);
+		if (remove(filePath) == -1)
+			_FATAL("Error while removing the temporary file!\n\tError code\t: %d", errno);
 	}
 
 	char msg[BUFFER_SIZE];
@@ -209,7 +212,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	char buffer[BUFFER_SIZE] = { 0 };
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
 	if (size == -1) {
-		_LOG("User closed the comunication with the server!\n\tIP\t:%s\n\tPORT\t:%d", 
+		_LOG("User closed the comunication with the server!\n\tIP\t: %s\n\tPORT\t: %d", 
 			tcpConnIp(userRequest->tcpConnection), tcpConnPort(userRequest->tcpConnection));
 		listRemove(userRequests, node, cleanRequest);
 		return;
@@ -234,13 +237,19 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		successOnFill = fillUploadRequest(userRequest, uid, tid, fname, fsize);
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
-			char filePath[PATH_MAX];
-			sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
-			DIR *directory = initDir(filesPath, userRequest->uid, NULL);
-			closedir(directory);
-			successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
-			if (!successOnFill)
-				tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);				
+			if (fdata != NULL) {
+				char filePath[PATH_MAX];
+				sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
+				DIR *directory = initDir(filesPath, userRequest->uid, NULL);
+				closedir(directory);
+				successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
+				if (!successOnFill) {
+					tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);
+					FATAL("A problem occured while filling the user request. Terminating the server...");
+				}
+			}
+			else
+				successOnFill = FALSE;						
 		}
 	}
 
@@ -256,9 +265,9 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	}
 		
 	if (!successOnFill)
-		listRemove(userRequests, node, cleanRequest);
-	else
-		validateRequest(udpConnection, userRequest);
+		FATAL("A problem occured while filling the user request. Terminating the server...");
+
+	validateRequest(udpConnection, userRequest);
 }
 
 
@@ -316,7 +325,7 @@ void runFS() {
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
 		if (selRetv == -1) {
 			if (errno == EINTR)		break;	// return from signal
-			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+			_FATAL("Unable to start the select() to monitor the descriptors!\n\tError code\t: %d", errno);
 		}
 
 		// handle the new users's connections
@@ -347,7 +356,7 @@ int main(int argc, char *argv[]) {
 	parseArgs(argc, argv);
 
 	files = initDir(argv[0], "files", filesPath);
-	VERBOSE("Starting FS server...");
+	LOG("Starting the FS server...");
 
 	tcpConnection = tcpCreateServer(NULL, connectionInfo.fsport, SOMAXCONN);
 	udpConnection = udpCreateClient((connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
