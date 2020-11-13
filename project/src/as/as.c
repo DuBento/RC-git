@@ -20,32 +20,15 @@ typedef struct connectionInfo_t {
 } connectionInfo_t;
 
 /* ========== GLOBAL ============= */
-int exitCode = -1;
-DIR *dir;
+int exitCode = INIT_RUNTIME;
+DIR *dir = NULL;
 char dir_path[PATH_MAX];
-TCPConnection_t *tcpServer;
-UDPConnection_t *udpServer;
-List_t userList;
-List_t pdList;
+TCPConnection_t *tcpServer = NULL;
+UDPConnection_t *udpServer = NULL;
+List_t userList = NULL;
+List_t pdList = NULL;
 char msgBuffer[2*BUFFER_SIZE];	// prevent overflows, giving space to concatenate msgs
 char verbosity = FALSE;
-
-/*! \brief Set program to terminate on success.
- *
- *	Termination handle called by the SIGINT and SIGTERM signals.
- */
-void terminateAS() {
-	exitCode = EXIT_SUCCESS;
-}
-
-
-/*! \brief Set program to terminate on fatal errors.
- *
- *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
- */
-void abortAS() {
-	exitCode = EXIT_FAILURE;
-}
 
 
 /* ======= */
@@ -75,21 +58,58 @@ void parseArgs(int argc, char *argv[], connectionInfo_t *info) {
 
 
 
-void cleanListNodeTCP(void* nodeData) {
+void cleanListNodeUser(void* nodeData) {
 	userNode_t *nodeDataAS =  (userNode_t*) nodeData;
 	tcpCloseConnection_noAlloc(nodeDataAS->tcpConn);
+	free(nodeDataAS);
 }
 
-
+void immediateExitAS() {
+	// no logs where made before runtime so no need to clear them
+	if (udpServer != NULL) 	udpDestroySocket(udpServer);
+	if (tcpServer != NULL) 	tcpDestroySocket(tcpServer);
+	if (userList != NULL)	listDestroy(userList, cleanListNodeUser);
+	if (pdList != NULL)		listDestroy(pdList, free);
+	if (dir != NULL)		closedir(dir);
+}
 
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
 	cleanLogs(dir, dir_path);
-	listDestroy(userList, cleanListNodeTCP);
+	listDestroy(userList, cleanListNodeUser);
+	listDestroy(pdList, free);
 	closedir(dir);
 	exit(flag);
 }
+
+
+
+/*! \brief Set program to terminate on success.
+ *
+ *	Termination handle called by the SIGINT and SIGTERM signals.
+ */
+void terminateAS() {
+	if (exitCode == INIT_RUNTIME) {
+		immediateExitAS();
+		exit(EXIT_SUCCESS);
+	}
+	exitCode = EXIT_SUCCESS;
+}
+
+
+/*! \brief Set program to terminate on fatal errors.
+ *
+ *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
+ */
+void abortAS() {
+	if (exitCode == INIT_RUNTIME) {
+		immediateExitAS();
+		exit(EXIT_FAILURE);
+	}
+	exitCode = EXIT_FAILURE;
+}
+
 
 /* Handle UDP Responses (Incoming Messages) */
 bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
@@ -192,6 +212,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 	tv.tv_sec = TIMEOUT;
 	tv.tv_usec = 0;
 	
+	exitCode = RUNTIME;			// tells signal handler how to behave
 	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
 		// because select is destructive
 		ready_fds = fds;
@@ -216,17 +237,19 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 					resendMessagePD(udpServer, nodeData, dir_path);	//handle no reponse to prev msg
 				else{
 					nTry = 0;
-					listRemove(pdList, node, NULL);
+					listRemove(pdList, node, free);
 					_WARN("No response received from sent message.\nUID:%s\nCommunication error.", nodeData->uid);
 				}
 			}
 			continue;	// run select again
 		}       
 
+		// string before the server output
+		putStr(STR_RESPONSE, TRUE);
+
 		// handle PD interaction
-		if (FD_ISSET(udp_server->fd , &ready_fds)){
+		if (FD_ISSET(udp_server->fd , &ready_fds))
 			handleUDP(udp_server, msgBuf);
-		}
 
 		// handle User new connection
 		if (FD_ISSET(tcp_server->fd, &ready_fds)){
@@ -250,7 +273,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 					LOG("connection closed");
 					// connection closed
 					removeSocket(conn, &fds, &fds_size);
-					listRemove(userList, node, cleanListNodeTCP);
+					listRemove(userList, node, cleanListNodeUser);
 				}
 			}
 		}

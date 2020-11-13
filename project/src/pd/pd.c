@@ -5,7 +5,7 @@
 #include "pd_aux.h"
 
 
-int exitCode = -1;
+int exitCode = INIT_RUNTIME;
 static userInfo_t userInfo = {0};
 //static connectionInfo_t connectionInfo = {"", "57053\0", """, "58011\0"};
 static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
@@ -49,6 +49,10 @@ void cleanPD() {
  *	Termination handle called by the SIGINT and SIGTERM signals.
  */
 void terminatePD() {
+	if (exitCode == INIT_RUNTIME) {
+		if (userInfo.uid != NULL) 	free(userInfo.uid);
+		if (userInfo.pass != NULL) 	free(userInfo.pass);
+	}
 	exitCode = EXIT_SUCCESS;
 }
 
@@ -58,6 +62,10 @@ void terminatePD() {
  *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
  */
 void abortPD() {
+	if (exitCode == INIT_RUNTIME) {
+		if (userInfo.uid != NULL) 	free(userInfo.uid);
+		if (userInfo.pass != NULL) 	free(userInfo.pass);
+	}
 	exitCode = EXIT_FAILURE;
 }
 
@@ -254,6 +262,8 @@ void runPD() {
 	int nRequestTries = 0;
 	
 	putStr(STR_INPUT, TRUE);			// string before the user input
+	exitCode = RUNTIME;					// indicates signal handler
+
 	while (exitCode != EXIT_FAILURE && exitCode != EXIT_SUCCESS) {
 		fd_set fdsTemp = fds;			// select is destructive
 		struct timeval tvTemp = tv;		// select is destructive

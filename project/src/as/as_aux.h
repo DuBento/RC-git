@@ -15,6 +15,9 @@
 #define FILE_SIZE       32
 
 
+#define INIT_BUF(buf) buf[0] = '\0'; buf[BUFFER_SIZE-1] = '\0';
+#define USER_CLEAR(node) node->uid[0] = '\0'
+#define USER_LOGEDIN(node) node->uid[0] != '\0'
 
 typedef struct user_node {
 	TCPConnection_t tcpConn;
@@ -40,6 +43,7 @@ void _cleanQueueFromUID(List_t list, char *uid);
 void _addMsgToQueue(List_t ist, char* uid, char* msg);
 bool_t inUserList(List_t userList, char* uid);
 userNode_t* _getUserNodeUID(List_t list, char* uid);
+void _cleanLogFile(char* dir_name, const char* fileType);
 void cleanLogs(DIR* dir, char* path);
 
 // PD

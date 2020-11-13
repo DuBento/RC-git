@@ -32,6 +32,9 @@ typedef char bool_t;
 #define DEFAULT_FS_PORT	"59053\0"
 #define	DEFAULT_AS_PORT	"58053\0"
 
+/* Signal handler */
+#define INIT_RUNTIME	-2
+#define RUNTIME			-1
 
 /* Execution arguments */
 #define	ARG_PDPORT	"-d"	// the execution argument to specify the PDport
@@ -285,11 +288,19 @@ bool_t isTIDValid(const char *buffer);
  *
  *  Checks if the file name is a string containing only characters and '-', '.', '_'
  * 	with a maximum size of 24 characters
- * 	\param  buffer	the buffer containing the fil ename.
+ * 	\param  buffer	the buffer containing the file name.
  * 	\return TRUE if the file name is valid, FALSE otherwise.
  */
 bool_t isFileNameValid(const char *buffer);
 
+
+/*! \brief Checks if the status is valid.
+ *
+ *  Checks if the status is either OK or NOK
+ * 	\param  buffer	teh buffer containing the status
+ * 	\return TRUE if the status is valid, FALSE otherwise.
+ */
+bool_t isStatusValid(const char *buffer);
 
 
 /*! \brief Reads an input line from the user.

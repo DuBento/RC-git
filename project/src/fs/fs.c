@@ -71,7 +71,6 @@ void abortFS() {
  *
  * 	\param 	argc The number of execution arguments.
  * 	\param 	argv An array with the execution arguments.
- * 	\param 	info The instance that stores the connection settings.
  */
 void parseArgs(int argc, char *argv[]) {
 	// checks the number of arguments   
@@ -124,8 +123,8 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 	if (userRequest == NULL || userRequest->tcpConnection == NULL)
 		FATAL("Unable to allocate memory for the user request!");
 
-	userRequest->nTries = -1;
 	userRequest->fileName = NULL;
+	userRequest->nTries = -1;
 	
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
@@ -148,6 +147,9 @@ void handleASValidationReply() {
 	char opcode[BUFFER_SIZE], uid[BUFFER_SIZE], tid[BUFFER_SIZE], fop, fname[BUFFER_SIZE];
 	int validArgs = sscanf(buffer, "%s %s %s %c %s\n", opcode, uid, tid, &fop, fname);
 
+	if (strcmp(opcode, RESP_VLD))
+		return;
+
 	ListNode_t node = NULL;
 	ListIterator_t iterator = listIteratorCreate(userRequests);
 	while (!listIteratorEmpty(&iterator)) {
@@ -161,13 +163,24 @@ void handleASValidationReply() {
 
 	if (node == NULL) return;		// no request with the specified tid is on the list (ignores the message)
 	userRequest_t *userRequest = (userRequest_t *)listValue(node);
-	if (!strcmp(opcode, RESP_VLD) && !strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
+	if (!strcmp(uid, userRequest->uid) && fop == userRequest->fop && buffer[size - 1] == '\n') {
 		if ((validArgs == 4 && (fop == FOP_L || fop == FOP_X)) ||
 			(validArgs == 5 && (fop == FOP_R || fop == FOP_U || fop == FOP_D) && !strcmp(fname, userRequest->fileName))) 
 			{
+				userRequest->nTries = -1;
 				userRequest->exeRequest(userRequest, filesPath);
+				free(userRequest->tcpConnection);
+				userRequest->tcpConnection = NULL;
+				listRemove(userRequests, node, cleanRequest);
 				return;
 			}		
+	}
+
+	// checks if the request was an upload and removes the temporary file, if so
+	if (userRequest->fop == FOP_U) {
+		char filePath[PATH_MAX];
+		sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
+		remove(filePath);
 	}
 
 	char msg[BUFFER_SIZE];
@@ -194,7 +207,7 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 	if (*fdsSize == (userRequest->tcpConnection->fd + 1))	*fdsSize--;
 	FD_CLR(userRequest->tcpConnection->fd, fds);
 
-	char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE] = { 0 };
 	int size = tcpReceiveMessage(userRequest->tcpConnection, buffer, BUFFER_SIZE);
 	if (size == -1) {
 		_LOG("User closed the comunication with the server!\n\tIP\t:%s\n\tPORT\t:%d", 
@@ -223,19 +236,13 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		if (successOnFill) {
 			char *fdata = findNthCharOccurence(buffer, ' ', 5) + 1;
 			char filePath[PATH_MAX];
-			sprintf(filePath, "%s/%s/%s", filesPath, userRequest->uid, userRequest->fileName);
-
-			DIR *userDir = initDir(filesPath, userRequest->uid, NULL);
-    		if (inDir(userDir, userRequest->fileName)) {
-        		tcpSendMessage(userRequest->tcpConnection, RESP_UPL " DUP\n", 8);
-       			closedir(userDir);
-        		successOnFill = FALSE;
-    		}
-			else {
-				closedir(userDir);
-				storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
-			}
-		}		
+			sprintf(filePath, "%s/%s/~~temp_%d~~", filesPath, userRequest->uid, userRequest->fsid);
+			DIR *directory = initDir(filesPath, userRequest->uid, NULL);
+			closedir(directory);
+			successOnFill = storeFileFromTCP(userRequest->tcpConnection, filePath, atoi(fsize), fdata, (&buffer[size] - fdata));
+			if (!successOnFill)
+				tcpSendMessage(userRequest->tcpConnection, RESP_UPL " ERR\n", 8);				
+		}
 	}
 
 	else if (validArgs == 4  && !strcmp(opcode, REQ_DEL) && buffer[size] != '\n')
@@ -251,6 +258,8 @@ void handleUserRequest(ListNode_t node, fd_set *fds, int *fdsSize) {
 		
 	if (!successOnFill)
 		listRemove(userRequests, node, cleanRequest);
+	else
+		validateRequest(udpConnection, userRequest);
 }
 
 
@@ -280,12 +289,9 @@ void processUserRequests(const struct timeval *oldTime) {
 					return;
 				}
 
-				userRequest->exeRequest(userRequest, filesPath);
-				listRemove(userRequests, node, cleanRequest);
-				//userRequest->nTries++;
-				//userRequest->timeExpired = 0;
-				//_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
-				//validateRequest(udpConnection, userRequest);
+				userRequest->timeExpired = 0;
+				_LOG("Request validation update [%s] : try no%d", userRequest->tid, userRequest->nTries);
+				validateRequest(udpConnection, userRequest);
 			}
 		}
 }
