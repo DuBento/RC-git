@@ -1,10 +1,8 @@
 #include "../common.h"
 #include "user_aux.h"
-#include <string.h>
-
 
 static TCPConnection_t *asConnection = NULL;
-static TCPConnection_t *fsConnection = NULL;
+static TCPConnection_t *fsConnection = NULL; //it's quite probable this one can get out of here and just be local	
 
 static int rid = RID_INVALID;
 static int tid = TID_INVALID;
@@ -24,10 +22,8 @@ void cleanUser() {
 
 	if (filename != NULL)		free(filename);
 
-	if (userInfo.uid != NULL) {
-		free(userInfo.uid);}
-	if (userInfo.pass != NULL) {
-		free(userInfo.pass);}
+	if (userInfo.uid != NULL) {		free(userInfo.uid);		}
+	if (userInfo.pass != NULL) {		free(userInfo.pass);		}
 }
 
 
@@ -37,6 +33,7 @@ void cleanUser() {
  */
 void terminateUser() {
 	cleanUser();
+	printf(MSG_SHUTDOWN" "MSG_THANKS"\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -47,6 +44,7 @@ void terminateUser() {
  */
 void abortUser() {
 	cleanUser();
+	printf(MSG_SHUTDOWN"\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -73,11 +71,10 @@ void parseArgs(int argc, char *argv[]) {
 			if (ipPortSwitch == ARG_IP) {
 				_FATAL("Invalid " ARG_STR_IP " '%s'!""\n\t - [Usage]: "
 				ARG_USAGE_IP " (x -> digit)", argv[i + 1])
-				}
-			else if (ipPortSwitch == ARG_PORT) {
+			} else if (ipPortSwitch == ARG_PORT) {
 				_FATAL("Invalid " ARG_STR_PORT " '%s'!""\n\t - [Usage]: "
-				ARG_USAGE_PORT " (x -> digit)", argv[i + 1]) }
-			else
+				ARG_USAGE_PORT " (x -> digit)", argv[i + 1]) 
+			} else
 				FATAL("Invalid execution argument flag!\n\t - [Flags]: '-n', '-p', '-m', '-q'");
 		}
 	}
@@ -88,7 +85,6 @@ void parseArgs(int argc, char *argv[]) {
 }
 
 
-
 /*! \brief Handles the user input during the runtime.
  *
  *  Verifies which command was introduced by the user, validates its arguments and
@@ -97,20 +93,23 @@ void parseArgs(int argc, char *argv[]) {
  * \return TRUE if the message was well sent on to the server, FALSE otherwise.
  */
 bool_t handleUser() {
-	char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE] = {0};
+for(int i = 0; i < BUFFER_SIZE; i++) {
+	buffer[i] = '\0';
+}
 	
 	if (!getUserInput(buffer, BUFFER_SIZE))
 		return FALSE;		// command ignored because the buffer overflowed
 
 	char cmd[BUFFER_SIZE] = { 0 }, input1[BUFFER_SIZE] = { 0 }, 
 	input2[BUFFER_SIZE] = { 0 };
-	sscanf(buffer, "%s %s %s", cmd, input1, input2);
 
-	//_LOG("[handleUser] cmd: %s\n input1: %s\n input2: %s", cmd, input1, input2);
-
+_LOG("buffer %s\t%d\t\tbuffer0 %x", buffer, cmd[0], buffer[0]);
+	sscanf(buffer, "%s %s %s\n", cmd, input1, input2);
+_LOG("depois do scanf %d", cmd[0]);
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
-		req_login(asConnection, &userInfo, input1, input2);
+		return req_login(asConnection, &userInfo, input1, input2);
 	}
 	// req command: req Fop [Fname]
 	else if (!strcmp(cmd, CMD_REQ) && input1[0] != '\0') {
@@ -151,7 +150,14 @@ bool_t handleUser() {
 		terminateUser();
 			 
 	else {
-		WARN(MSG_ERR_INV_CMD MSG_OP_IGN"\n");
+_LOG("cmd %s CMD_EXIT %s condition %d", cmd, CMD_EXIT, strcmp(cmd, CMD_EXIT) );
+int lencmd = strlen(cmd);
+int lenexit = strlen(CMD_EXIT);
+_LOG("len 1 %d, len 2 %d", lencmd, lenexit);
+for (int i = 0; i < lencmd; i++) {
+	_LOG("1st %c", cmd[i]);
+}
+		WARN(MSG_ERR_INV_CMD" "MSG_OP_IGN"\n");
 		return FALSE;
 	}
 	return FALSE;
@@ -165,11 +171,17 @@ bool_t handleASServer() {
 	int size;
 	
 	size = tcpReceiveMessage(asConnection, buffer,BUFFER_SIZE);
+
+	if (size == TCP_FLD_RCV) {
+		asConnection = tcpDestroySocket(asConnection);
+		return FALSE;
+	}
+
 	sscanf(buffer, "%s %s", opcode, arg);
-_LOG("AS contact: opcode %s, arg %s", opcode, arg);
+
 	// Login response "RLO"
 	if (!strcmp(opcode, RESP_LOG))
-		return resp_login(arg);
+		userInfo.loggedIn = resp_login(&userInfo, arg);
 
 	// Request code response "RRQ"	
 	else if (!strcmp(opcode, RESP_REQ))
@@ -181,38 +193,47 @@ _LOG("AS contact: opcode %s, arg %s", opcode, arg);
 
 	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		printf(MSG_ERR_INV_REQ"\n.");
-		return FALSE;
+//		return FALSE;
 	} else {
-		printf(MSG_ERR_COM MSG_AS ".\n");
-		return FALSE;
+		printf(MSG_ERR_COM MSG_AS ".\n"MSG_SORRY"\n");
 	}
 	return TRUE;
 }
 
 
 bool_t handleFSServer() {
-	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = { 0 }/*, arg[BUFSIZ] = {0}*/, *arg;
+	char buffer[BUFSIZ] = {0}, opcode[BUFFER_SIZE] = {0}, *arg;
 	int size;
 	
 	/* Each user can have a maximum of 15 files stored in the FS server. */
 	/* All file Fsize fields can have at most 10 digits. */
 	/* the filename Fname, limited to a total of 24 alphanumerical characters */
 LOG("about to receive fs message");
+
 	size = tcpReceiveMessage(fsConnection, buffer, BUFSIZ);
+
+	if (size == TCP_FLD_RCV) {
+		fsConnection = tcpDestroySocket(fsConnection);
+		return FALSE;
+	}
 LOG("Received fs message");
+//	buffer[strlen(buffer)-1] = '\0';
 	_LOG("Le fs buffer %s", buffer);
-	buffer[strlen(buffer)-1] = '\0';
+_LOG("le le size %d", size);
+
 	arg = buffer + PROTOCOL_MSSG_OFFSET;
 	sscanf(buffer, "%s", opcode);
-
+_LOG("le arg %s", arg);
 	// List response RLS N[ Fname Fsize]*
 	if (!strcmp(opcode, RESP_LST))
 		userInfo.fsConnected = !resp_list(&fsConnection, arg);
 
 	// Retrieve code response "RRT status [Fsize data]"	
-	else if (!strcmp(opcode, RESP_RTV))
-		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename);
+	else if (!strcmp(opcode, RESP_RTV)) {
+		
+		userInfo.fsConnected = !resp_retrieve(&fsConnection, arg, &filename, size);
 
+	}
 	// Upload response " RUP status"
 	else if (!strcmp(opcode, RESP_UPL))
 		userInfo.fsConnected = !resp_upload(&fsConnection, arg);
@@ -222,21 +243,16 @@ LOG("Received fs message");
 		userInfo.fsConnected = !resp_delete(&fsConnection, arg);
 
 	//	Remove response RRM status
-	else if (!strcmp(opcode, RESP_REM))
-		userInfo.fsConnected = !resp_remove(&fsConnection, arg);
-
-	else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
+	else if (!strcmp(opcode, RESP_REM)) {
+		userInfo.fsConnected = !resp_remove(&fsConnection, &userInfo, arg);
+		terminateUser();
+	} else if (!strcmp(opcode, SERVER_ERR) && arg[0] == '\0') {
 		WARN(MSG_ERR_INV_REQ"\n");
-		return FALSE;
 	}
 	return TRUE;
 }
 
 
-/*! \brief Main loop for the FS application.
- *
- *  Waits for an interaction from the user/server and then handles them.
- */
 void runUser() {
 	// select
 	int fdsSize;
@@ -257,7 +273,7 @@ void runUser() {
 	bool_t waitingReply = FALSE;
 	int nRequestTries = 0;
 	
-	/*putStr(STR_INPUT, TRUE);*/		// string before the user input
+	//putStr(STR_INPUT, TRUE);		// string before the user input
 	while (TRUE) {
 		fd_set fdsTemp = fds;		// select is destructive
 		struct timeval tvTemp = tv;	// select is destructive
@@ -266,7 +282,7 @@ void runUser() {
 		if (userInfo.fsConnected) {
 			FD_SET(fsConnection->fd, &fdsTemp);
 			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
-		}
+		}	
 
 		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
 		if (selRetv  == -1)
@@ -275,9 +291,12 @@ void runUser() {
 		// handle AS server responses
 		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			//LOG("Yey as contacted us!");
-			putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
-			putStr(STR_RESPONSE, TRUE);		// string before the server output
-			handleASServer();	
+			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
+			//putStr(STR_RESPONSE, TRUE);		// string before the server output
+			if (!handleASServer()) {
+				printf(MSG_ERR_COM MSG_AS".\n"MSG_SORRY"\n");	
+				return; 
+			}	
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
@@ -286,14 +305,18 @@ void runUser() {
 		// handle FS server responses
 			//putStr(STR_CLEAN, FALSE);		// clear the previous CHAR_INPUT
 			//putStr(STR_RESPONSE, TRUE);		// string before the server output
-			LOG("Yey fs contacted us!");
-			handleFSServer();	
+			//LOG("Yey fs contacted us!");
+			if (!handleFSServer()) {
+				printf(MSG_ERR_COM MSG_FS".\n"MSG_SORRY"\n");	
+				return; 
+			}
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 			waitingReply = FALSE;
 		}
 
 		// handle stdin
 		if (FD_ISSET(STDIN_FILENO, &fdsTemp)) {
+			//putStr(STR_INPUT, TRUE);
 			waitingReply = handleUser();
 			//putStr(STR_INPUT, TRUE);		// string before the user input
 		}
@@ -305,14 +328,14 @@ void runUser() {
 				waitingReply = FALSE;
 
 			} else if (userInfo.asConnected) {
-				WARN(MSG_AS " not responding "
-				"Trying to recontact...\n");
+				WARN(MSG_AS " not responding. "
+				MSG_RECONTACT"\n");
 				waitingReply = req_resendLastMessage(asConnection);	// todo to change to fs also
 				++nRequestTries;
 
 			} else if (userInfo.fsConnected) {
-				WARN(MSG_FS " not responding "
-				"Trying to recontact...\n");
+				WARN(MSG_FS " not responding. "
+				MSG_RECONTACT"\n");
 				waitingReply = req_resendLastMessage(fsConnection);	// todo to change to fs also
 				++nRequestTries;
 			}

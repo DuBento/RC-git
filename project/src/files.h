@@ -127,5 +127,4 @@ bool_t storeFileFromTCP(TCPConnection_t *tcpConnection, const char *filePath, in
 bool_t sendFileThroughTCP(TCPConnection_t *tcpConnection, const char *filePath, const char *fdata, int fdataSize);
 
 
-
 #endif 	/* FILES */
