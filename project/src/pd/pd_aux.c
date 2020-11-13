@@ -10,10 +10,9 @@ static int msgSize;
 bool_t req_serverError(UDPConnection_t *udpConnec) {
         msgSize = sprintf(msgBuffer, "%s%c", SERVER_ERR, CHAR_END_MSG);
         int sizeSent = udpSendMessage(udpConnec, msgBuffer, msgSize);
-        if (msgSize != sizeSent) {
+        if (msgSize != sizeSent)
                 WARN("A problem may have occured while sending the registration request!");
-                return FALSE;
-        }
+
         return TRUE;
 }
 
@@ -31,13 +30,16 @@ const char *pass, userInfo_t *userInfo) {
         msgSize = sprintf(msgBuffer, "%s %s %s %s %s%c", REQ_REG, uid, pass, 
         connectionInfo->pdip, connectionInfo->pdport, CHAR_END_MSG);        
         int sizeSent = udpSendMessage(udpConnec, msgBuffer, msgSize);        
-        if (msgSize != sizeSent) {
+        if (msgSize != sizeSent)
                 WARN("A problem may have occured while sending the registration request!");
-                return FALSE;
-        }
+
 
         userInfo->uid = (char*)(malloc((strlen(uid) + 1) * sizeof(char)));
         userInfo->pass = (char*)(malloc((strlen(pass) + 1) * sizeof(char)));
+        if (userInfo->uid != NULL && userInfo->pass != NULL) {
+                FATAL("Error while allocating memory for the new user! Terminating the server...");
+                return FALSE;
+        }
         strcpy(userInfo->uid, uid);
         strcpy(userInfo->pass, pass);        
         return TRUE;
@@ -47,10 +49,8 @@ const char *pass, userInfo_t *userInfo) {
 // unregisters a user from the authentication system
 bool_t req_unregisterUser(UDPConnection_t *udpConnec, userInfo_t *userInfo) {
         // check if the user is connected
-        if (!userInfo->connected) {
-                WARN("No session is currently opened! Operation ignored.");
-                return FALSE;
-        }
+        if (!userInfo->connected)
+                raise(SIGTERM);
 
         msgSize = sprintf(msgBuffer, "%s %s %s%c", REQ_UNR, userInfo->uid, userInfo->pass, CHAR_END_MSG);        
         int sizeSent = udpSendMessage(udpConnec, msgBuffer, msgSize);        
