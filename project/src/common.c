@@ -141,7 +141,7 @@ bool_t isVCValid(const char *buffer) {
 
 // checks if the TID is valid
 bool_t isTIDValid(const char *buffer) {
-		return isStringValid(buffer, STR_DIGIT, TID_SIZE);
+		return isStringValid(buffer, STR_DIGIT, TID_SIZE) && atoi(buffer) > 999;
 }
 
 bool_t isStatusValid(const char *buffer) {
