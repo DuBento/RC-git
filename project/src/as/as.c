@@ -22,7 +22,7 @@ typedef struct connectionInfo_t {
 /* ========== GLOBAL ============= */
 int exitCode = INIT_RUNTIME;
 DIR *dir = NULL;
-char dir_path[PATH_MAX];
+char mainDir_path[PATH_MAX];
 TCPConnection_t *tcpServer = NULL;
 UDPConnection_t *udpServer = NULL;
 List_t userList = NULL;
@@ -76,7 +76,7 @@ void immediateExitAS() {
 void exitAS(int flag) {
 	udpDestroySocket(udpServer);
 	tcpDestroySocket(tcpServer);
-	cleanLogs(dir, dir_path);
+	cleanLogs(dir);
 	listDestroy(userList, cleanListNodeUser);
 	listDestroy(pdList, free);
 	closedir(dir);
@@ -123,19 +123,19 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	// PD
 	// Registration Request
 	if (!strcmp(opcode, REQ_REG))
-		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG), dir_path);
+		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG));
 	
 	// Unregistration Request
 	else if (!strcmp(opcode, REQ_UNR))
-		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR), dir_path, pdList);                
+		req_unregisterPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR));                
 
 	// Validation Code received "RVC"
 	else if (!strcmp(opcode, RESP_VLC))
-		resp_validationCode(udpConnec, &recvConnoc, userList, pdList, msgBuf+strlen(REQ_UNR));
+		resp_validationCode(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR));
 		
 	// FS
 	else if (!strcmp(opcode, REQ_VLD))
-		req_authOP(udpConnec, &recvConnoc, msgBuf+strlen(REQ_VLD), userList);
+		req_authOP(udpConnec, &recvConnoc, msgBuf+strlen(REQ_VLD));
 	// General
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
@@ -152,7 +152,7 @@ bool_t handleTCP(userNode_t *tcpNode, char *msgBuf) {
 	char opcode[BUFFER_SIZE];
 
 	if (tcpReceiveMessage(&tcpNode->tcpConn, msgBuf, BUFFER_SIZE) == -1){
-		unregisterUser(tcpNode, dir_path, pdList);
+		unregisterUser(tcpNode);
 		return FALSE;	
 	}
 
@@ -160,11 +160,11 @@ bool_t handleTCP(userNode_t *tcpNode, char *msgBuf) {
 
 	// Login Request
 	if (!strcmp(opcode, REQ_LOG))
-		req_loginUser(tcpNode, msgBuf+strlen(REQ_LOG), dir_path);
+		req_loginUser(tcpNode, msgBuf+strlen(REQ_LOG));
 	
 	// File manipulation Request
 	else if (!strcmp(opcode, REQ_REQ))
-		req_fileOP(tcpNode, msgBuf+strlen(REQ_LOG), dir_path, udpServer, pdList);
+		req_fileOP(tcpNode, udpServer, msgBuf+strlen(REQ_LOG));
 	
 	// Authorize Op
 	else if (!strcmp(opcode, REQ_AUT))
@@ -234,7 +234,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 				// act as previous message didn't reach the target
 				// try to resend NTRIES_NORESP times
 				if (nodeData->nAttempts < NREQUEST_TRIES)
-					resendMessagePD(udpServer, nodeData, dir_path);	//handle no reponse to prev msg
+					resendMessagePD(udpServer, nodeData);	//handle no reponse to prev msg
 				else{
 					nTry = 0;
 					listRemove(pdList, node, free);
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
 	/* Default AS port. */        
 	connectionInfo_t connectionInfo = {"58053\0"};
 	parseArgs(argc, argv, &connectionInfo);
-	dir = initDir(argv[0], DIR_NAME, dir_path);
+	dir = initDir(argv[0], DIR_NAME, mainDir_path);
 	
 	pdList = listCreate();
 	userList = listCreate();
