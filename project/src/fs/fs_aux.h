@@ -23,10 +23,9 @@ typedef struct connectionInfo_t {
 // the structure that stores a request from the user
 typedef struct userRequest_t {
 	TCPConnection_t *tcpConnection;
-	float timeExpired;
-	int nTries;
 	char fop;
 	void(*exeRequest)(struct userRequest_t*, const char*);
+	float timeExpired;
 
 	char replyHeader[4];
 	int fsid;

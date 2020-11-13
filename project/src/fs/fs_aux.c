@@ -15,8 +15,7 @@ static bool_t _fillBaseRequest(userRequest_t *userRequest, const char *uid, cons
 
     static int fsidgen = 0;
     userRequest->fsid = fsidgen++;
-    userRequest->nTries = 0;
-	userRequest->timeExpired = 0;
+    userRequest->timeExpired = -1;
     strcpy(userRequest->uid, uid);
 	strcpy(userRequest->tid, tid);
     return TRUE;
@@ -261,5 +260,5 @@ void validateRequest(UDPConnection_t *asServer, userRequest_t *userRequest) {
     char msg[msgSize];
     sprintf(msg, "%s %s %s\n", REQ_VLD, userRequest->uid, userRequest->tid);
     udpSendMessage(asServer, msg, msgSize);
-    userRequest->nTries++;
+    userRequest->timeExpired = 0;
 }

@@ -25,6 +25,8 @@ void initSignal(void *handlerSucc, void *handlerUn){
 		_FATAL("Unable to add the SIGILL signal to the unsucess termination set!\n\t - Error code: %d", errno);
 	if (sigaddset(&actUn.sa_mask, SIGSEGV))         // segementation fault
 		_FATAL("Unable to add the SIGSEGV signal to the unsucess termination set!\n\t - Error code: %d", errno);
+	if (sigaddset(&actUn.sa_mask, SIGPIPE))         // error when writting on a pipe (closed on the other end)
+		_FATAL("Unable to add the SIGPIPE signal to the unsucess termination set!\n\t - Error code: %d", errno);
 
 	actSucc.sa_flags     = SA_SIGINFO|SA_RESTART;
 	actSucc.sa_sigaction = handlerSucc;
