@@ -476,15 +476,6 @@ bool_t resp_retrieve(TCPConnection_t **fsConnection, char *response, char **file
 		sizelen = strlen(size);
 		// shift pointer to reach beginning of already received data
 		data += sizelen + SEPARATOR_SIZE;
-<<<<<<< HEAD
-=======
-	//	datalen = strlen(data);
-_LOG("1st char %c", *data);
-
-_LOG("difference %ld", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
-		sizelen+SEPARATOR_SIZE)]-data);
-
->>>>>>> 46ba2632f275bb2c68122b2a5e327884a9d75d44
 
 		if (!storeFileFromTCP(fsconnection, fname, fsize, data, 
 		&data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+

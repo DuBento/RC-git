@@ -10,7 +10,7 @@ int tid = TID_INVALID;
 /* File name being handled in retreive requests. */
 char *filename = NULL;
 
-int flags;
+
 
 connectionInfo_t connectionInfo = {"\0", "58053\0", "\0", "59053\0"};
 
