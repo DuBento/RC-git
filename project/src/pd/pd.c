@@ -8,7 +8,7 @@
 int exitCode = INIT_RUNTIME;
 static userInfo_t userInfo = {0};
 //static connectionInfo_t connectionInfo = {"", "57053\0", """, "58011\0"};
-static connectionInfo_t connectionInfo = {"", "57053\0", "", "58011\0"};
+static connectionInfo_t connectionInfo = {"", "57053\0", "", "58053\0"};
 
 static UDPConnection_t *asConnection = NULL;
 static UDPConnection_t *pdConnection = NULL;		// fd to the socket in which PD acts as an UDP server
