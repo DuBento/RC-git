@@ -486,8 +486,6 @@ bool_t req_fileOP(userNode_t *node, UDPConnection_t *udpConn, char* buf) {
                 return FALSE;
         }
 
-        // TODO _verbosity
-
         int vc = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
         // VLC UID VC Fop [Fname]
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0' && isFileNameValid(fname)) {
@@ -561,9 +559,9 @@ bool_t req_auth(userNode_t *node, char* buf) {
                 return FALSE;
         }
         else if (!strcmp(node->uid, uid) && node->rid == atoi(rid) && node->vc == atoi(vc)) {
+                VC_CLEAR(node); RID_CLEAR(node);      // clear vc and rid, one time usage
                 node->tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
                 msgLen = sprintf(answer, "%s %d%c", RESP_AUT, node->tid, CHAR_END_MSG);
-                VC_CLEAR(node); RID_CLEAR(node);      // clear vc and rid, one time usage
         } else 
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);
 
