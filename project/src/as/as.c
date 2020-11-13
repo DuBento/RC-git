@@ -138,7 +138,7 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 		req_authOP(udpConnec, &recvConnoc, msgBuf+strlen(REQ_VLD));
 	// [General]
 	else if (!strcmp(opcode, SERVER_ERR)) {
-		WARN("Invalid request! Operation ignored.");
+		FATAL("Got server error from UDP client!");
 		return FALSE;
 	}
 	else{
@@ -172,11 +172,11 @@ bool_t handleTCP(userNode_t *tcpNode, char *msgBuf) {
 	
 	// Error
 	else if (!strcmp(opcode, SERVER_ERR)) {
-		WARN("Invalid request! Operation ignored.");
+		FATAL("Got server error from TCP client!");
 	}
 	else{
-		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		req_serverErrorTCP(&tcpNode->tcpConn, msgBuf);
+		_FATAL("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 	}
 
 	return TRUE;
@@ -270,7 +270,7 @@ void waitMainEvent(TCPConnection_t *tcp_server, UDPConnection_t *udp_server, cha
 			TCPConnection_t *conn = &nodeData->tcpConn;
 			if (FD_ISSET(conn->fd, &ready_fds)){
 				if(handleTCP(nodeData, msgBuf) == FALSE){
-					LOG("connection closed");
+					_VERBOSE("TCP Connection closed. [%s:%d]", tcpConnIp(conn), tcpConnPort(conn));
 					// connection closed
 					removeSocket(conn, &fds, &fds_size);
 					listRemove(userList, node, cleanListNodeUser);

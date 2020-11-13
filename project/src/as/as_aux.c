@@ -49,7 +49,7 @@ userNode_t* _getUserNode(char* uid) {
 // deletes everything 
 void _removeUID(userNode_t* node) {
         char dirname[FILE_SIZE];
-        sprintf(dirname, "%s%s", DIR_NAME, node->uid);
+        sprintf(dirname, "%s%s", USERDIR_PREFIX, node->uid);
         _cleanQueueFromUID(node->uid);  // clears queue
         deleteDirectory(mainDir_path, dirname);  // clear all file logs
         USER_CLEAR(node);       // unlog user
@@ -84,10 +84,7 @@ void cleanLogs(DIR* dir){
 	struct dirent *ent;
     	while ((ent = readdir(dir)) != NULL) {
 		_cleanLogFile(ent->d_name, REGFILE_SUFIX);
-                // sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
-		// if (deleteFile(path, ent->d_name, file))
-		// 	_VERBOSE("Deleted login file. %s", file);	
-	}
+        }
 }
 
 /* ====== */
@@ -118,13 +115,13 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Registering Personal Device:\n\tFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Registering Personal Device:\t[%s:%d]", udpConnIp(receiver), udpConnPort(receiver));
         
         // parse buf
         sscanf(buf, "%s %s %s %s", uid, pass, pdip, pdport);
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass) || !isIPValid(pdip) || !isPortValid(pdport)) {
-                _WARN("Invalid arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nSending error...",
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nSending error...",
                                 uid, pass, pdip, pdport);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
@@ -204,11 +201,11 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         
-        _VERBOSE("Unregistering Personal Device:\t\nFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Unregistering Personal Device:\t[%s:%d]", udpConnIp(receiver), udpConnPort(receiver));
         
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
-                _WARN("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
                         uid, pass);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
@@ -242,7 +239,7 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
         char uid[BUFFER_SIZE], status[BUFFER_SIZE];
         INIT_BUF(uid); INIT_BUF(status);
 
-        _VERBOSE("Received validation code response from Personal Device:\t\nFrom IP:%s\tPORT:%d", 
+        _VERBOSE("Received validation code response from Personal Device:\t[%s:%d]", 
                 udpConnIp(receiver), udpConnPort(receiver));
 
 
@@ -273,6 +270,8 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
 
         // checks
         if (!isUIDValid(uid) || !isTIDValid(tid)) {
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\ntid: %s\nSending error...", 
+                        uid, tid);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
@@ -347,13 +346,13 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf) {
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Login User:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+        _VERBOSE("Login User:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
-                _WARN("Invalid arguments received from User at login:\nuid: %s\npass: %s",
+                _FATAL("Invalid arguments received from User at login:\nuid: %s\npass: %s",
                                 uid, pass);
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
@@ -429,7 +428,7 @@ bool_t unregisterUser(userNode_t* nodeTCP) {
         // remove msgs from waitingReply Queue
         _cleanQueueFromUID(nodeTCP->uid);
 
-        _VERBOSE("User app exited.\nFrom\tIP:%s\tPORT:%d\n\tUID: %s", tcpConnIp(tcpConn), tcpConnPort(tcpConn), nodeTCP->uid);
+        _VERBOSE("User app exited.\t[%s:%d]\n\tUID: %s", tcpConnIp(tcpConn), tcpConnPort(tcpConn), nodeTCP->uid);
         USER_CLEAR(nodeTCP);         // also clears the uid
 
         return TRUE;
@@ -448,13 +447,15 @@ bool_t req_fileOP(userNode_t *node, UDPConnection_t *udpConn, char* buf) {
 
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request file op:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+        _VERBOSE("User request file op:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // UID RID Fop [Fname]
         sscanf(buf, "%s %s %c %s", uid, rid, &fop, fname);
 
         // Main checks
         if (!isUIDValid(uid) || !isRIDValid(rid)) {
+                 _FATAL("Invalid arguments received from User at login:\nuid: %s\nrid: %s",
+                                uid, rid);
                 req_serverErrorTCP(tcpConn, answer);
                 return FALSE;
         }
@@ -463,8 +464,7 @@ bool_t req_fileOP(userNode_t *node, UDPConnection_t *udpConn, char* buf) {
 
         else if (!strcmp(getFileOp(fop), "\0"))       // no known file op
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EFOP, CHAR_END_MSG);
-                
-               
+                   
         else if (strcmp(node->uid, uid))    // uid dont match
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EUSER, CHAR_END_MSG);
 
@@ -549,12 +549,14 @@ bool_t req_auth(userNode_t *node, char* buf) {
         int msgLen;
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request authorization:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
+        _VERBOSE("User request authorization:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         sscanf(buf, "%s %s %s", uid, rid, vc);
 
         // checks
         if (!isUIDValid(uid) || !isRIDValid(rid) || !isVCValid(vc)) {
+                _FATAL("Invalid arguments received from User at login:\nuid: %s\nrid: %s\nvc: %s",
+                                uid, rid, vc);
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
         }

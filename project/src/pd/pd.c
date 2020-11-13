@@ -199,8 +199,8 @@ bool_t handleServer(UDPConnection_t *udpConnec) {
 	}
 	
 	else{
-		_WARN("Invalid opcode on the server response! Sending error...\n\tGot\t: %s", opcode);
-		return req_serverError(udpConnec);
+		req_serverError(udpConnec);
+		_FATAL("Invalid opcode on the server response! Sending error...\n\tGot\t: %s", opcode);
 	}
 }
 
@@ -237,7 +237,7 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	}
 	
 	else{
-		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
+		_FATAL("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		return req_serverError(udpConnec);
 	}
 }

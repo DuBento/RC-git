@@ -132,7 +132,7 @@ bool_t resp_registerUser(char *status, userInfo_t *userInfo) {
                 return FALSE;
         }
                 
-        WARN("Invalid status on the server response! Operation ignored.");
+        FATAL("Invalid status on the server response! Operation ignored.");
         return FALSE;
 }
 
@@ -152,7 +152,7 @@ bool_t resp_unregisterUser(char *status, userInfo_t *userInfo) {
                 raise(SIGTERM); // unconditional stop execution
         }
 
-        WARN("Invalid status on the server response! Operation ignored.");
+        FATAL("Invalid status on the server response! Operation ignored.");
         return FALSE;
 }
 
