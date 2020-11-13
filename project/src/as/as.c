@@ -120,7 +120,7 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 
 	sscanf(msgBuf, "%s", opcode);
 
-	// PD
+	// [PD]
 	// Registration Request
 	if (!strcmp(opcode, REQ_REG))
 		req_registerPD(udpConnec, &recvConnoc, msgBuf+strlen(REQ_REG));
@@ -133,17 +133,17 @@ bool_t handleUDP(UDPConnection_t *udpConnec, char *msgBuf) {
 	else if (!strcmp(opcode, RESP_VLC))
 		resp_validationCode(udpConnec, &recvConnoc, msgBuf+strlen(REQ_UNR));
 		
-	// FS
+	// [FS]
 	else if (!strcmp(opcode, REQ_VLD))
 		req_authOP(udpConnec, &recvConnoc, msgBuf+strlen(REQ_VLD));
-	// General
+	// [General]
 	else if (!strcmp(opcode, SERVER_ERR)) {
 		WARN("Invalid request! Operation ignored.");
 		return FALSE;
 	}
 	else{
-		_WARN("Invalid opcode on the server response! Sending error... Got: %s", opcode);
 		req_serverErrorUDP(udpConnec, &recvConnoc, msgBuf);
+		_FATAL("Invalid opcode on the server response! Sending error... Got: %s", opcode);
 		return FALSE;
 	}
 }
