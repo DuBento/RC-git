@@ -561,11 +561,10 @@ bool_t req_auth(userNode_t *node, char* buf) {
         } else 
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);
 
-        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s", uid, rid, vc);
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s\n\tnew tid: %d", uid, rid, vc, node->tid);
 
         tcpSendMessage(tcpConn, answer, msgLen);
 
-        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s", uid, rid, vc);
         VERBOSE("\t## Valid ##");
         return TRUE;
 }
