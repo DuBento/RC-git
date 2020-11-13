@@ -30,20 +30,8 @@ typedef struct user_info_t {
 
 } userInfo_t;
 
-// tejo: IP=193.136.138.142). AS  (TCP/UDP) no porto 58011; FS TCP no porto 59000.
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, TEJO_IP, TEJO_FS_PORT};
-
-// Sigma testing fs
-//static connectionInfo_t connectionInfo = {TEJO_IP, TEJO_AS_PORT, "193.136.128.108\0", "59053\0"};
-
-// Sigma testing as
-//static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", TEJO_IP, TEJO_FS_PORT};
-
-// Sigma testing BOTH
-static connectionInfo_t connectionInfo = {"193.136.128.108\0", "58053\0", "193.136.128.108\0", "59053\0"};
 
 
-static userInfo_t userInfo = { 0 };
 
 
 
@@ -112,16 +100,16 @@ static userInfo_t userInfo = { 0 };
 #define	MSG_ERR_INV_REQ	"Invalid request!"
 #define	MSG_ERR_INV_CMD	"Invalid command!"
 #define MSG_ERR_INV_FOP	"Invalid file operation (Fop)!"
-#define MSG_ERR_INV_FMT "Request incorrectly formatted, dear."
+#define MSG_ERR_INV_FMT "Request incorrectly formatted."
 #define	MSG_OP_IGN	"Operation ignored."
 #define MSG_DNE		" does not exist"
 #define MSG_FILES_DNE	"There are no files"
 #define MSG_MAXFILES	"maximum files (15)"
 
-#define MSG_SUC_LOG	"Login successeful. Congrats lad."
+#define MSG_SUC_LOG	"Login successeful."
 #define MSG_SUC_AUT	"Authentication successeful."
 #define	MSG_SUC_REQ	"Request successefully made."
-#define	MSG_SUC_REM	"Remotion successeful! You're free!! :D"
+#define	MSG_SUC_REM	"Remotion successeful!"
 #define	MSG_SUC_UPL	"Upload successeful."
 
 #define MSG_FLD		"Failed to "
@@ -153,12 +141,15 @@ static userInfo_t userInfo = { 0 };
 
 #define	TCP_FLD_RCV	-1
 
-/*! \brief Brief function description here
+/*! \brief Sends a user message through a TCP connection.
  *
- *  Detailed description of the function
+ *  Sends through TCP the message contained in the buffer specified as argument.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  tcpConnection	the TCP connection through which the message is 
+ * 				sent.
+ * \param  msgBuffer		the buffer containing the message.
+ * \param  msgSize		
+ * \return TRUE if message successefully sent.
  */
 bool_t sendUserMessage(TCPConnection_t *tcpConnection, char *msgBuffer, int msgSize);
 
@@ -198,21 +189,24 @@ int req_request(TCPConnection_t *asConnection, const userInfo_t *userInfo,
 		const char *fop, const char *fname);
 
 
-/*! \brief Brief function description here
+/*! \brief Requests a validation code.
  *
  *  After the user checking the VC on the PD, the User application sends this
  *  message to the AS with the UID and the VC, along with the request identifier
  *  RID, to complete the second factor authentication. 
  *  A recently generated VC will be accepted by the AS only once.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  asConnection	the authentication server connection.
+ * \param  userInfo	the user's info.
+ * \param  vc		the validation code received on Personal Device (PD).
+ * \param  rid		the request's id.
+ * \return TRUE if message is successefully sent; FALSE otherwise.
  */
 bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const char *vc, int rid);
 
 
 
-/*! \brief Brief function description here
+/*! \brief Request to list files at FS.
  *
  *  User establishes TCP session with FS
  *  asking for the list of files this user has previously
@@ -222,28 +216,33 @@ bool_t req_val(TCPConnection_t *asConnection, const userInfo_t *userInfo, const 
  *  The reply should be displayed as a numbered list of filenames and the 
  *  respective sizes.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the File Server connection.
+ * \param  userInfo	the user's info.
+ * \param  tid		the transaction's ID.
+ * \return TRUE if user is connected to FS.
  */
 bool_t req_list(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid);
 
 
-/*! \brief Brief function description here
+/*! \brief Request to retrieve a file from FS.
  *
  *  Following the retrieve command, the User application opens a TCP
  *  connection with the FS server to retrieve the contents of the file with name
  *  Fname from the FS server. The user ID (UID) and transaction ID (TID) are
  *  also provided. Before replying, the FS sends a message to the AS to validate 
  *  the transaction (VLD).
- *
- * \param  Parameter description
- * \param  filename  pointer to store the filename.
- * \return Return parameter description
+ * 
+ * \param  fsConnection	the File Server connection.
+ * \param  userInfo	the user's info.
+ * \param  tid		the transaction's ID.
+ * \param  fname	the file's name
+ * \param  filename	pointer to store the filename.
+ * \return TRUE if user is connected to FS.
  */
 bool_t req_retrieve(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *fname, char **filename);
 
 
-/*! \brief Brief function description here
+/*! \brief Request to upload a file from FS.
  *
  *  Following the upload command, the User application opens a TCP connection
  *  with the FS server and uploads to it the contents of the selected file (data),
@@ -251,13 +250,16 @@ bool_t req_retrieve(TCPConnection_t **fsConnection, const userInfo_t *userInfo, 
  *  (TID) are also provided. Before replying, the FS sends a message to the AS to
  *  validate the transaction (VLD).
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the File Server connection.
+ * \param  userInfo	the user's info.
+ * \param  tid		the transaction's ID.
+ * \param  filename	the file's name
+ * \return TRUE if user is connected to FS.
  */
 bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *filename);
 
 
-/*! \brief Brief function description here
+/*! \brief Request to delete a file from FS.
  *
  *  Following the delete command, the User application opens a TCP connection
  *  with the FS server and requests the deletion of the file with name Fname. 
@@ -265,13 +267,16 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo, co
  *  Before replying, the FS sends a message to the AS to validate the 
  *  transaction (VLD).
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the File Server connection.
+ * \param  userInfo	the user's info.
+ * \param  tid		the transaction's ID.
+ * \param  filename	the file's name
+ * \return TRUE if user is connected to FS.
  */
 bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid, const char *filename);
 
 
-/*! \brief Brief function description here
+/*! \brief Request to remove information from both servers.
  *
  *  Following the remove command, the User application opens a TCP connection
  *  with the FS server and requests the removal of all its files and directories 
@@ -281,23 +286,25 @@ bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo, co
  *  the FS sends a message to the AS to validate the transaction (VLD) and
  *  requesting the AS to remove the user information.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the File Server connection.
+ * \param  userInfo	the user's info.
+ * \param  tid		the transaction's ID.
+ * \return TRUE if user is connected to FS.
  */
 bool_t req_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, const int tid);
 
 
-/*! \brief Brief function description here
+/*! \brief Resends last user message.
  *
- *  Detailed description of the function
+ *  Attempts to resend the user's message because a response was not received in
+ *  time.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \return TRUE if the attempt is successeful; FALSE otherwise.
  */
 bool_t req_resendLastMessage();
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from login request.
  *
  *  In reply to a LOG request the AS server replies with the status of the login
  *  request. 
@@ -305,13 +312,13 @@ bool_t req_resendLastMessage();
  *  if the UID exists but the pass is incorrect the status is NOK; 
  *  otherwise the status is ERR.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  userInfo	pointer to structure where user info is stored.
+ * \return TRUE if login was successefull; FALSE otherwise.
  */
 bool_t resp_login(userInfo_t *userInfo, char *status);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from request request.
  *
  *  The AS server replies informing if the REQ request could be processed (valid
  *  UID), a message was sent to the PD and a successful RVC confirmation received.
@@ -324,25 +331,25 @@ bool_t resp_login(userInfo_t *userInfo, char *status);
  *  if the Fop is invalid the status is EFOP; 
  *  otherwise (e.g. incorrectly formatted REQ message) the status is ERR.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  status	response from Authentication Server (AS).
+ * \return TRUE.
  */
 bool_t resp_request(char *status);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from val request.
  *
- *  The AS confirms (or not) the success of the two-factor authentication, sending
- *  the transaction identifier TID to use in the file operation with the FS. The TID
- *  takes value 0 if the authentication failed.
+ *  The AS confirms (or not) the success of the two-factor authentication, 
+ *  sending the transaction identifier TID to use in the file operation with the
+ *  FS. The TID takes value 0 if the authentication failed.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  tidStr	the transaction id received.
+ * \return the Transaction ID (TID).
  */
-int resp_val(char *tid);
+int resp_val(char *tidStr);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from list request.
  *
  *  After receiving a message from the AS validating the transaction (CNF), the FS
  *  reply to a User application LST request contains the number N of available files,
@@ -359,17 +366,19 @@ int resp_val(char *tid);
  *  - status = INV in case of an AS validation error of the provided TID,
  *  - status = ERR if the LST request is not correctly formulated	
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the FS connection.
+ * \param  data		the response + list of files given by FS.	
+ * \return TRUE if user is no longer connected to FS.
  */
 bool_t resp_list(TCPConnection_t **fsConnection, char *data);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from retrieve request.
  *
- *  After receiving a message from the AS validating the transaction (CNF), and in
- *  reply to a RTV request, the FS server transfers to the User application the
- *  contents (data) of the selected file, as well as the file size Fsize in bytes. 
+ *  After receiving a message from the AS validating the transaction (CNF), and 
+ *  in reply to a RTV request, the FS server transfers to the User application 
+ *  the contents (data) of the selected file, as well as the file size Fsize in 
+ *  bytes. 
  *  If the RTV request was successful the status is OK, 
  *  the status is EOF if the file is not available, 
  *  the status is NOK if there is no content available in the FS
@@ -378,23 +387,29 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data);
  *  of the provided TID, and 
  *  the status is ERR if the RTV request is not correctly
  *  formulated.
- *  The name and path where the file is stored are displayed by the User application.
+ *  The name and path where the file is stored are displayed by the User 
+ *  application.
  *  After receiving the reply message, the User application closes the TCP
  *  connection with the FS.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the FS connection.
+ * \param  status	the status received by the user
+ * \param  filename	the file's name.
+ * \param  tcpMsgSize	the size of the message already read.
+ * \return TRUE if user is no longer connected to FS.
  */
-bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status, char **filename, int tcpMsgSize);
+bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status, 
+	char **filename, int tcpMsgSize);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from upload request.
  *
  *  After receiving a message from the AS (CNF) validating the transaction, the
- *  answer to a UPL request consists in the FS server replying with the status of the
- *  file transfer. 
+ *  answer to a UPL request consists in the FS server replying with the status 
+ *  of the file transfer. 
  *  If the UPL request was successful the status is OK, the status
- *  is NOK if the UID does not exist, the status is DUP if the file already existed,
+ *  is NOK if the UID does not exist, the status is DUP if the file already 
+ *  existed,
  *  the status is FULL if 15 files were previously uploaded by this User, the
  *  status is INV in case of an AS validation error of the provided TID, and the
  *  status is ERR if the UPL request is not correctly formulated.
@@ -402,17 +417,18 @@ bool_t resp_retrieve(TCPConnection_t **fsConnection, char *status, char **filena
  *  After receiving the reply message, the User application closes the TCP
  *  connection with the FS.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the FS connection.
+ * \param  status	the status received by the user
+ * \return TRUE if user is no longer connected to FS.
  */
 bool_t resp_upload(TCPConnection_t **fsConnection, char *status);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from delete request.
  *
  *  After receiving a message from the AS (CNF) validating the transaction, the
- *  answer to a DEL request consists in the FS server replying with the status of the
- *  file deletion. 
+ *  answer to a DEL request consists in the FS server replying with the status 
+ *  of the file deletion. 
  *  If the DEL request was successful the status is OK, 
  *  the status is EOF if the file is not available, 
  *  the status is NOK if the UID does not exist,
@@ -422,13 +438,14 @@ bool_t resp_upload(TCPConnection_t **fsConnection, char *status);
  *  After receiving the reply message, the User application closes the TCP
  *  connection with the FS.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the FS connection.
+ * \param  status	the status received by the user
+ * \return TRUE if user is no longer connected to FS.
  */
 bool_t resp_delete(TCPConnection_t **fsConnection, char *status);
 
 
-/*! \brief Brief function description here
+/*! \brief Receives response from remove request.
  *
  *  After receiving a message from the AS (CNF) validating the transaction and
  *  confirming the user deletion in the AS, the FS removes all the user’s files and
@@ -442,10 +459,13 @@ bool_t resp_delete(TCPConnection_t **fsConnection, char *status);
  *  After receiving the reply message, the User application closes the TCP
  *  connection with the FS.
  *
- * \param  Parameter description
- * \return Return parameter description
+ * \param  fsConnection	the FS connection.
+ * \param  userInfo	the user's info.
+ * \param  status	the status received by the user
+ * \return TRUE if user is no longer connected to FS.
  */
-bool_t resp_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, char *status);
+bool_t resp_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, 
+	char *status);
 
 
 #endif 	/* USER_AUX */

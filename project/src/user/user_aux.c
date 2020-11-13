@@ -1,5 +1,9 @@
 #include "user_aux.h"
 
+extern connectionInfo_t connectionInfo;
+
+extern userInfo_t userInfo;
+
 /******************************************************************************/
 /*									       /
 /*			Connections					       /
@@ -57,7 +61,7 @@ bool_t req_login(TCPConnection_t *asConnection, userInfo_t *userInfo,
 	if (!sendUserMessage(asConnection, msgBuffer, msgSize)) return TRUE;
 
 	// Adjust size.
-	if (!userInfo->loggedIn /*&& userInfo->uid == NULL && userInfo->pass == NULL*/) {
+	if (!userInfo->loggedIn) {
 		userInfo->uid = (char*)(malloc((strlen(uid) + 1) * sizeof(char)));
 		userInfo->pass = (char*)(malloc((strlen(pass) + 1) * sizeof(char)));
 	}
@@ -145,8 +149,11 @@ bool_t req_list(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	TCPConnection_t *fsconnection;
 
 	msgSize = sizeSent = 0;	
+
+	
 	// Establish TCP connection with FS (update ptr outside)
-	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
+	*fsConnection = fsconnection = tcpCreateClient(
+		(connectionInfo.fsip[0] == '\0' ? NULL : connectionInfo.fsip), 
 	connectionInfo.fsport);
 
 	tcpConnect(fsconnection);	
@@ -178,7 +185,8 @@ bool_t req_retrieve(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	}
 
 	// Establish TCP connection with FS (update ptr outside)
-	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
+	*fsConnection = fsconnection = tcpCreateClient(
+		(connectionInfo.fsip[0] == '\0' ? NULL : connectionInfo.fsip), 
 	connectionInfo.fsport);
 	tcpConnect(fsconnection);		
 
@@ -224,7 +232,8 @@ bool_t req_upload(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	msgSize = sizeSent = fileSize = filenameSize = 0;
 
 	// Establish TCP connection with FS (update ptr outside).
-	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
+	*fsConnection = fsconnection = tcpCreateClient(
+		(connectionInfo.fsip[0] == '\0' ? NULL : connectionInfo.fsip), 
 	connectionInfo.fsport);
 	tcpConnect(fsconnection);
 
@@ -259,7 +268,8 @@ bool_t req_delete(TCPConnection_t **fsConnection, const userInfo_t *userInfo,
 	}
 
 	// Establish TCP connection with FS (update ptr outside)
-	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
+	*fsConnection = fsconnection = tcpCreateClient(
+		(connectionInfo.fsip[0] == '\0' ? NULL : connectionInfo.fsip), 
 	connectionInfo.fsport);
 	tcpConnect(fsconnection);	
 
@@ -283,7 +293,8 @@ bool_t req_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, co
 	msgSize = sizeSent = 0;	
 
 	// Establish TCP connection with FS (update ptr outside)
-	*fsConnection = fsconnection = tcpCreateClient(connectionInfo.fsip, 
+	*fsConnection = fsconnection = tcpCreateClient(
+		(connectionInfo.fsip[0] == '\0' ? NULL : connectionInfo.fsip), 
 	connectionInfo.fsport);
 	tcpConnect(fsconnection);		
 
@@ -391,35 +402,6 @@ int resp_val(char *tidStr) {
 //-------------------------------------FS---------------------------------------
 
 
-//bool_t listFiles(TCPConnection_t **fsConnection, char *numFilesStr, char *data) {
-	
-//	char fname[BUFFER_SIZE], fsize[BUFFER_SIZE];
-//	int numFiles, fnameLen;
-	
-//	numFiles = (int) strtol(data, (char**)NULL, 10);	// check if number?
-//	if (numFiles == 0) {
-//		printf(MSG_FLD"get number of files on list operation.\n");
-//	}
-
-//	data += SEPARATOR_SIZE+nDigits(numFiles) ;	// shift pointer: space + numDigits(numFiles)
-
-	// Display list of files to user.	
-//	printf(LST_TABLE_HDR);
-
-//	for(int i = 1; i <= numFiles; i++) {
-//		if (sscanf(data, "%s %s", fname, fsize) == SSCANF_FAILURE) {
-//			printf(MSG_FLD"get fname or fsize from list operation.\n");
-//		}
-		// Display file to user.
-//		fnameLen = strlen(fname);
-//		printf("%d.\t%s%*c%s\n", i, fname,
-//			FILE_NAME_SIZE-fnameLen,' ',fsize);
-//		data += fnameLen +SEPARATOR_SIZE+strlen(fsize)+SEPARATOR_SIZE;
-//	}
-//	return TRUE;
-//}
-
-
 bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 	
 	TCPConnection_t *fsconnection;
@@ -427,10 +409,7 @@ bool_t resp_list(TCPConnection_t **fsConnection, char *data) {
 	char status[BUFFER_SIZE], fname[BUFFER_SIZE], fsize[BUFFER_SIZE];
 
 	fsconnection = *fsConnection;
-_LOG("data %s", data);
 	sscanf(data, "%s", status);
-
-_LOG("fkng status %s", status);
 
 	if (!strcmp(status, FILE_NOT_AVAILABLE)) {
 		printf(MSG_FILES_DNE " in the " MSG_FS".\n");
@@ -477,7 +456,6 @@ bool_t resp_retrieve(TCPConnection_t **fsConnection, char *response, char **file
 	int fsize, /*datalen, */statuslen, sizelen;
 
 //todo confirm if \n comes at the end of the string
-_LOG("retrv %s", response);
 
 	fname = *filename;
 	if (sscanf(response, "%s", status) == SSCANF_FAILURE) {
@@ -498,12 +476,6 @@ _LOG("retrv %s", response);
 		sizelen = strlen(size);
 		// shift pointer to reach beginning of already received data
 		data += sizelen + SEPARATOR_SIZE;
-	//	datalen = strlen(data);
-_LOG("1st char %c", *data);
-
-_LOG("difference %d", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
-		sizelen+SEPARATOR_SIZE)]-data);
-
 
 		if (!storeFileFromTCP(fsconnection, fname, fsize, data, 
 		&data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
@@ -528,7 +500,9 @@ _LOG("difference %d", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR
 		printf(MSG_AS MSG_FLD_VLD "retrieve request.\n");
 	} else if (!strcmp(status, SERVER_ERR)) {
 		printf(MSG_ERR_INV_REQ"\n");
-	}
+ 	} else {
+		 printf(MSG_ERR_COM MSG_FS".\n");
+	 }
 
 	// Close down FS TCP connection.
 	*fsConnection = tcpDestroySocket(fsconnection);
@@ -556,7 +530,7 @@ bool_t resp_upload(TCPConnection_t **fsConnection, char *status) {
 	else if (!strcmp(status, SERVER_ERR"\n"))
 		printf(MSG_ERR_INV_REQ"\n");
 	else
-		printf(MSG_ERR_COM MSG_AS".\n");
+		printf(MSG_ERR_COM MSG_FS".\n");
 	
 	
 	// Close FS TCP connection
@@ -582,7 +556,7 @@ bool_t resp_delete(TCPConnection_t **fsConnection, char *status) {
 		printf(MSG_ERR_INV_REQ"\n"
 			MSG_HELP_DUPVC"\n");
 	} else {
-		printf("Error in communication on delete response.\n");
+		printf(MSG_ERR_COM MSG_FS".\n");
 	}
 
 	// Close FS TCP connection
@@ -597,11 +571,11 @@ bool_t resp_remove(TCPConnection_t **fsConnection, const userInfo_t *userInfo, c
 	fsconnection = *fsConnection;
 	if (!strcmp(status, STATUS_OK))
 		printf(MSG_SUC_REM"\n");
-	else if (!strcmp(status, STATUS_NOK))
-		printf(MSG_UID" %s "MSG_DNE"\n", userInfo->uid);
-	else if (!strcmp(status, STATUS_INV))
+	else if (!strcmp(status, STATUS_NOK"\n"))
+		printf(MSG_UID" %s "MSG_DNE" in the "MSG_FS"\n", userInfo->uid);
+	else if (!strcmp(status, STATUS_INV"\n"))
 		printf(MSG_AS MSG_FLD_VLD MSG_TID".\n");
-	else if (!strcmp(status, SERVER_ERR))
+	else if (!strcmp(status, SERVER_ERR"\n"))
 		printf(MSG_ERR_INV_FMT "\n"
 			MSG_HELP_PRVLOG"\n");
 	

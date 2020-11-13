@@ -1,14 +1,20 @@
 #include "../common.h"
 #include "user_aux.h"
 
-static TCPConnection_t *asConnection = NULL;
-static TCPConnection_t *fsConnection = NULL; //it's quite probable this one can get out of here and just be local	
+TCPConnection_t *asConnection = NULL;
+TCPConnection_t *fsConnection = NULL; //it's quite probable this one can get out of here and just be local	
 
-static int rid = RID_INVALID;
-static int tid = TID_INVALID;
+int rid = RID_INVALID;
+int tid = TID_INVALID;
 
 /* File name being handled in retreive requests. */
-static char *filename = NULL;
+char *filename = NULL;
+
+int flags;
+
+connectionInfo_t connectionInfo = {"\0", "58053\0", "\0", "59053\0"};
+
+userInfo_t userInfo = { 0 };
 
 
 /*! \brief Cleans the program on termination
@@ -17,6 +23,8 @@ static char *filename = NULL;
  *	required modules.
  */
 void cleanUser() {
+//	fcntl(0, F_SETFL, flags);
+
 	if (asConnection != NULL)	tcpDestroySocket(asConnection);
 	if (fsConnection != NULL)	tcpDestroySocket(fsConnection);
 
@@ -104,9 +112,9 @@ for(int i = 0; i < BUFFER_SIZE; i++) {
 	char cmd[BUFFER_SIZE] = { 0 }, input1[BUFFER_SIZE] = { 0 }, 
 	input2[BUFFER_SIZE] = { 0 };
 
-_LOG("buffer %s\t%d\t\tbuffer0 %x", buffer, cmd[0], buffer[0]);
+//_LOG("buffer %s\t%d\t\tbuffer0 %x", buffer, cmd[0], buffer[0]);
 	sscanf(buffer, "%s %s %s\n", cmd, input1, input2);
-_LOG("depois do scanf %d", cmd[0]);
+//_LOG("depois do scanf %d", cmd[0]);
 	// login command: login UID pass
 	if (!strcmp(cmd, CMD_LOGIN) && input1[0] != '\0' && input2[0] != '\0') {
 		return req_login(asConnection, &userInfo, input1, input2);
@@ -150,13 +158,13 @@ _LOG("depois do scanf %d", cmd[0]);
 		terminateUser();
 			 
 	else {
-_LOG("cmd %s CMD_EXIT %s condition %d", cmd, CMD_EXIT, strcmp(cmd, CMD_EXIT) );
-int lencmd = strlen(cmd);
-int lenexit = strlen(CMD_EXIT);
-_LOG("len 1 %d, len 2 %d", lencmd, lenexit);
-for (int i = 0; i < lencmd; i++) {
-	_LOG("1st %c", cmd[i]);
-}
+//_LOG("cmd %s CMD_EXIT %s condition %d", cmd, CMD_EXIT, strcmp(cmd, CMD_EXIT) );
+//int lencmd = strlen(cmd);
+//int lenexit = strlen(CMD_EXIT);
+//_LOG("len 1 %d, len 2 %d", lencmd, lenexit);
+//for (int i = 0; i < lencmd; i++) {
+//	_LOG("1st %c", cmd[i]);
+//}
 		WARN(MSG_ERR_INV_CMD" "MSG_OP_IGN"\n");
 		return FALSE;
 	}
@@ -284,10 +292,16 @@ void runUser() {
 			fdsSize = fsConnection->fd + 1;	// is there a way not to do this all the time?
 		}	
 
-		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
-		if (selRetv  == -1)
-			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+	//	fcntl(0, F_SETFL, flags | O_NONBLOCK);
+	//	while (getchar() != EOF);
+	//	fcntl(0, F_SETFL, flags);
+		
 
+		int selRetv = select(fdsSize, &fdsTemp, NULL, NULL, &tvTemp);
+		if (selRetv  == -1) {
+			cleanUser();
+			_FATAL("Unable to start the select() to monitor the descriptors!\n\t - Error code: %d", errno);
+		}
 		// handle AS server responses
 		if (FD_ISSET(asConnection->fd, &fdsTemp)) {
 			//LOG("Yey as contacted us!");
@@ -346,7 +360,8 @@ void runUser() {
 
 bool_t initUser() {
 	/* Establish TCP connection with AS. */
-	asConnection = tcpCreateClient(connectionInfo.asip, connectionInfo.asport);
+	asConnection = tcpCreateClient(
+		(connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
 	userInfo.asConnected = tcpConnect(asConnection);
 
 	/* Initialise user info structure. */
@@ -356,8 +371,12 @@ bool_t initUser() {
 
 
 int main(int argc, char *argv[]) { 
+	
 	srand(time(NULL));
-		
+
+	// Being sure user input is clean.
+//	flags = fcntl(0, F_GETFL, 0);
+	
 	initSignal(&terminateUser, &abortUser);
 	parseArgs(argc, argv);	
 

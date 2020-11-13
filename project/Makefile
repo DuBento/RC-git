@@ -75,7 +75,7 @@ $(DIR_OBJ)/fs/fs_aux.deps = fs/fs_aux.h files.h list.h udp.h tcp.h common.h
 # ==============================================================================
 C_VERSION	= C99
 INCLUDES	= -I$(ROOT_DIR) -I$(ROOT_DIR)/src
-MACROS 		= -DDEBUG
+MACROS 		= #-DDEBUG
 # ==============================================================================
 
 
