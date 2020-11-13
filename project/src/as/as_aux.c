@@ -556,8 +556,8 @@ bool_t req_auth(userNode_t *node, char* buf) {
         }
         else if (!strcmp(node->uid, uid) && node->rid == atoi(rid) && node->vc == atoi(vc)) {
                 node->tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
-                VC_CLEAR(node); RID_CLEAR(node);      // clear vc and rid, one time usage
                 msgLen = sprintf(answer, "%s %d%c", RESP_AUT, node->tid, CHAR_END_MSG);
+                VC_CLEAR(node); RID_CLEAR(node);      // clear vc and rid, one time usage
         } else 
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);
 
