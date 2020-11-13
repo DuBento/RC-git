@@ -192,6 +192,7 @@ void _storePassPD(char* relative_path, char* dirname, char* filename, char* pass
 bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(pass);
         // dir and file manipulation
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char reg_file[2*FILE_SIZE+BUFFER_SIZE];
@@ -239,6 +240,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
 bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], status[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(status);
 
         _VERBOSE("Received validation code response from Personal Device:\t\nFrom IP:%s\tPORT:%d", 
                 udpConnIp(receiver), udpConnPort(receiver));
@@ -262,6 +264,7 @@ bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, 
 
 bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         char uid[BUFFER_SIZE], tid[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(tid);
         int msgLen;
 
         _VERBOSE("Authorizing File Op:\n\tFS IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
@@ -541,6 +544,7 @@ bool_t resp_fileOP(char* uid, char* status) {
 bool_t req_auth(userNode_t *node, char* buf) {
         // parse buffer
         char uid[BUFFER_SIZE], rid[BUFFER_SIZE], vc[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(rid); INIT_BUF(vc);
         // responsse
         TCPConnection_t *tcpConn = &node->tcpConn;
         char answer[BUFFER_SIZE];
