@@ -6,7 +6,8 @@
 
 
 static connectionInfo_t connectionInfo = {"59053\0", "\0", "58053\0"};
-static DIR *files;
+
+static DIR *files;							// the main directory of the files path
 char filesPath[PATH_MAX];
 
 TCPConnection_t *tcpConnection = NULL;
@@ -56,7 +57,7 @@ void terminateFS() {
 
 /*! \brief Terminates the program on fatal errors.
  *
- *	Termination handle called by the SIGABRT, SIGFPE, SIGILL and SIGSEGV signals
+ *	Termination handle called by the SIGABRT, SIGFPE, SIGILL, SIGSEGV and SIGPIPE signals
  */
 void abortFS() {
 	cleanFS();
@@ -124,7 +125,7 @@ void handleUserConnection(fd_set *fds, int *fdsSize) {
 		FATAL("Unable to allocate memory for the user request!");
 
 	userRequest->fileName = NULL;
-	
+		
 	tcpAcceptConnection(tcpConnection, userRequest->tcpConnection);
 	listInsert(userRequests, userRequest);
 	FD_SET(userRequest->tcpConnection->fd, fds);
