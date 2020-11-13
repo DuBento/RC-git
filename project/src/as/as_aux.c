@@ -334,7 +334,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Login User:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("Login User:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
@@ -436,7 +436,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
 
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request file op:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("User request file op:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // UID RID Fop [Fname]
         sscanf(buf, "%s %s %c %s", uid, rid, &fop, fname);
@@ -538,7 +538,7 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
         int msgLen;
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request authorization:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("User request authorization:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         sscanf(buf, "%s %s %s", uid, rid, vc);
 
@@ -557,7 +557,7 @@ bool_t req_auth(userNode_t *nodeTCP, char* buf) {
 
         tcpSendMessage(tcpConn, answer, msgLen);
 
-        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %c", uid, rid, vc);
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s", uid, rid, vc);
         VERBOSE("\t## Valid ##");
 
         return TRUE;

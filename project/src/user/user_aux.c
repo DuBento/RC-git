@@ -501,7 +501,7 @@ _LOG("retrv %s", response);
 	//	datalen = strlen(data);
 _LOG("1st char %c", *data);
 
-_LOG("difference %d", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
+_LOG("difference %ld", &data[tcpMsgSize-(PROTOCOL_MSSG_OFFSET+statuslen+SEPARATOR_SIZE+
 		sizelen+SEPARATOR_SIZE)]-data);
 
 
