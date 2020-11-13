@@ -1,9 +1,6 @@
 # RC-git
 Cadeira LEIC Redes de Computadores 2020
 
-
-# README
-
 ## Compilação
 Todos os executáveis podem ser compilados com o comando `make`. Os binários encontrar-se-ão nas diretoria *bin*.
 Os executáveis e intermediários da compilação podem ser removidos com o comando `make clean`.
