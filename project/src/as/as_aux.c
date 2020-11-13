@@ -3,10 +3,10 @@
 extern int verbosity;
 extern List_t pdList;
 extern List_t userList;
-extern char dir_path[PATH_MAX];
+extern char mainDir_path[PATH_MAX];
 
 // remove msgs from waitingReply Queue for specified uid
-void _cleanQueueFromUID(List_t pdList, char *uid) {
+void _cleanQueueFromUID(char *uid) {
         ListIterator_t iter = listIteratorCreate(pdList);
         while (!listIteratorEmpty(&iter)){
                 ListNode_t node = (ListNode_t) iter;
@@ -16,7 +16,7 @@ void _cleanQueueFromUID(List_t pdList, char *uid) {
         }
 }
 
-void _addMsgToQueue(List_t pdList, char* uid, char* msg) {
+void _addMsgToQueue(char* uid, char* msg) {
         pdNode_t *newNode = (pdNode_t*) malloc(sizeof(pdNode_t));
         newNode->nAttempts = 0;
         strcpy(newNode->msg, msg);
@@ -24,7 +24,7 @@ void _addMsgToQueue(List_t pdList, char* uid, char* msg) {
         listInsert(pdList, newNode);
 }
 
-bool_t inUserList(List_t userList, char* uid) {
+bool_t inUserList(char* uid) {
         ListIterator_t iter = listIteratorCreate(userList);
         while (!listIteratorEmpty(&iter)){
                 ListNode_t node = (ListNode_t) iter;
@@ -35,8 +35,8 @@ bool_t inUserList(List_t userList, char* uid) {
         return FALSE;
 }
 
-userNode_t* _getUserNodeUID(List_t list, char* uid) {
-        ListIterator_t iter = listIteratorCreate(list);
+userNode_t* _getUserNode(char* uid) {
+        ListIterator_t iter = listIteratorCreate(userList);
         while (!listIteratorEmpty(&iter)){
                 ListNode_t node = (ListNode_t) iter;
                 userNode_t *nodeData = listIteratorNext(&iter);
@@ -49,36 +49,50 @@ userNode_t* _getUserNodeUID(List_t list, char* uid) {
 // deletes everything 
 void _removeUID(userNode_t* node) {
         char dirname[FILE_SIZE];
-        sprintf(dirname, "%s%s", DIR_NAME, node->uid);
-        _cleanQueueFromUID(pdList, node->uid);  // clears queue
-        _cleanLogFile(dirname, REGFILE_SUFIX);  // unregisters PD
+        sprintf(dirname, "%s%s", USERDIR_PREFIX, node->uid);
+        _cleanQueueFromUID(node->uid);  // clears queue
+        deleteDirectory(mainDir_path, dirname);  // clear all file logs
         USER_CLEAR(node);       // unlog user
 
+}
+
+void _removeQueueOP(char* uid, const char* checkOP) {
+        char op[BUFFER_SIZE];
+        
+        ListIterator_t iter = listIteratorCreate(pdList);
+        while (!listIteratorEmpty(&iter)){
+                ListNode_t node = (ListNode_t) iter;
+                pdNode_t *nodeData = listIteratorNext(&iter);
+                if (!strcmp(nodeData->uid, uid)){       // matching uid
+                        sscanf(nodeData->msg, "%s", op);
+                        if (!strcmp(op, checkOP)){
+                                listRemove(pdList, node, free);
+                                break;  // remove the first
+                        }
+                }
+        }
 }
 
 void _cleanLogFile(char* dir_name, const char* fileType) {
 	char file[2*FILE_SIZE+PATH_MAX];
         sprintf(file, "%s%s", dir_name, fileType);
-        if (deleteFile(dir_path, dir_name, file))
+        if (deleteFile(mainDir_path, dir_name, file))
                 _VERBOSE("Deleted registration file. %s", file);
 }
 
-void cleanLogs(DIR* dir, char* path){
+void cleanLogs(DIR* dir){
 	struct dirent *ent;
     	while ((ent = readdir(dir)) != NULL) {
 		_cleanLogFile(ent->d_name, REGFILE_SUFIX);
-                // sprintf(file, "%s%s", ent->d_name, LOGINFILE_SUFIX);
-		// if (deleteFile(path, ent->d_name, file))
-		// 	_VERBOSE("Deleted login file. %s", file);	
-	}
+        }
 }
 
 /* ====== */
 /* UDP    */
 /* ====== */
-void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path) {
+void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node) {
         UDPConnection_t udpRecv;
-        bool_t val = _getUDPConnPD(node->uid, path, &udpRecv);
+        bool_t val = _getUDPConnPD(node->uid, &udpRecv);
 
         if(val) {
                 udpSendMessage_specifyConn(udpConn, &udpRecv, node->msg, strlen(node->msg));
@@ -88,7 +102,7 @@ void resendMessagePD(UDPConnection_t *udpConn, pdNode_t *node, char * path) {
                         \nUID: %s.", node->uid);
 }
 
-bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, char* path) {
+bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE], pdip[BUFFER_SIZE], pdport[BUFFER_SIZE];
         INIT_BUF(uid); INIT_BUF(pass); INIT_BUF(pdip); INIT_BUF(pdport);
@@ -101,13 +115,13 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Registering Personal Device:\n\tFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Registering Personal Device:\t[%s:%d]", udpConnIp(receiver), udpConnPort(receiver));
         
         // parse buf
         sscanf(buf, "%s %s %s %s", uid, pass, pdip, pdport);
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass) || !isIPValid(pdip) || !isPortValid(pdport)) {
-                _WARN("Invalid arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nSending error...",
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\npass: %s\npdip: %s\npdport: %s\nSending error...",
                                 uid, pass, pdip, pdport);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
@@ -115,7 +129,7 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
 
         // create dir if does not exist and open dir
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
-        dir = initDir(path, dirname, NULL);
+        dir = initDir(mainDir_path, dirname, NULL);
         // check if connection not already established (reg file)
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
         if (inDir(dir, reg_file)) { 
@@ -130,7 +144,7 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
         // check if password file doesnt exists, then create
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
 
-        if (retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
+        if (retreiveFile(mainDir_path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
                 if (strcmp(stored_pass, pass) != 0){        // check given password dont match
                         _WARN("Regestring: Passwords don't match:\nuid: %s\npass: %s\tstored pass:%s\nSending error...",
                                 uid, pass, stored_pass);
@@ -141,14 +155,14 @@ bool_t req_registerPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char*
                 }
         }       
         else {  // no file to be read, first time connection
-                _storePassPD(path, dirname, pass_file, pass); // create file
+                _storePassPD(mainDir_path, dirname, pass_file, pass); // create file
         }
 
         free(stored_pass);      // if null op not perfomed
         
         _VERBOSE("\tuid: %s\n\tpass: %s\n\tPDip: %s\n\tPDport: %s", uid, pass, pdip, pdport);
         
-        _registerPD(path, dirname, reg_file, pdip, pdport);
+        _registerPD(mainDir_path, dirname, reg_file, pdip, pdport);
 
         // reply to PD
         msgLen = sprintf(answer, "%s %s%c", RESP_REG, STATUS_OK, CHAR_END_MSG);
@@ -172,9 +186,10 @@ void _storePassPD(char* relative_path, char* dirname, char* filename, char* pass
 
 
 
-bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, char* path, List_t list) {
+bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(pass);
         // dir and file manipulation
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char reg_file[2*FILE_SIZE+BUFFER_SIZE];
@@ -186,11 +201,11 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         
-        _VERBOSE("Unregistering Personal Device:\t\nFrom IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
+        _VERBOSE("Unregistering Personal Device:\t[%s:%d]", udpConnIp(receiver), udpConnPort(receiver));
         
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
-                _WARN("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\n pass: %s\nSending error...", 
                         uid, pass);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
@@ -200,8 +215,8 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
 
         // tries to delete password file
-        if (!deleteFile(path, dirname, reg_file))
-                if(errno == ENOENT){
+        if (!deleteFile(mainDir_path, dirname, reg_file))
+                if(errno == ENOENT){    // file doesnt exist
                         _WARN("PD: %s was not registered. Sending server error...", uid);
                         msgLen = sprintf(answer, "%s %s%c", RESP_UNR, STATUS_NOK, CHAR_END_MSG);
                         udpSendMessage_specifyConn(udpConn, receiver, answer, msgLen);
@@ -209,7 +224,7 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
                 }
 
         // remove msgs from waitingReply Queue
-        _cleanQueueFromUID(list, uid);
+        _cleanQueueFromUID(uid);
         
         _VERBOSE("\tuid: %s\n\tpass: %s", uid, pass);
 
@@ -219,41 +234,34 @@ bool_t req_unregisterPD(UDPConnection_t *udpConn, UDPConnection_t *receiver, cha
         return TRUE;
 }
 
-bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, List_t userList, List_t pdList, char* buf) {
+bool_t resp_validationCode(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         // parse buf
-        char uid[BUFFER_SIZE], status[BUFFER_SIZE], op[BUFFER_SIZE];
+        char uid[BUFFER_SIZE], status[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(status);
 
-        _VERBOSE("Received validation code response from Personal Device:\t\nFrom IP:%s\tPORT:%d", 
+        _VERBOSE("Received validation code response from Personal Device:\t[%s:%d]", 
                 udpConnIp(receiver), udpConnPort(receiver));
 
 
         sscanf(buf, "%s %s", uid, status);
 
-        if (!isUIDValid(uid) || !inUserList(userList, uid) || !isStatusValid(status)) {
+        if (!isUIDValid(uid) || !inUserList(uid) || !isStatusValid(status)) {
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
 
-        ListIterator_t iter = listIteratorCreate(pdList);
-        while (!listIteratorEmpty(&iter)){
-                ListNode_t node = (ListNode_t) iter;
-                pdNode_t *nodeData = listIteratorNext(&iter);
-                if (!strcmp(nodeData->uid, uid)){       // matching uid
-                        sscanf(nodeData->msg, "%s", op);
-                        if (!strcmp(op, REQ_VLC)){
-                                listRemove(pdList, node, free);
-                                break;  // remove the first
-                        }
-                }
-        }
+        // remove from waitinh queue
+        _removeQueueOP(uid, REQ_VLC);
+        
 
         _VERBOSE("\tuid: %s\n\tstatus: %s", uid, status);
-        resp_fileOP(userList, uid, status);
+        resp_fileOP(uid, status);
         
 }
 
-bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf, List_t userlist) {
+bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf) {
         char uid[BUFFER_SIZE], tid[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(tid);
         int msgLen;
 
         _VERBOSE("Authorizing File Op:\n\tFS IP:%s\tPORT:%d", udpConnIp(receiver), udpConnPort(receiver));
@@ -262,6 +270,8 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
 
         // checks
         if (!isUIDValid(uid) || !isTIDValid(tid)) {
+                _FATAL("Invalid arguments received from Personal Device:\nuid: %s\ntid: %s\nSending error...", 
+                        uid, tid);
                 req_serverErrorUDP(udpConn, receiver, buf);
                 return FALSE;
         }
@@ -269,7 +279,7 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
         _VERBOSE("\tuid: %s\n\ttid: %s", uid, tid);
 
         // find user in log list
-        userNode_t *node = _getUserNodeUID(userlist, uid); 
+        userNode_t *node = _getUserNode(uid); 
 
         if(node == NULL) {      // user not loged
                 req_serverErrorUDP(udpConn, receiver, buf);
@@ -278,7 +288,7 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
 
         TCPConnection_t *tcpConn = &node->tcpConn;
 
-        if (node->tid != -1 && node->tid == atoi(tid)){
+        if (!(IS_TID_CLEAR(node)) && node->tid == atoi(tid)){
                 if (node->fop == FOP_X){
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                         _removeUID(node);
@@ -288,12 +298,14 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
                 else 
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                 VERBOSE("\t## Valid ##");
-        }else
+        }else {
                 msgLen = sprintf(buf, "%s %s %s %c%c", RESP_VLD, node->uid, tid, FOP_E, CHAR_END_MSG);
+                VERBOSE("\t!! Valid !!");
+        }
 
         udpSendMessage_specifyConn(udpConn, receiver, buf, msgLen);
         
-        node->tid = -1;  // one time only tid, set as clean
+        TID_CLEAR(node);  // one time only tid, set as clean
         
         return TRUE;
 }
@@ -319,7 +331,7 @@ bool_t req_serverErrorUDP(UDPConnection_t *udpConn, UDPConnection_t *recvConnoc,
 /* TCP    */
 /* ====== */
 
-bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
+bool_t req_loginUser(userNode_t *nodeTCP, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], pass[BUFFER_SIZE]={0};
         INIT_BUF(uid); INIT_BUF(pass);
@@ -334,13 +346,13 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         char answer[BUFFER_SIZE];
         int msgLen;
         
-        _VERBOSE("Login User:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("Login User:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // parse buf
         sscanf(buf, "%s %s", uid, pass);
         // Checks
         if (!isUIDValid(uid) || !isPassValid(pass)) {
-                _WARN("Invalid arguments received from User at login:\nuid: %s\npass: %s",
+                _FATAL("Invalid arguments received from User at login:\nuid: %s\npass: %s",
                                 uid, pass);
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
@@ -355,8 +367,7 @@ bool_t req_loginUser(userNode_t *nodeTCP, char* buf, char* path) {
         sprintf(pass_file, "%s%s", dirname, PASSFILE_SUFIX);
 
 
-        if (retreiveFile(path, dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
-                // stored_pass[size-1] = '\0';
+        if (retreiveFile(mainDir_path , dirname, pass_file, &stored_pass) > 0){          // file available from previous registration
                 _LOG("PASS, %s. Stored %s.", pass, stored_pass);
                 if (strcmp(stored_pass, pass) != 0){        // check given password dont match
                         _WARN("Login: Passwords don't match:\nuid: %s\npass: %s\tstored pass:%s\nSending error...",
@@ -398,7 +409,7 @@ void _loginUser(char* relative_path, char* dirname, char* filename, char* ip, in
 }
 
 
-bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
+bool_t unregisterUser(userNode_t* nodeTCP) {
         char login_file[2*FILE_SIZE+BUFFER_SIZE];
         char dirname[FILE_SIZE+BUFFER_SIZE];
         //response
@@ -415,45 +426,46 @@ bool_t unregisterUser(userNode_t* nodeTCP, char* path, List_t list) {
 
 
         // remove msgs from waitingReply Queue
-        _cleanQueueFromUID(list, nodeTCP->uid);
+        _cleanQueueFromUID(nodeTCP->uid);
 
-        _VERBOSE("User app exited.\nFrom\tIP:%s\tPORT:%d\n\tUID: %s", tcpConnIp(tcpConn), tcpConnPort(tcpConn), nodeTCP->uid);
+        _VERBOSE("User app exited.\t[%s:%d]\n\tUID: %s", tcpConnIp(tcpConn), tcpConnPort(tcpConn), nodeTCP->uid);
         USER_CLEAR(nodeTCP);         // also clears the uid
 
         return TRUE;
 }
 
 
-bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *udpConn, List_t list) {
+bool_t req_fileOP(userNode_t *node, UDPConnection_t *udpConn, char* buf) {
         // parse buf
         char uid[BUFFER_SIZE], rid[BUFFER_SIZE], fop=0, fname[BUFFER_SIZE];
         INIT_BUF(uid); INIT_BUF(fname);
         // response
-        TCPConnection_t *tcpConn = &nodeTCP->tcpConn;
+        TCPConnection_t *tcpConn = &node->tcpConn;
         UDPConnection_t udpRecv;
         char answer[BUFFER_SIZE];
         int msgLen;
 
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request file op:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("User request file op:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         // UID RID Fop [Fname]
         sscanf(buf, "%s %s %c %s", uid, rid, &fop, fname);
 
         // Main checks
         if (!isUIDValid(uid) || !isRIDValid(rid)) {
+                 _FATAL("Invalid arguments received from User at login:\nuid: %s\nrid: %s",
+                                uid, rid);
                 req_serverErrorTCP(tcpConn, answer);
                 return FALSE;
         }
-        else if (!USER_LOGEDIN(nodeTCP))         // user not loged in
+        else if (!USER_LOGEDIN(node))         // user not loged in
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_ELOG, CHAR_END_MSG);
 
         else if (!strcmp(getFileOp(fop), "\0"))       // no known file op
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EFOP, CHAR_END_MSG);
-                
-               
-        else if (strcmp(nodeTCP->uid, uid))    // uid dont match
+                   
+        else if (strcmp(node->uid, uid))    // uid dont match
                 msgLen = sprintf(answer, "%s %s%c", RESP_REQ, STATUS_EUSER, CHAR_END_MSG);
 
         // if buffer has ben modified
@@ -465,7 +477,7 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
         _VERBOSE("\tuid: %s\n\trid: %s\n\tfop: %c\n\tfname: %s", uid, rid, fop, fname);
 
         // Try to send request to PD
-        bool_t val = _getUDPConnPD(nodeTCP->uid, path, &udpRecv);
+        bool_t val = _getUDPConnPD(node->uid, &udpRecv);
         
         if (val == FALSE) {
                 // unable to talk with PD
@@ -474,31 +486,29 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
                 return FALSE;
         }
 
-        // TODO _verbosity
-
         int vc = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
         // VLC UID VC Fop [Fname]
         if ((fop == FOP_R || fop == FOP_U || fop == FOP_D) && fname[0] != '\0' && isFileNameValid(fname)) {
                 // reply
-                msgLen = sprintf(answer, "%s %s %d %c %s%c", REQ_VLC, nodeTCP->uid, vc, fop, fname, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c %s%c", REQ_VLC, node->uid, vc, fop, fname, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 // store info
-                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc; nodeTCP->fop = fop;
-                strcpy(nodeTCP->fname, fname);
+                node->rid = atoi(rid); node->vc = vc; node->fop = fop;
+                strcpy(node->fname, fname);
                 // log msg for waiting queue
-                _addMsgToQueue(list, nodeTCP->uid, answer);
+                _addMsgToQueue(node->uid, answer);
                 VERBOSE("\t## Valid ##");
                 return TRUE;
         }
 
-        if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
+        else if ((fop == FOP_L || fop == FOP_X) && fname[0] == '\0') {
                 // reply
-                msgLen = sprintf(answer, "%s %s %d %c%c", REQ_VLC, nodeTCP->uid, vc, fop, CHAR_END_MSG);
+                msgLen = sprintf(answer, "%s %s %d %c%c", REQ_VLC, node->uid, vc, fop, CHAR_END_MSG);
                 udpSendMessage_specifyConn(udpConn, &udpRecv, answer, msgLen);
                 // store info
-                nodeTCP->rid = atoi(rid); nodeTCP->vc = vc; nodeTCP->fop = fop; nodeTCP->fname[0] = '\0';
+                node->rid = atoi(rid); node->vc = vc; node->fop = fop; FNAME_CLEAR(node);
                 // log msg for waiting queue
-                _addMsgToQueue(list, nodeTCP->uid, answer);
+                _addMsgToQueue(node->uid, answer);
                 VERBOSE("\t## Valid ##");
                 return TRUE;
         }
@@ -509,11 +519,11 @@ bool_t req_fileOP(userNode_t *nodeTCP, char* buf, char* path, UDPConnection_t *u
 }
 
 
-bool_t resp_fileOP(List_t list, char* uid, char* status) {
+bool_t resp_fileOP(char* uid, char* status) {
         int msgLen;
         char answer[BUFFER_SIZE];
         
-        ListIterator_t iter = listIteratorCreate(list);
+        ListIterator_t iter = listIteratorCreate(userList);
         while (!listIteratorEmpty(&iter)){
                 ListNode_t node = (ListNode_t) iter;
                 userNode_t *nodeData = listIteratorNext(&iter);
@@ -529,43 +539,45 @@ bool_t resp_fileOP(List_t list, char* uid, char* status) {
 }
 
 
-bool_t req_auth(userNode_t *nodeTCP, char* buf) {
+bool_t req_auth(userNode_t *node, char* buf) {
         // parse buffer
         char uid[BUFFER_SIZE], rid[BUFFER_SIZE], vc[BUFFER_SIZE];
+        INIT_BUF(uid); INIT_BUF(rid); INIT_BUF(vc);
         // responsse
-        TCPConnection_t *tcpConn = &nodeTCP->tcpConn;
+        TCPConnection_t *tcpConn = &node->tcpConn;
         char answer[BUFFER_SIZE];
         int msgLen;
         answer[0]='\0';         // reducing code size
 
-        _VERBOSE("User request authorization:\nFrom\tIP:%s\tPORT:%d", tcpConnIp(tcpConn), tcpConnIp(tcpConn));
+        _VERBOSE("User request authorization:\t[%s:%d]", tcpConnIp(tcpConn), tcpConnPort(tcpConn));
 
         sscanf(buf, "%s %s %s", uid, rid, vc);
 
         // checks
         if (!isUIDValid(uid) || !isRIDValid(rid) || !isVCValid(vc)) {
+                _FATAL("Invalid arguments received from User at login:\nuid: %s\nrid: %s\nvc: %s",
+                                uid, rid, vc);
                 req_serverErrorTCP(tcpConn, buf);
                 return FALSE;
         }
-        else if (!strcmp(nodeTCP->uid, uid) && nodeTCP->rid == atoi(rid) && nodeTCP->vc == atoi(vc)) {
-                int tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
-                nodeTCP->tid = tid;
-                nodeTCP->rid = -1; nodeTCP->vc = -1;      // clear vc and rid, one time usage
-                msgLen = sprintf(answer, "%s %d%c", RESP_AUT, tid, CHAR_END_MSG);
+        else if (!strcmp(node->uid, uid) && node->rid == atoi(rid) && node->vc == atoi(vc)) {
+                VC_CLEAR(node); RID_CLEAR(node);      // clear vc and rid, one time usage
+                node->tid = randomNumber(RAND_NUM_MIN, RAND_NUM_MAX);
+                msgLen = sprintf(answer, "%s %d%c", RESP_AUT, node->tid, CHAR_END_MSG);
         } else 
                 msgLen = sprintf(answer, "%s %s%c", RESP_AUT, AUTH_ERROR, CHAR_END_MSG);
 
+        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %s\n\tnew tid: %d", uid, rid, vc, node->tid);
+
         tcpSendMessage(tcpConn, answer, msgLen);
 
-        _VERBOSE("\tuid: %s\n\trid: %s\n\tvc: %c", uid, rid, vc);
         VERBOSE("\t## Valid ##");
-
         return TRUE;
 }
 
 
 
-bool_t _getUDPConnPD(char *uid, char* path, UDPConnection_t *conn) {
+bool_t _getUDPConnPD(char *uid, UDPConnection_t *conn) {
         // check if password file doesnt exists, then create
         char dirname[FILE_SIZE+BUFFER_SIZE];
         char reg_file[2*FILE_SIZE+BUFFER_SIZE];
@@ -576,11 +588,11 @@ bool_t _getUDPConnPD(char *uid, char* path, UDPConnection_t *conn) {
         sprintf(dirname, "%s%s", USERDIR_PREFIX, uid); 
         sprintf(reg_file, "%s%s", dirname, REGFILE_SUFIX);
 
-        if (retreiveFile(path, dirname, reg_file, &stored_data) > 0){          
+        if (retreiveFile(mainDir_path, dirname, reg_file, &stored_data) > 0){          
                 // file available from previous registration
                 sscanf(stored_data, "%s\n%s", ip, port);                
                 free(stored_data);
-                udpMakeSockaddr(conn, ip,port);
+                udpMakeSockaddr(conn, ip, port);
                 return TRUE;
         }
         else {

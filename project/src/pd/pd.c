@@ -8,7 +8,7 @@
 int exitCode = INIT_RUNTIME;
 static userInfo_t userInfo = {0};
 //static connectionInfo_t connectionInfo = {"", "57053\0", """, "58011\0"};
-static connectionInfo_t connectionInfo = {"", "57053\0", "193.136.138.142\0", "58011\0"};
+static connectionInfo_t connectionInfo = {"", "57053\0", "", "58011\0"};
 
 static UDPConnection_t *asConnection = NULL;
 static UDPConnection_t *pdConnection = NULL;		// fd to the socket in which PD acts as an UDP server
@@ -30,7 +30,7 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize);
  */
 void cleanPD() {
 	if (asConnection == NULL)
-			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			asConnection = udpCreateClient((connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
 			
 	if(userInfo.connected) {
 		req_unregisterUser(asConnection, &userInfo);
@@ -118,6 +118,8 @@ void parseArgs(int argc, char *argv[]) {
 
 
 
+
+
 void removeSocketClient(fd_set *fds, int *fdsSize) {
 	if (fds == NULL || fdsSize == NULL)	return;
 	int fd = asConnection->fd;
@@ -131,6 +133,10 @@ void addSocket(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	if (*fdsSize < udpConnec->fd+1)	*fdsSize = udpConnec->fd+1;
 	FD_SET(udpConnec->fd, fds);
 }
+
+
+
+
 
 /*! \brief Handles the user input during the runtime.
  *
@@ -150,7 +156,7 @@ bool_t handleUser(fd_set *fds, int *fdsSize) {
 	// register command
 	if (!strcmp(cmd, CMD_REG) && uid[0] != '\0' && pass[0] != '\0') {
 		if (asConnection == NULL) {
-			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			asConnection = udpCreateClient((connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
 			addSocket(asConnection, fds, fdsSize);
 		}
 		return req_registerUser(asConnection, &connectionInfo, uid, pass, &userInfo);
@@ -159,7 +165,7 @@ bool_t handleUser(fd_set *fds, int *fdsSize) {
 	// exit command
 	if (!strcmp(cmd, CMD_EXIT) && uid[0] == '\0'){
 		if (asConnection == NULL) {
-			asConnection = udpCreateClient(connectionInfo.asip, connectionInfo.asport);
+			asConnection = udpCreateClient((connectionInfo.asip[0] == '\0' ? NULL : connectionInfo.asip), connectionInfo.asport);
 			addSocket(asConnection, fds, fdsSize);
 		}
 		return req_unregisterUser(asConnection, &userInfo);
@@ -188,13 +194,13 @@ bool_t handleServer(UDPConnection_t *udpConnec) {
 		return resp_valCode(udpConnec, &receiver, buffer, &userInfo);
 
 	else if (validArgs == 1 && !strcmp(opcode, SERVER_ERR)) {
-		WARN("Invalid request! Operation ignored.");
+		printf("Error on comunication with the AS server! Terminating the program...\n");
 		return FALSE;
 	}
 	
 	else{
-		_WARN("Invalid opcode on the server response! Sending error...\n\tGot\t: %s", opcode);
-		return req_serverError(udpConnec);
+		req_serverError(udpConnec);
+		_FATAL("Invalid opcode on the server response! Sending error...\n\tGot\t: %s", opcode);
 	}
 }
 
@@ -231,7 +237,7 @@ bool_t handleClient(UDPConnection_t *udpConnec, fd_set *fds, int *fdsSize) {
 	}
 	
 	else{
-		_WARN("Invalid opcode on the server response! Sending error. Got: %s", opcode);
+		_FATAL("Invalid opcode on the server response! Sending error. Got: %s", opcode);
 		return req_serverError(udpConnec);
 	}
 }
@@ -322,6 +328,8 @@ void runPD() {
 int main(int argc, char *argv[]) {
 	initSignal(&terminatePD, &abortPD);	// sets the termination signals
 	parseArgs(argc, argv);				// parses the execution arguments
+	if (exitCode != INIT_RUNTIME)
+		return INIT_RUNTIME;
 
 	userInfo.connected = FALSE;
 	runPD();
