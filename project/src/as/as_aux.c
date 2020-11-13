@@ -286,7 +286,7 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
 
         TCPConnection_t *tcpConn = &node->tcpConn;
 
-        if (!IS_TID_CLEAR(node) && node->tid == atoi(tid)){
+        if (!(IS_TID_CLEAR(node)) && node->tid == atoi(tid)){
                 if (node->fop == FOP_X){
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                         _removeUID(node);
@@ -296,8 +296,10 @@ bool_t req_authOP(UDPConnection_t *udpConn, UDPConnection_t *receiver, char* buf
                 else 
                         msgLen = sprintf(buf, "%s %s %d %c%c", RESP_VLD, node->uid, node->tid, node->fop, CHAR_END_MSG);
                 VERBOSE("\t## Valid ##");
-        }else
+        }else {
                 msgLen = sprintf(buf, "%s %s %s %c%c", RESP_VLD, node->uid, tid, FOP_E, CHAR_END_MSG);
+                VERBOSE("\t!! Valid !!");
+        }
 
         udpSendMessage_specifyConn(udpConn, receiver, buf, msgLen);
         
